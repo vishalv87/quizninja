@@ -27,6 +27,11 @@ func Connect(cfg *config.Config) {
 	}
 
 	log.Println("Successfully connected to database")
+
+	// Run migrations
+	if err = RunMigrations(DB); err != nil {
+		log.Fatal("Failed to run migrations:", err)
+	}
 }
 
 func Close() {
