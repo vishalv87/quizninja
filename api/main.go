@@ -43,6 +43,9 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	})
 
 	authHandler := handlers.NewAuthHandler(cfg)
+	categoriesHandler := handlers.NewCategoriesHandler(cfg)
+	preferencesHandler := handlers.NewPreferencesHandler(cfg)
+	appSettingsHandler := handlers.NewAppSettingsHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -52,6 +55,17 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			})
 		})
 
+		// Public endpoints
+		quizzes := api.Group("/quizzes")
+		{
+			quizzes.GET("/categories", categoriesHandler.GetCategories)
+		}
+
+		config := api.Group("/config")
+		{
+			config.GET("/app-settings", appSettingsHandler.GetAppSettings)
+		}
+
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", authHandler.Register)
@@ -60,10 +74,23 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			auth.POST("/logout", authHandler.Logout)
 		}
 
+		// Protected endpoints
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
 			protected.GET("/profile", authHandler.GetProfile)
+
+			users := protected.Group("/users")
+			{
+				users.PUT("/preferences", preferencesHandler.UpdatePreferences)
+				users.GET("/preferences", preferencesHandler.GetPreferences)
+			}
+
+			// Admin endpoints for cache management
+			admin := protected.Group("/admin")
+			{
+				admin.DELETE("/cache/app-settings", appSettingsHandler.ClearCache)
+			}
 		}
 	}
 }
