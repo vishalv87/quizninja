@@ -6,6 +6,7 @@ import (
 
 	"quizninja-api/config"
 	"quizninja-api/database"
+	"quizninja-api/handlers"
 	"quizninja-api/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -25,7 +26,7 @@ func main() {
 	r.Use(middleware.ErrorHandler())
 	r.Use(middleware.CORS(cfg.AllowedOrigins))
 
-	setupRoutes(r)
+	setupRoutes(r, cfg)
 
 	log.Printf("Server starting on port %s", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {
@@ -33,13 +34,15 @@ func main() {
 	}
 }
 
-func setupRoutes(r *gin.Engine) {
+func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "healthy",
 			"message": "QuizNinja API is running",
 		})
 	})
+
+	authHandler := handlers.NewAuthHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -48,5 +51,19 @@ func setupRoutes(r *gin.Engine) {
 				"message": "pong",
 			})
 		})
+
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.RefreshToken)
+			auth.POST("/logout", authHandler.Logout)
+		}
+
+		protected := api.Group("/")
+		protected.Use(middleware.AuthMiddleware(cfg))
+		{
+			protected.GET("/profile", authHandler.GetProfile)
+		}
 	}
 }
