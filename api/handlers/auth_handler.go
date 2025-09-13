@@ -63,6 +63,7 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 		Name:         req.Name,
+		Age:          req.Age,
 	}
 
 	if err := ah.userRepo.CreateUser(user); err != nil {
@@ -70,6 +71,26 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 			"error": "Failed to create user",
 		})
 		return
+	}
+
+	// Create user preferences if provided
+	if req.Preferences != nil {
+		preferences := &models.UserPreferences{
+			UserID:                user.ID,
+			SelectedInterests:     models.StringArray(req.Preferences.SelectedInterests),
+			DifficultyPreference:  req.Preferences.DifficultyPreference,
+			NotificationsEnabled:  req.Preferences.NotificationsEnabled,
+			NotificationFrequency: req.Preferences.NotificationFrequency,
+		}
+
+		if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to create user preferences",
+			})
+			return
+		}
+
+		user.Preferences = preferences
 	}
 
 	accessToken, err := utils.GenerateAccessToken(user.ID, ah.config.JWTSecret)
@@ -138,6 +159,14 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 			"error": "Invalid credentials",
 		})
 		return
+	}
+
+	// Update user's online status and last active timestamp
+	if err := ah.userRepo.UpdateUserOnlineStatus(user.ID, true); err != nil {
+		// Log but don't fail the login
+	}
+	if err := ah.userRepo.UpdateUserLastActive(user.ID); err != nil {
+		// Log but don't fail the login
 	}
 
 	accessToken, err := utils.GenerateAccessToken(user.ID, ah.config.JWTSecret)
@@ -269,6 +298,13 @@ func (ah *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
+	// Get refresh token to find user ID for status update
+	storedToken, err := ah.userRepo.GetRefreshToken(req.RefreshToken)
+	if err == nil {
+		// Update user's online status to false
+		ah.userRepo.UpdateUserOnlineStatus(storedToken.UserID, false)
+	}
+
 	if err := ah.userRepo.DeleteRefreshToken(req.RefreshToken); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to logout",
@@ -290,7 +326,7 @@ func (ah *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := ah.userRepo.GetUserByID(userID.(uuid.UUID))
+	user, err := ah.userRepo.GetUserWithPreferences(userID.(uuid.UUID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to get user profile",
