@@ -46,6 +46,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	categoriesHandler := handlers.NewCategoriesHandler(cfg)
 	preferencesHandler := handlers.NewPreferencesHandler(cfg)
 	appSettingsHandler := handlers.NewAppSettingsHandler(cfg)
+	quizHandler := handlers.NewQuizHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -58,6 +59,10 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 		// Public endpoints
 		quizzes := api.Group("/quizzes")
 		{
+			quizzes.GET("", quizHandler.GetQuizzes)
+			quizzes.GET("/:id", quizHandler.GetQuizByID)
+			quizzes.GET("/featured", quizHandler.GetFeaturedQuizzes)
+			quizzes.GET("/category/:category", quizHandler.GetQuizzesByCategory)
 			quizzes.GET("/categories", categoriesHandler.GetCategories)
 		}
 
@@ -84,6 +89,16 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			{
 				users.PUT("/preferences", preferencesHandler.UpdatePreferences)
 				users.GET("/preferences", preferencesHandler.GetPreferences)
+				users.GET("/quizzes", quizHandler.GetUserQuizzes)
+			}
+
+			// Protected quiz endpoints
+			protectedQuizzes := protected.Group("/quizzes")
+			{
+				protectedQuizzes.POST("", quizHandler.CreateQuiz)
+				protectedQuizzes.PUT("/:id", quizHandler.UpdateQuiz)
+				protectedQuizzes.DELETE("/:id", quizHandler.DeleteQuiz)
+				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
 			}
 
 			// Admin endpoints for cache management

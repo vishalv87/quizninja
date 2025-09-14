@@ -35,14 +35,51 @@ type UserRepositoryInterface interface {
 	UpdateUserLastActive(userID uuid.UUID) error
 }
 
+// QuizRepositoryInterface defines the contract for quiz data operations
+type QuizRepositoryInterface interface {
+	// Quiz CRUD operations
+	CreateQuiz(quiz *models.Quiz) error
+	GetQuizByID(id uuid.UUID) (*models.Quiz, error)
+	GetQuizByIDWithQuestions(id uuid.UUID) (*models.Quiz, error)
+	GetQuizByIDWithStatistics(id uuid.UUID) (*models.Quiz, error)
+	GetQuizByIDWithAll(id uuid.UUID) (*models.Quiz, error)
+	UpdateQuiz(quiz *models.Quiz) error
+	DeleteQuiz(id uuid.UUID) error
+
+	// Quiz list operations with filtering and pagination
+	GetQuizzes(filters *models.QuizFilters) ([]models.Quiz, int, error)
+	GetFeaturedQuizzes(limit int) ([]models.Quiz, error)
+	GetQuizzesByCategory(category string, limit int) ([]models.Quiz, error)
+	GetQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error)
+
+	// Question operations
+	CreateQuestion(question *models.Question) error
+	UpdateQuestion(question *models.Question) error
+	DeleteQuestion(id uuid.UUID) error
+	GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error)
+
+	// Quiz statistics operations
+	CreateQuizStatistics(stats *models.QuizStatistics) error
+	UpdateQuizStatistics(stats *models.QuizStatistics) error
+	GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatistics, error)
+
+	// Quiz attempt operations
+	CreateQuizAttempt(attempt *models.QuizAttempt) error
+	UpdateQuizAttempt(attempt *models.QuizAttempt) error
+	GetQuizAttempt(id uuid.UUID) (*models.QuizAttempt, error)
+	GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models.QuizAttempt, error)
+}
+
 // Repository aggregates all repository interfaces
 type Repository struct {
 	User UserRepositoryInterface
+	Quiz QuizRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
 func NewRepository() *Repository {
 	return &Repository{
 		User: NewUserRepository(),
+		Quiz: NewQuizRepository(),
 	}
 }
