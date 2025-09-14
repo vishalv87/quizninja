@@ -59,7 +59,7 @@ func (h *QuizHandler) GetQuizByID(c *gin.Context) {
 	idParam := c.Param("id")
 	quizID, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format")
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
 		return
 	}
 
@@ -138,7 +138,7 @@ func (h *QuizHandler) UpdateQuiz(c *gin.Context) {
 	idParam := c.Param("id")
 	quizID, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format")
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
 		return
 	}
 
@@ -190,7 +190,7 @@ func (h *QuizHandler) DeleteQuiz(c *gin.Context) {
 	idParam := c.Param("id")
 	quizID, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format")
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
 		return
 	}
 
@@ -296,7 +296,7 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 	idParam := c.Param("id")
 	quizID, err := uuid.Parse(idParam)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format")
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
 		return
 	}
 
