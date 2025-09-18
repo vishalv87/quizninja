@@ -93,5 +93,5 @@ CREATE TRIGGER update_quizzes_updated_at
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_quiz_statistics_last_updated
-    BEFORE UPDATE ON quiz_statistics
+BEFORE UPDATE ON quiz_statistics
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

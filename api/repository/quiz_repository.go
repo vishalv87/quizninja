@@ -32,8 +32,8 @@ func (r *QuizRepository) CreateQuiz(quiz *models.Quiz) error {
 
 	// Insert quiz
 	quizQuery := `
-		INSERT INTO quizzes (id, title, description, category, difficulty, time_limit,
-		                   question_count, is_featured, is_public, created_by, tags,
+		INSERT INTO quizzes (id, title, description, category_id, difficulty, time_limit_minutes,
+		                   total_questions, is_featured, is_public, created_by, tags,
 		                   thumbnail_url, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
@@ -83,7 +83,7 @@ func (r *QuizRepository) CreateQuiz(quiz *models.Quiz) error {
 // GetQuizByID retrieves a quiz by its ID (basic info only)
 func (r *QuizRepository) GetQuizByID(id uuid.UUID) (*models.Quiz, error) {
 	query := `
-		SELECT id, title, description, category, difficulty, time_limit, question_count,
+		SELECT id, title, description, category_id, difficulty, time_limit_minutes, total_questions,
 		       is_featured, is_public, created_by, tags, thumbnail_url, created_at, updated_at
 		FROM quizzes
 		WHERE id = $1`
@@ -280,10 +280,10 @@ func (r *QuizRepository) GetQuizzes(filters *models.QuizFilters) ([]models.Quiz,
 	// Get paginated results
 	offset := (filters.Page - 1) * filters.PageSize
 	query := fmt.Sprintf(`
-		SELECT q.id, q.title, q.description, q.category, q.difficulty, q.time_limit,
-		       q.question_count, q.is_featured, q.is_public, q.created_by, q.tags,
+		SELECT q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
+		       q.total_questions, q.is_featured, q.is_public, q.created_by, q.tags,
 		       q.thumbnail_url, q.created_at, q.updated_at,
-		       qs.total_attempts, qs.average_score, qs.average_time
+		       qs.total_attempts, qs.average_score, qs.average_time_seconds
 		FROM quizzes q
 		LEFT JOIN quiz_statistics qs ON q.id = qs.quiz_id
 		%s
@@ -372,10 +372,10 @@ func (r *QuizRepository) GetQuizzesByUser(userID uuid.UUID, offset, limit int) (
 
 	// Get paginated results
 	query := `
-		SELECT q.id, q.title, q.description, q.category, q.difficulty, q.time_limit,
-		       q.question_count, q.is_featured, q.is_public, q.created_by, q.tags,
+		SELECT q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
+		       q.total_questions, q.is_featured, q.is_public, q.created_by, q.tags,
 		       q.thumbnail_url, q.created_at, q.updated_at,
-		       qs.total_attempts, qs.average_score, qs.average_time
+		       qs.total_attempts, qs.average_score, qs.average_time_seconds
 		FROM quizzes q
 		LEFT JOIN quiz_statistics qs ON q.id = qs.quiz_id
 		WHERE q.created_by = $1

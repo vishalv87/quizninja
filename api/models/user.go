@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -169,10 +170,10 @@ type Quiz struct {
 	ID                uuid.UUID    `json:"id" db:"id"`
 	Title             string       `json:"title" db:"title"`
 	Description       string       `json:"description" db:"description"`
-	Category          string       `json:"category" db:"category"`
+	Category          string       `json:"category" db:"category_id"`
 	Difficulty        string       `json:"difficulty" db:"difficulty"`
-	TimeLimit         int          `json:"time_limit" db:"time_limit"` // in seconds
-	QuestionCount     int          `json:"question_count" db:"question_count"`
+	TimeLimit         int          `json:"time_limit" db:"time_limit_minutes"` // in minutes
+	QuestionCount     int          `json:"question_count" db:"total_questions"`
 	IsFeatured        bool         `json:"is_featured" db:"is_featured"`
 	IsPublic          bool         `json:"is_public" db:"is_public"`
 	CreatedBy         uuid.UUID    `json:"created_by" db:"created_by"`
@@ -182,6 +183,34 @@ type Quiz struct {
 	UpdatedAt         time.Time    `json:"updated_at" db:"updated_at"`
 	Questions         []Question   `json:"questions,omitempty"`
 	Statistics        *QuizStatistics `json:"statistics,omitempty"`
+}
+
+// MarshalJSON converts TimeLimit from minutes to seconds for JSON response
+func (q Quiz) MarshalJSON() ([]byte, error) {
+	type Alias Quiz
+	return json.Marshal(&struct {
+		TimeLimit int `json:"time_limit"` // Convert minutes to seconds
+		*Alias
+	}{
+		TimeLimit: q.TimeLimit * 60, // Convert minutes to seconds
+		Alias:     (*Alias)(&q),
+	})
+}
+
+// UnmarshalJSON converts TimeLimit from seconds to minutes when receiving JSON
+func (q *Quiz) UnmarshalJSON(data []byte) error {
+	type Alias Quiz
+	aux := &struct {
+		TimeLimit int `json:"time_limit"` // Expect seconds from JSON
+		*Alias
+	}{
+		Alias: (*Alias)(q),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	q.TimeLimit = aux.TimeLimit / 60 // Convert seconds to minutes for storage
+	return nil
 }
 
 type Question struct {
