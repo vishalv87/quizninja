@@ -6,7 +6,6 @@ import (
 	"quizninja-api/database"
 	"quizninja-api/models"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -20,64 +19,6 @@ func NewQuizRepository() *QuizRepository {
 	return &QuizRepository{
 		db: database.DB,
 	}
-}
-
-// CreateQuiz creates a new quiz with its questions
-func (r *QuizRepository) CreateQuiz(quiz *models.Quiz) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	// Insert quiz
-	quizQuery := `
-		INSERT INTO quizzes (id, title, description, category_id, difficulty, time_limit_minutes,
-		                   total_questions, is_featured, is_public, created_by, tags,
-		                   thumbnail_url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
-
-	_, err = tx.Exec(quizQuery, quiz.ID, quiz.Title, quiz.Description, quiz.Category,
-		quiz.Difficulty, quiz.TimeLimit, quiz.QuestionCount, quiz.IsFeatured,
-		quiz.IsPublic, quiz.CreatedBy, pq.Array(quiz.Tags), quiz.ThumbnailURL,
-		quiz.CreatedAt, quiz.UpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to insert quiz: %w", err)
-	}
-
-	// Insert questions
-	if len(quiz.Questions) > 0 {
-		questionQuery := `
-			INSERT INTO questions (id, quiz_id, question_text, question_type, options,
-			                     correct_answer, explanation, points, "order", image_url,
-			                     created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-
-		for _, question := range quiz.Questions {
-			_, err = tx.Exec(questionQuery, question.ID, question.QuizID, question.QuestionText,
-				question.QuestionType, pq.Array(question.Options), question.CorrectAnswer,
-				question.Explanation, question.Points, question.Order, question.ImageURL,
-				question.CreatedAt, question.UpdatedAt)
-			if err != nil {
-				return fmt.Errorf("failed to insert question: %w", err)
-			}
-		}
-	}
-
-	// Create initial statistics
-	statsQuery := `
-		INSERT INTO quiz_statistics (id, quiz_id, total_attempts, completed_attempts,
-		                           average_score, average_time, highest_score, lowest_score,
-		                           created_at, updated_at)
-		VALUES ($1, $2, 0, 0, 0, 0, 0, 0, $3, $4)`
-
-	statsID := uuid.New()
-	_, err = tx.Exec(statsQuery, statsID, quiz.ID, time.Now(), time.Now())
-	if err != nil {
-		return fmt.Errorf("failed to insert quiz statistics: %w", err)
-	}
-
-	return tx.Commit()
 }
 
 // GetQuizByID retrieves a quiz by its ID (basic info only)
@@ -153,78 +94,6 @@ func (r *QuizRepository) GetQuizByIDWithAll(id uuid.UUID) (*models.Quiz, error) 
 
 	quiz.Statistics = stats
 	return quiz, nil
-}
-
-// UpdateQuiz updates an existing quiz
-func (r *QuizRepository) UpdateQuiz(quiz *models.Quiz) error {
-	query := `
-		UPDATE quizzes
-		SET title = $2, description = $3, category = $4, difficulty = $5,
-		    time_limit = $6, is_featured = $7, is_public = $8, tags = $9,
-		    thumbnail_url = $10, updated_at = $11
-		WHERE id = $1`
-
-	result, err := r.db.Exec(query, quiz.ID, quiz.Title, quiz.Description, quiz.Category,
-		quiz.Difficulty, quiz.TimeLimit, quiz.IsFeatured, quiz.IsPublic,
-		pq.Array(quiz.Tags), quiz.ThumbnailURL, quiz.UpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update quiz: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("quiz not found")
-	}
-
-	return nil
-}
-
-// DeleteQuiz deletes a quiz and its related data
-func (r *QuizRepository) DeleteQuiz(id uuid.UUID) error {
-	tx, err := r.db.Begin()
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	// Delete quiz attempts
-	_, err = tx.Exec("DELETE FROM quiz_attempts WHERE quiz_id = $1", id)
-	if err != nil {
-		return fmt.Errorf("failed to delete quiz attempts: %w", err)
-	}
-
-	// Delete quiz statistics
-	_, err = tx.Exec("DELETE FROM quiz_statistics WHERE quiz_id = $1", id)
-	if err != nil {
-		return fmt.Errorf("failed to delete quiz statistics: %w", err)
-	}
-
-	// Delete questions
-	_, err = tx.Exec("DELETE FROM questions WHERE quiz_id = $1", id)
-	if err != nil {
-		return fmt.Errorf("failed to delete questions: %w", err)
-	}
-
-	// Delete quiz
-	result, err := tx.Exec("DELETE FROM quizzes WHERE id = $1", id)
-	if err != nil {
-		return fmt.Errorf("failed to delete quiz: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("quiz not found")
-	}
-
-	return tx.Commit()
 }
 
 // GetQuizzes retrieves quizzes with filtering and pagination
@@ -458,72 +327,6 @@ func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Questi
 	return questions, nil
 }
 
-// CreateQuestion creates a new question
-func (r *QuizRepository) CreateQuestion(question *models.Question) error {
-	query := `
-		INSERT INTO questions (id, quiz_id, question_text, question_type, options,
-		                     correct_answer, explanation, points, "order", image_url,
-		                     created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-
-	_, err := r.db.Exec(query, question.ID, question.QuizID, question.QuestionText,
-		question.QuestionType, pq.Array(question.Options), question.CorrectAnswer,
-		question.Explanation, question.Points, question.Order, question.ImageURL,
-		question.CreatedAt, question.UpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to create question: %w", err)
-	}
-
-	return nil
-}
-
-// UpdateQuestion updates an existing question
-func (r *QuizRepository) UpdateQuestion(question *models.Question) error {
-	query := `
-		UPDATE questions
-		SET question_text = $3, question_type = $4, options = $5, correct_answer = $6,
-		    explanation = $7, points = $8, "order" = $9, image_url = $10, updated_at = $11
-		WHERE id = $1 AND quiz_id = $2`
-
-	result, err := r.db.Exec(query, question.ID, question.QuizID, question.QuestionText,
-		question.QuestionType, pq.Array(question.Options), question.CorrectAnswer,
-		question.Explanation, question.Points, question.Order, question.ImageURL,
-		question.UpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update question: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("question not found")
-	}
-
-	return nil
-}
-
-// DeleteQuestion deletes a question
-func (r *QuizRepository) DeleteQuestion(id uuid.UUID) error {
-	result, err := r.db.Exec("DELETE FROM questions WHERE id = $1", id)
-	if err != nil {
-		return fmt.Errorf("failed to delete question: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("question not found")
-	}
-
-	return nil
-}
-
 // GetQuizStatistics retrieves quiz statistics
 func (r *QuizRepository) GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatistics, error) {
 	query := `
@@ -546,53 +349,6 @@ func (r *QuizRepository) GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatis
 	}
 
 	return &stats, nil
-}
-
-// CreateQuizStatistics creates initial quiz statistics
-func (r *QuizRepository) CreateQuizStatistics(stats *models.QuizStatistics) error {
-	query := `
-		INSERT INTO quiz_statistics (id, quiz_id, total_attempts, completed_attempts,
-		                           average_score, average_time, highest_score, lowest_score,
-		                           last_attempt_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
-
-	_, err := r.db.Exec(query, stats.ID, stats.QuizID, stats.TotalAttempts,
-		stats.CompletedAttempts, stats.AverageScore, stats.AverageTime,
-		stats.HighestScore, stats.LowestScore, stats.LastAttemptAt,
-		stats.CreatedAt, stats.UpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to create quiz statistics: %w", err)
-	}
-
-	return nil
-}
-
-// UpdateQuizStatistics updates quiz statistics
-func (r *QuizRepository) UpdateQuizStatistics(stats *models.QuizStatistics) error {
-	query := `
-		UPDATE quiz_statistics
-		SET total_attempts = $3, completed_attempts = $4, average_score = $5,
-		    average_time = $6, highest_score = $7, lowest_score = $8,
-		    last_attempt_at = $9, updated_at = $10
-		WHERE id = $1 AND quiz_id = $2`
-
-	result, err := r.db.Exec(query, stats.ID, stats.QuizID, stats.TotalAttempts,
-		stats.CompletedAttempts, stats.AverageScore, stats.AverageTime,
-		stats.HighestScore, stats.LowestScore, stats.LastAttemptAt, stats.UpdatedAt)
-	if err != nil {
-		return fmt.Errorf("failed to update quiz statistics: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("quiz statistics not found")
-	}
-
-	return nil
 }
 
 // Quiz attempt operations

@@ -37,14 +37,11 @@ type UserRepositoryInterface interface {
 
 // QuizRepositoryInterface defines the contract for quiz data operations
 type QuizRepositoryInterface interface {
-	// Quiz CRUD operations
-	CreateQuiz(quiz *models.Quiz) error
+	// Quiz read operations
 	GetQuizByID(id uuid.UUID) (*models.Quiz, error)
 	GetQuizByIDWithQuestions(id uuid.UUID) (*models.Quiz, error)
 	GetQuizByIDWithStatistics(id uuid.UUID) (*models.Quiz, error)
 	GetQuizByIDWithAll(id uuid.UUID) (*models.Quiz, error)
-	UpdateQuiz(quiz *models.Quiz) error
-	DeleteQuiz(id uuid.UUID) error
 
 	// Quiz list operations with filtering and pagination
 	GetQuizzes(filters *models.QuizFilters) ([]models.Quiz, int, error)
@@ -52,15 +49,10 @@ type QuizRepositoryInterface interface {
 	GetQuizzesByCategory(category string, limit int) ([]models.Quiz, error)
 	GetQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error)
 
-	// Question operations
-	CreateQuestion(question *models.Question) error
-	UpdateQuestion(question *models.Question) error
-	DeleteQuestion(id uuid.UUID) error
+	// Question read operations
 	GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error)
 
-	// Quiz statistics operations
-	CreateQuizStatistics(stats *models.QuizStatistics) error
-	UpdateQuizStatistics(stats *models.QuizStatistics) error
+	// Quiz statistics read operations
 	GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatistics, error)
 
 	// Quiz attempt operations

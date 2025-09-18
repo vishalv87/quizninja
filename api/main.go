@@ -95,9 +95,6 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			// Protected quiz endpoints
 			protectedQuizzes := protected.Group("/quizzes")
 			{
-				protectedQuizzes.POST("", quizHandler.CreateQuiz)
-				protectedQuizzes.PUT("/:id", quizHandler.UpdateQuiz)
-				protectedQuizzes.DELETE("/:id", quizHandler.DeleteQuiz)
 				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
 			}
 
