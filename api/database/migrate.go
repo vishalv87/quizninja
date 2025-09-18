@@ -31,6 +31,16 @@ func RunMigrations(db *sql.DB) error {
 	}
 
 	log.Println("All migrations completed successfully")
+
+	// Generate updated schema.sql file
+	log.Println("Updating schema.sql file...")
+	if err := UpdateSchemaAfterMigration(db); err != nil {
+		log.Printf("Warning: Failed to update schema.sql: %v", err)
+		// Don't fail the migration if schema generation fails
+	} else {
+		log.Println("Schema.sql updated successfully")
+	}
+
 	return nil
 }
 
