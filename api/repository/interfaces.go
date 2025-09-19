@@ -33,6 +33,9 @@ type UserRepositoryInterface interface {
 	// User status operations
 	UpdateUserOnlineStatus(userID uuid.UUID, isOnline bool) error
 	UpdateUserLastActive(userID uuid.UUID) error
+
+	// User statistics operations
+	GetUserStatistics(userID uuid.UUID) (*models.UserStatistics, error)
 }
 
 // QuizRepositoryInterface defines the contract for quiz data operations

@@ -2,6 +2,8 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
 	"time"
 
 	"quizninja-api/database"
@@ -201,16 +203,22 @@ func (ur *UserRepository) DeleteUserPreferences(userID uuid.UUID) error {
 func (ur *UserRepository) GetUserWithPreferences(userID uuid.UUID) (*models.User, error) {
 	user, err := ur.GetUserByID(userID)
 	if err != nil {
+		log.Printf("GetUserWithPreferences: Failed to get user by ID %s: %v", userID, err)
 		return nil, err
 	}
 
 	preferences, err := ur.GetUserPreferences(userID)
 	if err != nil && err != sql.ErrNoRows {
+		log.Printf("GetUserWithPreferences: Failed to get user preferences for user %s: %v", userID, err)
 		return nil, err
 	}
 
-	if err != sql.ErrNoRows {
+	// Only set preferences if we successfully retrieved them (no error)
+	if err == nil {
 		user.Preferences = preferences
+		log.Printf("GetUserWithPreferences: Successfully retrieved preferences for user %s", userID)
+	} else {
+		log.Printf("GetUserWithPreferences: No preferences found for user %s (this is normal)", userID)
 	}
 
 	return user, nil
@@ -228,4 +236,266 @@ func (ur *UserRepository) UpdateUserLastActive(userID uuid.UUID) error {
 	query := `UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := ur.db.Exec(query, userID)
 	return err
+}
+
+// GetUserStatistics retrieves comprehensive user statistics
+func (ur *UserRepository) GetUserStatistics(userID uuid.UUID) (*models.UserStatistics, error) {
+	stats := &models.UserStatistics{
+		UserID:      userID,
+		LastUpdated: time.Now(),
+	}
+
+	// Get basic user stats from users table
+	userQuery := `
+		SELECT total_points, current_streak, best_streak, total_quizzes_completed, average_score
+		FROM users
+		WHERE id = $1
+	`
+	err := ur.db.QueryRow(userQuery, userID).Scan(
+		&stats.TotalPoints, &stats.CurrentStreak, &stats.BestStreak,
+		&stats.CompletedQuizzes, &stats.AverageScore,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get basic user stats: %w", err)
+	}
+
+	// Get total attempts and completion rate
+	attemptsQuery := `
+		SELECT
+			COUNT(*) as total_attempts,
+			COUNT(CASE WHEN is_completed = true THEN 1 END) as completed_attempts,
+			AVG(CASE WHEN is_completed = true THEN time_spent END) as avg_completion_time
+		FROM quiz_attempts
+		WHERE user_id = $1
+	`
+	var avgCompletionTime sql.NullFloat64
+	var completedFromAttempts int
+	err = ur.db.QueryRow(attemptsQuery, userID).Scan(
+		&stats.TotalAttempts, &completedFromAttempts, &avgCompletionTime,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attempt stats: %w", err)
+	}
+
+	// Use the completed count from attempts table as it's more accurate
+	stats.CompletedQuizzes = completedFromAttempts
+
+	// Calculate completion rate
+	if stats.TotalAttempts > 0 {
+		stats.CompletionRate = float64(stats.CompletedQuizzes) / float64(stats.TotalAttempts) * 100
+	}
+
+	if avgCompletionTime.Valid {
+		stats.AverageCompletionTime = int(avgCompletionTime.Float64)
+	}
+
+	// Get category performance
+	categoryPerformance, err := ur.getCategoryPerformance(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get category performance: %w", err)
+	}
+	stats.CategoryPerformance = categoryPerformance
+
+	// Get recent activity
+	recentActivity, err := ur.getRecentActivity(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recent activity: %w", err)
+	}
+	stats.RecentActivity = recentActivity
+
+	// Get quizzes by difficulty
+	quizzesByDifficulty, err := ur.getQuizzesByDifficulty(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get quizzes by difficulty: %w", err)
+	}
+	stats.QuizzesByDifficulty = quizzesByDifficulty
+
+	// Get score distribution
+	scoreDistribution, err := ur.getScoreDistribution(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get score distribution: %w", err)
+	}
+	stats.ScoreDistribution = scoreDistribution
+
+	// Get monthly progress
+	monthlyProgress, err := ur.getMonthlyProgress(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get monthly progress: %w", err)
+	}
+	stats.MonthlyProgress = monthlyProgress
+
+	return stats, nil
+}
+
+// getCategoryPerformance retrieves performance metrics by category
+func (ur *UserRepository) getCategoryPerformance(userID uuid.UUID) ([]models.CategoryPerformance, error) {
+	query := `
+		SELECT
+			q.category_id,
+			q.category_id as category_name,
+			COUNT(CASE WHEN qa.is_completed = true THEN 1 END) as quizzes_completed,
+			COALESCE(AVG(CASE WHEN qa.is_completed = true THEN qa.score END), 0) as average_score,
+			COUNT(*) as total_attempts,
+			COALESCE(MAX(qa.score), 0) as best_score,
+			MAX(qa.completed_at) as last_attempt
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		WHERE qa.user_id = $1
+		GROUP BY q.category_id
+		ORDER BY quizzes_completed DESC
+	`
+
+	rows, err := ur.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categoryPerformance []models.CategoryPerformance
+	for rows.Next() {
+		var cp models.CategoryPerformance
+		err := rows.Scan(
+			&cp.CategoryID, &cp.CategoryName, &cp.QuizzesCompleted,
+			&cp.AverageScore, &cp.TotalAttempts, &cp.BestScore, &cp.LastAttempt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		categoryPerformance = append(categoryPerformance, cp)
+	}
+
+	return categoryPerformance, nil
+}
+
+// getRecentActivity retrieves recent quiz activities
+func (ur *UserRepository) getRecentActivity(userID uuid.UUID) ([]models.RecentActivityItem, error) {
+	query := `
+		SELECT
+			qa.quiz_id,
+			q.title,
+			qa.score,
+			q.category_id,
+			qa.completed_at,
+			qa.time_spent,
+			q.difficulty
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		WHERE qa.user_id = $1 AND qa.is_completed = true
+		ORDER BY qa.completed_at DESC
+		LIMIT 10
+	`
+
+	rows, err := ur.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var activities []models.RecentActivityItem
+	for rows.Next() {
+		var activity models.RecentActivityItem
+		err := rows.Scan(
+			&activity.QuizID, &activity.QuizTitle, &activity.Score,
+			&activity.Category, &activity.CompletedAt, &activity.TimeSpent,
+			&activity.Difficulty,
+		)
+		if err != nil {
+			return nil, err
+		}
+		activities = append(activities, activity)
+	}
+
+	return activities, nil
+}
+
+// getQuizzesByDifficulty retrieves quiz completion counts by difficulty
+func (ur *UserRepository) getQuizzesByDifficulty(userID uuid.UUID) (map[string]int, error) {
+	query := `
+		SELECT
+			q.difficulty,
+			COUNT(CASE WHEN qa.is_completed = true THEN 1 END) as completed_count
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		WHERE qa.user_id = $1
+		GROUP BY q.difficulty
+	`
+
+	rows, err := ur.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	quizzesByDifficulty := make(map[string]int)
+	for rows.Next() {
+		var difficulty string
+		var count int
+		err := rows.Scan(&difficulty, &count)
+		if err != nil {
+			return nil, err
+		}
+		quizzesByDifficulty[difficulty] = count
+	}
+
+	return quizzesByDifficulty, nil
+}
+
+// getScoreDistribution retrieves score distribution
+func (ur *UserRepository) getScoreDistribution(userID uuid.UUID) (models.ScoreDistribution, error) {
+	query := `
+		SELECT
+			COUNT(CASE WHEN score >= 0 AND score <= 20 THEN 1 END) as range_0_to_20,
+			COUNT(CASE WHEN score > 20 AND score <= 40 THEN 1 END) as range_21_to_40,
+			COUNT(CASE WHEN score > 40 AND score <= 60 THEN 1 END) as range_41_to_60,
+			COUNT(CASE WHEN score > 60 AND score <= 80 THEN 1 END) as range_61_to_80,
+			COUNT(CASE WHEN score > 80 AND score <= 100 THEN 1 END) as range_81_to_100
+		FROM quiz_attempts
+		WHERE user_id = $1 AND is_completed = true
+	`
+
+	var distribution models.ScoreDistribution
+	err := ur.db.QueryRow(query, userID).Scan(
+		&distribution.Range0to20, &distribution.Range21to40, &distribution.Range41to60,
+		&distribution.Range61to80, &distribution.Range81to100,
+	)
+	if err != nil {
+		return models.ScoreDistribution{}, err
+	}
+
+	return distribution, nil
+}
+
+// getMonthlyProgress retrieves monthly progress data
+func (ur *UserRepository) getMonthlyProgress(userID uuid.UUID) ([]models.MonthlyProgressItem, error) {
+	query := `
+		SELECT
+			TO_CHAR(qa.completed_at, 'YYYY-MM') as month,
+			COUNT(CASE WHEN qa.is_completed = true THEN 1 END) as quizzes_completed,
+			COALESCE(AVG(CASE WHEN qa.is_completed = true THEN qa.score END), 0) as average_score,
+			COALESCE(SUM(CASE WHEN qa.is_completed = true THEN qa.total_points END), 0) as total_points
+		FROM quiz_attempts qa
+		WHERE qa.user_id = $1 AND qa.completed_at IS NOT NULL
+		  AND qa.completed_at >= CURRENT_DATE - INTERVAL '12 months'
+		GROUP BY TO_CHAR(qa.completed_at, 'YYYY-MM')
+		ORDER BY month DESC
+		LIMIT 12
+	`
+
+	rows, err := ur.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var monthlyProgress []models.MonthlyProgressItem
+	for rows.Next() {
+		var item models.MonthlyProgressItem
+		err := rows.Scan(&item.Month, &item.QuizzesCompleted, &item.AverageScore, &item.TotalPoints)
+		if err != nil {
+			return nil, err
+		}
+		monthlyProgress = append(monthlyProgress, item)
+	}
+
+	return monthlyProgress, nil
 }

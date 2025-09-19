@@ -415,3 +415,28 @@ func (ah *AuthHandler) UpdateProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, updatedUser)
 }
+
+func (ah *AuthHandler) GetUserStats(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	stats, err := ah.userRepo.GetUserStatistics(userID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve user statistics",
+		})
+		return
+	}
+
+	response := models.UserStatisticsResponse{
+		Statistics: *stats,
+		Message:    "User statistics retrieved successfully",
+	}
+
+	c.JSON(http.StatusOK, response)
+}
