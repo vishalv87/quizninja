@@ -95,6 +95,13 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
+type UpdateProfileRequest struct {
+	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
+	Email     *string `json:"email,omitempty" binding:"omitempty,email"`
+	Age       *int    `json:"age,omitempty" binding:"omitempty,min=13,max=120"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+}
+
 // Interest represents quiz topic interests
 type Interest struct {
 	ID          string `json:"id" db:"id"`

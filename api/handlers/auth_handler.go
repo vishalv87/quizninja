@@ -336,3 +336,82 @@ func (ah *AuthHandler) GetProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, user)
 }
+
+func (ah *AuthHandler) UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	var req models.UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	// Get current user
+	currentUser, err := ah.userRepo.GetUserByID(userID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get current user",
+		})
+		return
+	}
+
+	// Check if email is being updated and if it's already taken
+	if req.Email != nil && *req.Email != currentUser.Email {
+		existingUser, err := ah.userRepo.GetUserByEmail(*req.Email)
+		if err != sql.ErrNoRows {
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Failed to check email availability",
+				})
+				return
+			}
+			if existingUser != nil {
+				c.JSON(http.StatusConflict, gin.H{
+					"error": "Email is already in use",
+				})
+				return
+			}
+		}
+	}
+
+	// Update only provided fields
+	if req.Name != nil {
+		currentUser.Name = *req.Name
+	}
+	if req.Email != nil {
+		currentUser.Email = *req.Email
+	}
+	if req.Age != nil {
+		currentUser.Age = req.Age
+	}
+	if req.AvatarURL != nil {
+		currentUser.AvatarURL = req.AvatarURL
+	}
+
+	// Update the user in database
+	if err := ah.userRepo.UpdateUser(currentUser); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to update profile",
+		})
+		return
+	}
+
+	// Get updated user with preferences
+	updatedUser, err := ah.userRepo.GetUserWithPreferences(userID.(uuid.UUID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to retrieve updated profile",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedUser)
+}

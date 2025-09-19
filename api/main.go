@@ -84,6 +84,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
 			protected.GET("/profile", authHandler.GetProfile)
+			protected.PUT("/profile", authHandler.UpdateProfile)
 
 			users := protected.Group("/users")
 			{
