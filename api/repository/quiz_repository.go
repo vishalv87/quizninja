@@ -295,10 +295,10 @@ func (r *QuizRepository) GetQuizzesByUser(userID uuid.UUID, offset, limit int) (
 func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error) {
 	query := `
 		SELECT id, quiz_id, question_text, question_type, options, correct_answer,
-		       explanation, points, "order", image_url, created_at, updated_at
+		       explanation, order_index, created_at
 		FROM questions
 		WHERE quiz_id = $1
-		ORDER BY "order" ASC`
+		ORDER BY order_index ASC`
 
 	rows, err := r.db.Query(query, quizID)
 	if err != nil {
@@ -313,14 +313,19 @@ func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Questi
 
 		err := rows.Scan(
 			&question.ID, &question.QuizID, &question.QuestionText, &question.QuestionType,
-			&options, &question.CorrectAnswer, &question.Explanation, &question.Points,
-			&question.Order, &question.ImageURL, &question.CreatedAt, &question.UpdatedAt,
+			&options, &question.CorrectAnswer, &question.Explanation, &question.Order, &question.CreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan question: %w", err)
 		}
 
 		question.Options = models.StringArray(options)
+
+		// Set default values for fields not in database
+		question.Points = 1 // Default points per question
+		question.ImageURL = nil // No image URL in current schema
+		question.UpdatedAt = question.CreatedAt // Use created_at as default for updated_at
+
 		questions = append(questions, question)
 	}
 
@@ -446,4 +451,54 @@ func (r *QuizRepository) GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models
 	}
 
 	return attempts, nil
+}
+
+// GetActiveQuizAttempt retrieves an active (incomplete) quiz attempt for a user and quiz
+func (r *QuizRepository) GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models.QuizAttempt, error) {
+	query := `
+		SELECT id, quiz_id, user_id, score, total_points, time_spent, is_completed,
+		       started_at, completed_at, created_at, updated_at
+		FROM quiz_attempts
+		WHERE user_id = $1 AND quiz_id = $2 AND is_completed = false
+		ORDER BY created_at DESC
+		LIMIT 1`
+
+	var attempt models.QuizAttempt
+	err := r.db.QueryRow(query, userID, quizID).Scan(
+		&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
+		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No active attempt found
+		}
+		return nil, fmt.Errorf("failed to get active quiz attempt: %w", err)
+	}
+
+	return &attempt, nil
+}
+
+// DeleteActiveQuizAttempt deletes any active (incomplete) quiz attempts for a user and quiz
+func (r *QuizRepository) DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error {
+	query := `
+		DELETE FROM quiz_attempts
+		WHERE user_id = $1 AND quiz_id = $2 AND is_completed = false`
+
+	result, err := r.db.Exec(query, userID, quizID)
+	if err != nil {
+		return fmt.Errorf("failed to delete active quiz attempt: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	// Log how many attempts were deleted (for debugging)
+	if rowsAffected > 0 {
+		fmt.Printf("Deleted %d active quiz attempt(s) for user %s and quiz %s\n", rowsAffected, userID, quizID)
+	}
+
+	return nil
 }

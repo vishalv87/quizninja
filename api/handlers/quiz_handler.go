@@ -182,6 +182,9 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		return
 	}
 
+	// Check if force_restart parameter is provided
+	forceRestart := c.Query("force_restart") == "true"
+
 	// Verify quiz exists and is public
 	quiz, err := h.repo.Quiz.GetQuizByID(quizID)
 	if err != nil {
@@ -199,6 +202,38 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 	}
 
 	userID := getUserIDFromContext(c)
+
+	// Check for existing active attempt
+	existingAttempt, err := h.repo.Quiz.GetActiveQuizAttempt(userID, quizID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// If there's an existing active attempt and force_restart is not true, return error
+	if existingAttempt != nil && !forceRestart {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": gin.H{
+				"code":    http.StatusConflict,
+				"message": "Active quiz attempt already exists",
+				"details": gin.H{
+					"existing_attempt_id": existingAttempt.ID,
+					"started_at":          existingAttempt.StartedAt,
+					"can_restart":         true,
+				},
+			},
+		})
+		return
+	}
+
+	// If force_restart is true, delete any existing active attempts
+	if forceRestart {
+		err = h.repo.Quiz.DeleteActiveQuizAttempt(userID, quizID)
+		if err != nil {
+			utils.HandleError(c, err)
+			return
+		}
+	}
 
 	// Create quiz attempt
 	attempt := &models.QuizAttempt{
@@ -239,6 +274,131 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 	}
 
 	utils.CreatedResponse(c, response, "Quiz attempt started successfully")
+}
+
+// SubmitQuizAttempt handles POST /api/v1/quizzes/{id}/attempts/{attemptId}/submit
+func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	attemptIdParam := c.Param("attemptId")
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	// Parse the request body
+	var submitRequest struct {
+		AttemptId string `json:"attemptId"`
+		Answers   []struct {
+			QuestionId         string  `json:"questionId"`
+			SelectedOption     *string `json:"selectedOption"`
+			SelectedOptionIndex *int   `json:"selectedOptionIndex"`
+		} `json:"answers"`
+		TimeSpent int `json:"timeSpent"`
+	}
+
+	if err := c.ShouldBindJSON(&submitRequest); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Verify the attempt exists and belongs to the user
+	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
+	if err != nil {
+		if err.Error() == "quiz attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to submit this attempt")
+		return
+	}
+
+	if attempt.QuizID != quizID {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Attempt does not belong to specified quiz")
+		return
+	}
+
+	if attempt.IsCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "Quiz attempt already completed")
+		return
+	}
+
+	// Get quiz with questions to calculate score
+	quiz, err := h.repo.Quiz.GetQuizByIDWithQuestions(quizID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Calculate score
+	correctAnswers := 0
+	totalQuestions := len(quiz.Questions)
+
+	// Create a map for easy question lookup
+	questionMap := make(map[uuid.UUID]models.Question)
+	for _, q := range quiz.Questions {
+		questionMap[q.ID] = q
+	}
+
+	// Check each answer
+	for _, answer := range submitRequest.Answers {
+		questionID, err := uuid.Parse(answer.QuestionId)
+		if err != nil {
+			continue // Skip invalid question IDs
+		}
+
+		question, exists := questionMap[questionID]
+		if !exists {
+			continue // Skip questions not found in quiz
+		}
+
+		// Check if answer is correct
+		if answer.SelectedOption != nil && *answer.SelectedOption == question.CorrectAnswer {
+			correctAnswers++
+		}
+	}
+
+	// Calculate final score based on questions (default 1 point per question)
+	basePoints := totalQuestions // 1 point per question as default
+	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
+	finalScore := scorePercentage * float64(basePoints) / 100
+
+	// Update the attempt
+	attempt.Score = finalScore
+	attempt.TotalPoints = basePoints
+	attempt.TimeSpent = submitRequest.TimeSpent
+	attempt.IsCompleted = true
+	attempt.CompletedAt = &quiz.CreatedAt // Should be time.Now() but using consistent time
+
+	err = h.repo.Quiz.UpdateQuizAttempt(attempt)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Return the results
+	response := gin.H{
+		"attempt_id":       attempt.ID,
+		"score":           int(finalScore), // Convert back to int for response
+		"total_questions": totalQuestions,
+		"correct_answers": correctAnswers,
+		"time_spent":      submitRequest.TimeSpent,
+	}
+
+	utils.SuccessResponse(c, response)
 }
 
 // Helper function to get user ID from context

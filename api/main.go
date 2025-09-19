@@ -96,6 +96,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			protectedQuizzes := protected.Group("/quizzes")
 			{
 				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
+				protectedQuizzes.POST("/:id/attempts/:attemptId/submit", quizHandler.SubmitQuizAttempt)
 			}
 
 			// Admin endpoints for cache management
