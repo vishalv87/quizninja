@@ -92,6 +92,8 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 				users.GET("/preferences", preferencesHandler.GetPreferences)
 				users.GET("/quizzes", quizHandler.GetUserQuizzes)
 				users.GET("/stats", authHandler.GetUserStats)
+				users.GET("/attempts", quizHandler.GetUserAttempts)
+				users.GET("/attempts/:attemptId", quizHandler.GetAttemptDetails)
 			}
 
 			// Protected quiz endpoints

@@ -502,3 +502,193 @@ func (r *QuizRepository) DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
 
 	return nil
 }
+
+// GetUserAttempts retrieves user's quiz attempts with filtering and pagination
+func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error) {
+	fmt.Printf("[QuizRepository] GetUserAttempts called for user: %s with filters: %+v\n", userID, filters)
+
+	// Build WHERE conditions
+	conditions := []string{"qa.user_id = $1"}
+	args := []interface{}{userID}
+	argCount := 1
+
+	// Add filters
+	if filters.QuizID != nil {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("qa.quiz_id = $%d", argCount))
+		args = append(args, *filters.QuizID)
+	}
+
+	if filters.Category != "" {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("q.category_id = $%d", argCount))
+		args = append(args, filters.Category)
+	}
+
+	if filters.Difficulty != "" {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("q.difficulty = $%d", argCount))
+		args = append(args, filters.Difficulty)
+	}
+
+	if filters.StartDate != nil {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("qa.completed_at >= $%d", argCount))
+		args = append(args, *filters.StartDate)
+	}
+
+	if filters.EndDate != nil {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("qa.completed_at <= $%d", argCount))
+		args = append(args, *filters.EndDate)
+	}
+
+	if filters.MinScore != nil {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("qa.score >= $%d", argCount))
+		args = append(args, *filters.MinScore)
+	}
+
+	if filters.MaxScore != nil {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("qa.score <= $%d", argCount))
+		args = append(args, *filters.MaxScore)
+	}
+
+	// Only include completed attempts
+	conditions = append(conditions, "qa.is_completed = true")
+
+	whereClause := "WHERE " + strings.Join(conditions, " AND ")
+
+	// Build ORDER BY clause
+	orderClause := fmt.Sprintf("ORDER BY qa.%s %s", filters.SortBy, strings.ToUpper(filters.SortOrder))
+
+	// Count query
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		%s`, whereClause)
+
+	fmt.Printf("[QuizRepository] Executing count query: %s with args: %v\n", countQuery, args)
+
+	var total int
+	err := r.db.QueryRow(countQuery, args...).Scan(&total)
+	if err != nil {
+		fmt.Printf("[QuizRepository] Error executing count query: %v\n", err)
+		return nil, 0, fmt.Errorf("failed to count user attempts: %w", err)
+	}
+
+	fmt.Printf("[QuizRepository] Count query returned total: %d\n", total)
+
+	// Calculate pagination
+	offset := (filters.Page - 1) * filters.PageSize
+
+	// Main query
+	query := fmt.Sprintf(`
+		SELECT
+			qa.id, qa.quiz_id, qa.user_id, qa.score, qa.total_points, qa.time_spent,
+			qa.is_completed, qa.started_at, qa.completed_at, qa.created_at, qa.updated_at,
+			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
+			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		%s
+		%s
+		LIMIT $%d OFFSET $%d`,
+		whereClause, orderClause, argCount+1, argCount+2)
+
+	args = append(args, filters.PageSize, offset)
+
+	fmt.Printf("[QuizRepository] Executing main query: %s\n", query)
+	fmt.Printf("[QuizRepository] Query args: %v\n", args)
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		fmt.Printf("[QuizRepository] Error executing main query: %v\n", err)
+		return nil, 0, fmt.Errorf("failed to get user attempts: %w", err)
+	}
+	defer rows.Close()
+
+	var attempts []models.QuizAttemptWithDetails
+	for rows.Next() {
+		var attempt models.QuizAttemptWithDetails
+		var tags pq.StringArray
+
+		err := rows.Scan(
+			&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
+			&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+			&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
+			&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
+			&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
+			&attempt.Quiz.QuestionCount, &attempt.Quiz.IsFeatured, &tags,
+			&attempt.Quiz.ThumbnailURL, &attempt.Quiz.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan attempt row: %w", err)
+		}
+
+		// Convert tags
+		attempt.Quiz.Tags = []string(tags)
+		// Convert time limit from minutes to seconds for JSON response
+		attempt.Quiz.TimeLimit = attempt.Quiz.TimeLimit * 60
+
+		attempts = append(attempts, attempt)
+	}
+
+	if err = rows.Err(); err != nil {
+		fmt.Printf("[QuizRepository] Error iterating rows: %v\n", err)
+		return nil, 0, fmt.Errorf("error iterating attempt rows: %w", err)
+	}
+
+	fmt.Printf("[QuizRepository] Successfully retrieved %d attempts for user %s\n", len(attempts), userID)
+	return attempts, total, nil
+}
+
+// GetAttemptWithDetails retrieves a single attempt with quiz details
+func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error) {
+	fmt.Printf("[QuizRepository] GetAttemptWithDetails called for attempt: %s\n", attemptID)
+
+	query := `
+		SELECT
+			qa.id, qa.quiz_id, qa.user_id, qa.score, qa.total_points, qa.time_spent,
+			qa.is_completed, qa.started_at, qa.completed_at, qa.created_at, qa.updated_at,
+			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
+			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		WHERE qa.id = $1`
+
+	fmt.Printf("[QuizRepository] Executing single attempt query for attempt: %s\n", attemptID)
+
+	var attempt models.QuizAttemptWithDetails
+	var tags pq.StringArray
+
+	err := r.db.QueryRow(query, attemptID).Scan(
+		&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
+		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
+		&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
+		&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
+		&attempt.Quiz.QuestionCount, &attempt.Quiz.IsFeatured, &tags,
+		&attempt.Quiz.ThumbnailURL, &attempt.Quiz.CreatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Printf("[QuizRepository] Attempt not found: %s\n", attemptID)
+			return nil, fmt.Errorf("attempt not found")
+		}
+		fmt.Printf("[QuizRepository] Error scanning attempt details: %v\n", err)
+		return nil, fmt.Errorf("failed to get attempt with details: %w", err)
+	}
+
+	// Convert tags
+	attempt.Quiz.Tags = []string(tags)
+	// Convert time limit from minutes to seconds for JSON response
+	attempt.Quiz.TimeLimit = attempt.Quiz.TimeLimit * 60
+
+	fmt.Printf("[QuizRepository] Successfully retrieved attempt details: user=%s, quiz='%s', score=%.2f\n",
+		attempt.UserID, attempt.Quiz.Title, attempt.Score)
+
+	return &attempt, nil
+}

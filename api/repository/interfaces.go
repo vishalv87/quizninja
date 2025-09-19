@@ -65,6 +65,10 @@ type QuizRepositoryInterface interface {
 	GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models.QuizAttempt, error)
 	GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models.QuizAttempt, error)
 	DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
+
+	// Attempt history operations
+	GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error)
+	GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error)
 }
 
 // Repository aggregates all repository interfaces

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -396,6 +397,110 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		"total_questions": totalQuestions,
 		"correct_answers": correctAnswers,
 		"time_spent":      submitRequest.TimeSpent,
+	}
+
+	utils.SuccessResponse(c, response)
+}
+
+// GetUserAttempts handles GET /api/v1/users/attempts
+func (h *QuizHandler) GetUserAttempts(c *gin.Context) {
+	userID := getUserIDFromContext(c)
+	fmt.Printf("[QuizHandler] GetUserAttempts called for user: %s\n", userID)
+
+	var filters models.AttemptFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		fmt.Printf("[QuizHandler] Failed to bind query parameters: %v\n", err)
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid query parameters", err.Error())
+		return
+	}
+
+	fmt.Printf("[QuizHandler] Parsed filters: page=%d, pageSize=%d, category=%s, difficulty=%s, sortBy=%s, sortOrder=%s\n",
+		filters.Page, filters.PageSize, filters.Category, filters.Difficulty, filters.SortBy, filters.SortOrder)
+
+	// Set defaults for pagination
+	if filters.Page <= 0 {
+		filters.Page = 1
+	}
+	if filters.PageSize <= 0 {
+		filters.PageSize = 10
+	}
+	if filters.PageSize > 100 {
+		filters.PageSize = 100
+	}
+
+	// Set defaults for sorting
+	if filters.SortBy == "" {
+		filters.SortBy = "completed_at"
+	}
+	if filters.SortOrder == "" {
+		filters.SortOrder = "desc"
+	}
+
+	attempts, total, err := h.repo.Quiz.GetUserAttempts(userID, &filters)
+	if err != nil {
+		fmt.Printf("[QuizHandler] Error getting user attempts: %v\n", err)
+		utils.HandleError(c, err)
+		return
+	}
+
+	fmt.Printf("[QuizHandler] Successfully retrieved %d attempts out of %d total for user %s\n", len(attempts), total, userID)
+
+	// Calculate total pages
+	totalPages := (total + filters.PageSize - 1) / filters.PageSize
+
+	response := &models.AttemptHistoryResponse{
+		Attempts:   attempts,
+		Total:      total,
+		Page:       filters.Page,
+		PageSize:   filters.PageSize,
+		TotalPages: totalPages,
+	}
+
+	fmt.Printf("[QuizHandler] Returning attempt history response: total=%d, page=%d/%d, attempts_count=%d\n",
+		response.Total, response.Page, response.TotalPages, len(response.Attempts))
+
+	utils.SuccessResponse(c, response)
+}
+
+// GetAttemptDetails handles GET /api/v1/users/attempts/{attemptId}
+func (h *QuizHandler) GetAttemptDetails(c *gin.Context) {
+	attemptIdParam := c.Param("attemptId")
+	fmt.Printf("[QuizHandler] GetAttemptDetails called for attempt ID: %s\n", attemptIdParam)
+
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		fmt.Printf("[QuizHandler] Invalid attempt ID format: %s, error: %v\n", attemptIdParam, err)
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+	fmt.Printf("[QuizHandler] Getting attempt details for user: %s, attempt: %s\n", userID, attemptID)
+
+	attempt, err := h.repo.Quiz.GetAttemptWithDetails(attemptID)
+	if err != nil {
+		fmt.Printf("[QuizHandler] Error getting attempt details: %v\n", err)
+		if err.Error() == "attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Verify the attempt belongs to the user
+	if attempt.UserID != userID {
+		fmt.Printf("[QuizHandler] Unauthorized access attempt: user %s tried to access attempt %s belonging to user %s\n",
+			userID, attemptID, attempt.UserID)
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to view this attempt")
+		return
+	}
+
+	fmt.Printf("[QuizHandler] Successfully retrieved attempt details for user %s: quiz='%s', score=%.2f, completed=%t\n",
+		userID, attempt.Quiz.Title, attempt.Score, attempt.IsCompleted)
+
+	response := &models.AttemptDetailResponse{
+		Attempt: *attempt,
 	}
 
 	utils.SuccessResponse(c, response)
