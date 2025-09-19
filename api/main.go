@@ -71,6 +71,14 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			config.GET("/app-settings", appSettingsHandler.GetAppSettings)
 		}
 
+		// Preferences endpoints (public)
+		preferences := api.Group("/preferences")
+		{
+			preferences.GET("/categories", preferencesHandler.GetCategories)
+			preferences.GET("/difficulty-levels", preferencesHandler.GetDifficultyLevels)
+			preferences.GET("/notification-frequencies", preferencesHandler.GetNotificationFrequencies)
+		}
+
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", authHandler.Register)

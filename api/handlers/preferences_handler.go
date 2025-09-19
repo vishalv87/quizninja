@@ -12,14 +12,16 @@ import (
 )
 
 type PreferencesHandler struct {
-	userRepo *repository.UserRepository
-	config   *config.Config
+	userRepo        *repository.UserRepository
+	preferencesRepo *repository.PreferencesRepository
+	config          *config.Config
 }
 
 func NewPreferencesHandler(config *config.Config) *PreferencesHandler {
 	return &PreferencesHandler{
-		userRepo: repository.NewUserRepository(),
-		config:   config,
+		userRepo:        repository.NewUserRepository(),
+		preferencesRepo: repository.NewPreferencesRepository(),
+		config:          config,
 	}
 }
 
@@ -105,5 +107,59 @@ func (ph *PreferencesHandler) GetPreferences(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"data": preferences,
+	})
+}
+
+// GetCategories retrieves all available interests/categories
+func (ph *PreferencesHandler) GetCategories(c *gin.Context) {
+	interests, err := ph.preferencesRepo.GetInterests()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch categories",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": interests,
+		"meta": gin.H{
+			"total": len(interests),
+		},
+	})
+}
+
+// GetDifficultyLevels retrieves all available difficulty levels
+func (ph *PreferencesHandler) GetDifficultyLevels(c *gin.Context) {
+	levels, err := ph.preferencesRepo.GetDifficultyLevels()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch difficulty levels",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": levels,
+		"meta": gin.H{
+			"total": len(levels),
+		},
+	})
+}
+
+// GetNotificationFrequencies retrieves all available notification frequencies
+func (ph *PreferencesHandler) GetNotificationFrequencies(c *gin.Context) {
+	frequencies, err := ph.preferencesRepo.GetNotificationFrequencies()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch notification frequencies",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": frequencies,
+		"meta": gin.H{
+			"total": len(frequencies),
+		},
 	})
 }
