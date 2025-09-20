@@ -147,6 +147,22 @@ type LeaderboardRepositoryInterface interface {
 	GetUserCategoryPoints(userID uuid.UUID) (map[string]int, error)
 }
 
+// AchievementRepositoryInterface defines the contract for achievement data operations
+type AchievementRepositoryInterface interface {
+	// Achievement read operations
+	GetAllAchievements() ([]models.Achievement, error)
+	GetAchievementByKey(key string) (*models.Achievement, error)
+
+	// User achievement operations
+	GetUserAchievements(userID uuid.UUID) ([]models.UserAchievement, error)
+	UnlockAchievement(userID uuid.UUID, achievementKey string) (*models.UserAchievement, error)
+	HasUserAchievement(userID, achievementID uuid.UUID) (bool, error)
+	HasUserAchievementByKey(userID uuid.UUID, achievementKey string) (bool, error)
+
+	// Achievement progress operations
+	GetAchievementProgress(userID uuid.UUID) ([]models.AchievementProgress, error)
+}
+
 // Repository aggregates all repository interfaces
 type Repository struct {
 	User        UserRepositoryInterface
@@ -154,6 +170,7 @@ type Repository struct {
 	Friends     FriendsRepositoryInterface
 	Challenges  ChallengesRepositoryInterface
 	Leaderboard LeaderboardRepositoryInterface
+	Achievement AchievementRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
@@ -164,5 +181,6 @@ func NewRepository() *Repository {
 		Friends:     NewFriendsRepository(),
 		Challenges:  NewChallengesRepository(),
 		Leaderboard: NewLeaderboardRepository(),
+		Achievement: NewAchievementRepository(),
 	}
 }

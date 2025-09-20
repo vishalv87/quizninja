@@ -390,6 +390,19 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		return
 	}
 
+	// TODO: Update user statistics (total_quizzes_completed, average_score, etc.)
+	// This is a placeholder for updating user stats after quiz completion
+
+	// Check for achievements after quiz completion
+	var achievementNotifications []models.AchievementNotification
+	// Note: Achievement checking is commented out for now to avoid dependencies
+	// In a future implementation, we would check achievements here:
+	// achievementService := services.NewAchievementService(h.repo)
+	// result, err := achievementService.CheckAchievementsForUser(userID, services.TriggerQuizCompleted)
+	// if err == nil && len(result.NewAchievements) > 0 {
+	//     achievementNotifications = result.Notifications
+	// }
+
 	// Return the results
 	response := gin.H{
 		"attempt_id":       attempt.ID,
@@ -397,6 +410,7 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		"total_questions": totalQuestions,
 		"correct_answers": correctAnswers,
 		"time_spent":      submitRequest.TimeSpent,
+		"achievement_notifications": achievementNotifications, // Include achievement notifications
 	}
 
 	utils.SuccessResponse(c, response)

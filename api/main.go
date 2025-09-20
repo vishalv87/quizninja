@@ -50,6 +50,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	friendsHandler := handlers.NewFriendsHandler(cfg)
 	challengesHandler := handlers.NewChallengesHandler(cfg)
 	leaderboardHandler := handlers.NewLeaderboardHandler(cfg)
+	achievementHandler := handlers.NewAchievementHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -154,7 +155,23 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 				leaderboard.GET("/stats", leaderboardHandler.GetLeaderboardStats)
 				leaderboard.GET("/rank", leaderboardHandler.GetUserRank)
 				leaderboard.POST("/score", leaderboardHandler.UpdateUserScore)
+				leaderboard.GET("/achievements", achievementHandler.GetLeaderboardWithAchievements)
 			}
+
+			// Achievement endpoints
+			achievements := protected.Group("/achievements")
+			{
+				achievements.GET("", achievementHandler.GetAllAchievements)
+				achievements.GET("/progress", achievementHandler.GetAchievementProgress)
+				achievements.GET("/stats", achievementHandler.GetAchievementStats)
+				achievements.POST("/check", achievementHandler.CheckAchievements)
+				achievements.GET("/category/:category", achievementHandler.GetAchievementsByCategory)
+				achievements.POST("/unlock/:key", achievementHandler.UnlockAchievement) // Admin/testing endpoint
+			}
+
+			// User achievement endpoints
+			users.GET("/achievements", achievementHandler.GetUserAchievements)
+			users.GET("/:userId/achievements", achievementHandler.GetUserAchievementsByUserID)
 
 			// Admin endpoints for cache management
 			admin := protected.Group("/admin")
