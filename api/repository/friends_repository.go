@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"strings"
 
 	"quizninja-api/database"
@@ -24,6 +25,7 @@ func NewFriendsRepository() FriendsRepositoryInterface {
 
 // SendFriendRequest creates a new friend request
 func (r *FriendsRepository) SendFriendRequest(requesterID, requestedID uuid.UUID, message *string) (*models.FriendRequest, error) {
+	log.Printf("SendFriendRequest called: requesterID=%s, requestedID=%s", requesterID, requestedID)
 	query := `
 		INSERT INTO friend_requests (requester_id, requested_id, message)
 		VALUES ($1, $2, $3)
@@ -50,6 +52,7 @@ func (r *FriendsRepository) SendFriendRequest(requesterID, requestedID uuid.UUID
 
 // GetFriendRequest retrieves a friend request by ID
 func (r *FriendsRepository) GetFriendRequest(id uuid.UUID) (*models.FriendRequest, error) {
+	log.Printf("GetFriendRequest called: id=%s", id)
 	query := `
 		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at,
 			   u1.id, u1.name, u1.email, u1.avatar_url, u1.level, u1.total_points, u1.is_online, u1.last_active,
@@ -105,6 +108,7 @@ func (r *FriendsRepository) GetFriendRequest(id uuid.UUID) (*models.FriendReques
 
 // GetFriendRequestBetweenUsers retrieves a friend request between two users
 func (r *FriendsRepository) GetFriendRequestBetweenUsers(requesterID, requestedID uuid.UUID) (*models.FriendRequest, error) {
+	log.Printf("GetFriendRequestBetweenUsers called: requesterID=%s, requestedID=%s", requesterID, requestedID)
 	query := `
 		SELECT id, requester_id, requested_id, status, message, created_at, responded_at
 		FROM friend_requests
@@ -136,6 +140,7 @@ func (r *FriendsRepository) GetFriendRequestBetweenUsers(requesterID, requestedI
 
 // RespondToFriendRequest updates the status of a friend request
 func (r *FriendsRepository) RespondToFriendRequest(requestID uuid.UUID, status string) error {
+	log.Printf("RespondToFriendRequest called: requestID=%s, status=%s", requestID, status)
 	query := `
 		UPDATE friend_requests
 		SET status = $1
@@ -161,6 +166,7 @@ func (r *FriendsRepository) RespondToFriendRequest(requestID uuid.UUID, status s
 
 // CancelFriendRequest cancels a pending friend request
 func (r *FriendsRepository) CancelFriendRequest(requestID uuid.UUID, requesterID uuid.UUID) error {
+	log.Printf("CancelFriendRequest called: requestID=%s, requesterID=%s", requestID, requesterID)
 	query := `
 		UPDATE friend_requests
 		SET status = 'cancelled'
@@ -186,6 +192,7 @@ func (r *FriendsRepository) CancelFriendRequest(requestID uuid.UUID, requesterID
 
 // GetPendingFriendRequests retrieves pending friend requests for a user
 func (r *FriendsRepository) GetPendingFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error) {
+	log.Printf("GetPendingFriendRequests called: userID=%s", userID)
 	query := `
 		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at,
 			   u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.is_online, u.last_active
@@ -237,6 +244,7 @@ func (r *FriendsRepository) GetPendingFriendRequests(userID uuid.UUID) ([]models
 
 // GetSentFriendRequests retrieves sent friend requests for a user
 func (r *FriendsRepository) GetSentFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error) {
+	log.Printf("GetSentFriendRequests called: userID=%s", userID)
 	query := `
 		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at,
 			   u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.is_online, u.last_active
@@ -288,6 +296,7 @@ func (r *FriendsRepository) GetSentFriendRequests(userID uuid.UUID) ([]models.Fr
 
 // GetFriends retrieves the friends list for a user
 func (r *FriendsRepository) GetFriends(userID uuid.UUID) ([]models.Friend, error) {
+	log.Printf("GetFriends called: userID=%s", userID)
 	query := `
 		SELECT u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.current_streak,
 			   u.best_streak, u.total_quizzes_completed, u.average_score, u.is_online, u.last_active,
@@ -336,6 +345,7 @@ func (r *FriendsRepository) GetFriends(userID uuid.UUID) ([]models.Friend, error
 
 // GetFriendship retrieves a friendship between two users
 func (r *FriendsRepository) GetFriendship(user1ID, user2ID uuid.UUID) (*models.Friendship, error) {
+	log.Printf("GetFriendship called: user1ID=%s, user2ID=%s", user1ID, user2ID)
 	// Ensure consistent ordering
 	if user1ID.String() > user2ID.String() {
 		user1ID, user2ID = user2ID, user1ID
@@ -367,6 +377,7 @@ func (r *FriendsRepository) GetFriendship(user1ID, user2ID uuid.UUID) (*models.F
 
 // RemoveFriend removes a friendship between two users
 func (r *FriendsRepository) RemoveFriend(userID, friendID uuid.UUID) error {
+	log.Printf("RemoveFriend called: userID=%s, friendID=%s", userID, friendID)
 	// Ensure consistent ordering
 	user1ID, user2ID := userID, friendID
 	if user1ID.String() > user2ID.String() {
@@ -397,6 +408,7 @@ func (r *FriendsRepository) RemoveFriend(userID, friendID uuid.UUID) error {
 
 // AreFriends checks if two users are friends
 func (r *FriendsRepository) AreFriends(user1ID, user2ID uuid.UUID) (bool, error) {
+	log.Printf("AreFriends called: user1ID=%s, user2ID=%s", user1ID, user2ID)
 	friendship, err := r.GetFriendship(user1ID, user2ID)
 	if err != nil {
 		return false, err
@@ -406,6 +418,7 @@ func (r *FriendsRepository) AreFriends(user1ID, user2ID uuid.UUID) (bool, error)
 
 // SearchUsers searches for users by name or email
 func (r *FriendsRepository) SearchUsers(searchQuery string, currentUserID uuid.UUID, limit, offset int) ([]models.UserSearchResult, int, error) {
+	log.Printf("SearchUsers called: searchQuery=%s, currentUserID=%s, limit=%d, offset=%d", searchQuery, currentUserID, limit, offset)
 	searchQuery = strings.ToLower(strings.TrimSpace(searchQuery))
 	if searchQuery == "" {
 		return []models.UserSearchResult{}, 0, nil
@@ -479,6 +492,7 @@ func (r *FriendsRepository) SearchUsers(searchQuery string, currentUserID uuid.U
 
 // GetFriendNotifications retrieves friend notifications for a user
 func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offset int) ([]models.FriendNotification, int, error) {
+	log.Printf("GetFriendNotifications called: userID=%s, limit=%d, offset=%d", userID, limit, offset)
 	// Count query
 	countQuery := `
 		SELECT COUNT(*)
@@ -559,6 +573,7 @@ func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offs
 
 // MarkNotificationAsRead marks a specific notification as read
 func (r *FriendsRepository) MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("MarkNotificationAsRead called: notificationID=%s, userID=%s", notificationID, userID)
 	query := `
 		UPDATE friend_notifications
 		SET is_read = true, read_at = CURRENT_TIMESTAMP
@@ -584,6 +599,7 @@ func (r *FriendsRepository) MarkNotificationAsRead(notificationID uuid.UUID, use
 
 // MarkAllNotificationsAsRead marks all notifications as read for a user
 func (r *FriendsRepository) MarkAllNotificationsAsRead(userID uuid.UUID) error {
+	log.Printf("MarkAllNotificationsAsRead called: userID=%s", userID)
 	query := `
 		UPDATE friend_notifications
 		SET is_read = true, read_at = CURRENT_TIMESTAMP
@@ -600,6 +616,7 @@ func (r *FriendsRepository) MarkAllNotificationsAsRead(userID uuid.UUID) error {
 
 // GetUnreadNotificationCount gets the count of unread notifications for a user
 func (r *FriendsRepository) GetUnreadNotificationCount(userID uuid.UUID) (int, error) {
+	log.Printf("GetUnreadNotificationCount called: userID=%s", userID)
 	query := `
 		SELECT COUNT(*)
 		FROM friend_notifications

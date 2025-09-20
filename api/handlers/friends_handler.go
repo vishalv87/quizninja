@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -29,6 +30,7 @@ func NewFriendsHandler(cfg *config.Config) *FriendsHandler {
 // SendFriendRequest sends a friend request to another user
 // POST /api/v1/friends/requests
 func (h *FriendsHandler) SendFriendRequest(c *gin.Context) {
+	log.Println("SendFriendRequest called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -42,6 +44,8 @@ func (h *FriendsHandler) SendFriendRequest(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
 		return
 	}
+
+	log.Printf("SendFriendRequest: requesterID=%s, requestedID=%s", requesterID, req.RequestedUserID)
 
 	// Check if user is trying to send friend request to themselves
 	if requesterID == req.RequestedUserID {
@@ -101,6 +105,7 @@ func (h *FriendsHandler) SendFriendRequest(c *gin.Context) {
 // GetFriendRequests gets pending and sent friend requests for the user
 // GET /api/v1/friends/requests
 func (h *FriendsHandler) GetFriendRequests(c *gin.Context) {
+	log.Println("GetFriendRequests called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -108,6 +113,7 @@ func (h *FriendsHandler) GetFriendRequests(c *gin.Context) {
 	}
 
 	currentUserID := userID.(uuid.UUID)
+	log.Printf("GetFriendRequests: userID=%s", currentUserID)
 
 	// Get pending requests (requests sent to current user)
 	pendingRequests, err := h.repo.Friends.GetPendingFriendRequests(currentUserID)
@@ -135,6 +141,7 @@ func (h *FriendsHandler) GetFriendRequests(c *gin.Context) {
 // RespondToFriendRequest accepts or rejects a friend request
 // PUT /api/v1/friends/requests/:id
 func (h *FriendsHandler) RespondToFriendRequest(c *gin.Context) {
+	log.Println("RespondToFriendRequest called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -155,6 +162,8 @@ func (h *FriendsHandler) RespondToFriendRequest(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
 		return
 	}
+
+	log.Printf("RespondToFriendRequest: userID=%s, requestID=%s, status=%s", currentUserID, requestID, req.Status)
 
 	// Get the friend request to verify it belongs to the current user
 	friendRequest, err := h.repo.Friends.GetFriendRequest(requestID)
@@ -192,6 +201,7 @@ func (h *FriendsHandler) RespondToFriendRequest(c *gin.Context) {
 // CancelFriendRequest cancels a sent friend request
 // DELETE /api/v1/friends/requests/:id
 func (h *FriendsHandler) CancelFriendRequest(c *gin.Context) {
+	log.Println("CancelFriendRequest called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -206,6 +216,8 @@ func (h *FriendsHandler) CancelFriendRequest(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request ID")
 		return
 	}
+
+	log.Printf("CancelFriendRequest: userID=%s, requestID=%s", currentUserID, requestID)
 
 	// Cancel the request
 	err = h.repo.Friends.CancelFriendRequest(requestID, currentUserID)
@@ -222,6 +234,7 @@ func (h *FriendsHandler) CancelFriendRequest(c *gin.Context) {
 // GetFriends gets the user's friends list
 // GET /api/v1/friends
 func (h *FriendsHandler) GetFriends(c *gin.Context) {
+	log.Println("GetFriends called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -229,6 +242,7 @@ func (h *FriendsHandler) GetFriends(c *gin.Context) {
 	}
 
 	currentUserID := userID.(uuid.UUID)
+	log.Printf("GetFriends: userID=%s", currentUserID)
 
 	friends, err := h.repo.Friends.GetFriends(currentUserID)
 	if err != nil {
@@ -247,6 +261,7 @@ func (h *FriendsHandler) GetFriends(c *gin.Context) {
 // RemoveFriend removes a friend from the user's friends list
 // DELETE /api/v1/friends/:id
 func (h *FriendsHandler) RemoveFriend(c *gin.Context) {
+	log.Println("RemoveFriend called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -261,6 +276,8 @@ func (h *FriendsHandler) RemoveFriend(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid friend ID")
 		return
 	}
+
+	log.Printf("RemoveFriend: userID=%s, friendID=%s", currentUserID, friendID)
 
 	// Check if they are actually friends
 	areFriends, err := h.repo.Friends.AreFriends(currentUserID, friendID)
@@ -289,6 +306,7 @@ func (h *FriendsHandler) RemoveFriend(c *gin.Context) {
 // SearchUsers searches for users by name or email
 // GET /api/v1/friends/search?q=query&limit=10&offset=0
 func (h *FriendsHandler) SearchUsers(c *gin.Context) {
+	log.Println("SearchUsers called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -316,6 +334,8 @@ func (h *FriendsHandler) SearchUsers(c *gin.Context) {
 		offset = 0
 	}
 
+	log.Printf("SearchUsers: userID=%s, query=%s, limit=%d, offset=%d", currentUserID, query, limit, offset)
+
 	users, total, err := h.repo.Friends.SearchUsers(query, currentUserID, limit, offset)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to search users")
@@ -333,6 +353,7 @@ func (h *FriendsHandler) SearchUsers(c *gin.Context) {
 // GetFriendNotifications gets friend-related notifications for the user
 // GET /api/v1/friends/notifications?limit=20&offset=0
 func (h *FriendsHandler) GetFriendNotifications(c *gin.Context) {
+	log.Println("GetFriendNotifications called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -353,6 +374,8 @@ func (h *FriendsHandler) GetFriendNotifications(c *gin.Context) {
 	if err != nil || offset < 0 {
 		offset = 0
 	}
+
+	log.Printf("GetFriendNotifications: userID=%s, limit=%d, offset=%d", currentUserID, limit, offset)
 
 	notifications, total, err := h.repo.Friends.GetFriendNotifications(currentUserID, limit, offset)
 	if err != nil {
@@ -378,6 +401,7 @@ func (h *FriendsHandler) GetFriendNotifications(c *gin.Context) {
 // MarkNotificationAsRead marks a specific notification as read
 // PUT /api/v1/friends/notifications/:id/read
 func (h *FriendsHandler) MarkNotificationAsRead(c *gin.Context) {
+	log.Println("MarkNotificationAsRead called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -393,6 +417,8 @@ func (h *FriendsHandler) MarkNotificationAsRead(c *gin.Context) {
 		return
 	}
 
+	log.Printf("MarkNotificationAsRead: userID=%s, notificationID=%s", currentUserID, notificationID)
+
 	err = h.repo.Friends.MarkNotificationAsRead(notificationID, currentUserID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to mark notification as read")
@@ -407,6 +433,7 @@ func (h *FriendsHandler) MarkNotificationAsRead(c *gin.Context) {
 // MarkAllNotificationsAsRead marks all notifications as read for the user
 // PUT /api/v1/friends/notifications/read-all
 func (h *FriendsHandler) MarkAllNotificationsAsRead(c *gin.Context) {
+	log.Println("MarkAllNotificationsAsRead called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -414,6 +441,7 @@ func (h *FriendsHandler) MarkAllNotificationsAsRead(c *gin.Context) {
 	}
 
 	currentUserID := userID.(uuid.UUID)
+	log.Printf("MarkAllNotificationsAsRead: userID=%s", currentUserID)
 
 	err := h.repo.Friends.MarkAllNotificationsAsRead(currentUserID)
 	if err != nil {
