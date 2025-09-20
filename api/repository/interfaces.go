@@ -131,20 +131,38 @@ type ChallengesRepositoryInterface interface {
 	ExpireChallenges() error
 }
 
+// LeaderboardRepositoryInterface defines the contract for leaderboard data operations
+type LeaderboardRepositoryInterface interface {
+	// Leaderboard operations
+	GetGlobalLeaderboard(period string, limit, offset int) ([]models.LeaderboardEntry, int, error)
+	GetFriendsLeaderboard(userID uuid.UUID, period string, limit, offset int) ([]models.LeaderboardEntry, int, error)
+	GetUserRank(userID uuid.UUID, period string) (*models.UserRankInfo, error)
+
+	// User score update operations
+	UpdateUserScore(userID uuid.UUID, points int, quizID uuid.UUID) error
+	RecalculateUserLevel(userID uuid.UUID) error
+
+	// Achievement operations for leaderboard
+	GetUserAchievements(userID uuid.UUID) ([]string, error)
+	GetUserCategoryPoints(userID uuid.UUID) (map[string]int, error)
+}
+
 // Repository aggregates all repository interfaces
 type Repository struct {
-	User       UserRepositoryInterface
-	Quiz       QuizRepositoryInterface
-	Friends    FriendsRepositoryInterface
-	Challenges ChallengesRepositoryInterface
+	User        UserRepositoryInterface
+	Quiz        QuizRepositoryInterface
+	Friends     FriendsRepositoryInterface
+	Challenges  ChallengesRepositoryInterface
+	Leaderboard LeaderboardRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
 func NewRepository() *Repository {
 	return &Repository{
-		User:       NewUserRepository(),
-		Quiz:       NewQuizRepository(),
-		Friends:    NewFriendsRepository(),
-		Challenges: NewChallengesRepository(),
+		User:        NewUserRepository(),
+		Quiz:        NewQuizRepository(),
+		Friends:     NewFriendsRepository(),
+		Challenges:  NewChallengesRepository(),
+		Leaderboard: NewLeaderboardRepository(),
 	}
 }

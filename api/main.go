@@ -49,6 +49,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	quizHandler := handlers.NewQuizHandler(cfg)
 	friendsHandler := handlers.NewFriendsHandler(cfg)
 	challengesHandler := handlers.NewChallengesHandler(cfg)
+	leaderboardHandler := handlers.NewLeaderboardHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -80,6 +81,8 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			preferences.GET("/difficulty-levels", preferencesHandler.GetDifficultyLevels)
 			preferences.GET("/notification-frequencies", preferencesHandler.GetNotificationFrequencies)
 		}
+
+		// Note: Leaderboard endpoints moved to protected section for authentication
 
 		auth := api.Group("/auth")
 		{
@@ -142,6 +145,15 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 				challenges.PUT("/:id/decline", challengesHandler.DeclineChallenge)
 				challenges.PUT("/:id/score", challengesHandler.UpdateChallengeScore)
 				challenges.POST("/expire", challengesHandler.ExpireChallenges) // Admin endpoint
+			}
+
+			// All leaderboard endpoints (require authentication)
+			leaderboard := protected.Group("/leaderboard")
+			{
+				leaderboard.GET("", leaderboardHandler.GetLeaderboard)
+				leaderboard.GET("/stats", leaderboardHandler.GetLeaderboardStats)
+				leaderboard.GET("/rank", leaderboardHandler.GetUserRank)
+				leaderboard.POST("/score", leaderboardHandler.UpdateUserScore)
 			}
 
 			// Admin endpoints for cache management
