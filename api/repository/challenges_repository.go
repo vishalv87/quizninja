@@ -1,0 +1,678 @@
+package repository
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"strings"
+
+	"quizninja-api/database"
+	"quizninja-api/models"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+)
+
+type ChallengesRepository struct {
+	db *sql.DB
+}
+
+// NewChallengesRepository creates a new challenges repository instance
+func NewChallengesRepository() ChallengesRepositoryInterface {
+	return &ChallengesRepository{
+		db: database.DB,
+	}
+}
+
+// CreateChallenge creates a new challenge
+func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) error {
+	log.Printf("CreateChallenge called: challengerID=%s, challengedID=%s, quizID=%s",
+		challenge.ChallengerID, challenge.ChallengedID, challenge.QuizID)
+
+	query := `
+		INSERT INTO challenges (
+			challenger_id, challenged_id, quiz_id, message, expires_at,
+			is_group_challenge, participant_ids, participant_scores
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, status, created_at, updated_at
+	`
+
+	err := r.db.QueryRow(
+		query,
+		challenge.ChallengerID,
+		challenge.ChallengedID,
+		challenge.QuizID,
+		challenge.Message,
+		challenge.ExpiresAt,
+		challenge.IsGroupChallenge,
+		pq.Array(challenge.ParticipantIDs),
+		challenge.ParticipantScores,
+	).Scan(
+		&challenge.ID,
+		&challenge.Status,
+		&challenge.CreatedAt,
+		&challenge.UpdatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create challenge: %w", err)
+	}
+
+	return nil
+}
+
+// GetChallengeByID retrieves a challenge by ID
+func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge, error) {
+	log.Printf("GetChallengeByID called: id=%s", id)
+
+	query := `
+		SELECT id, challenger_id, challenged_id, quiz_id, status,
+			   challenger_score, challenged_score, message, expires_at,
+			   is_group_challenge, participant_ids, participant_scores,
+			   created_at, updated_at
+		FROM challenges
+		WHERE id = $1
+	`
+
+	var challenge models.Challenge
+	var participantIDs pq.StringArray
+
+	err := r.db.QueryRow(query, id).Scan(
+		&challenge.ID,
+		&challenge.ChallengerID,
+		&challenge.ChallengedID,
+		&challenge.QuizID,
+		&challenge.Status,
+		&challenge.ChallengerScore,
+		&challenge.ChallengedScore,
+		&challenge.Message,
+		&challenge.ExpiresAt,
+		&challenge.IsGroupChallenge,
+		&participantIDs,
+		&challenge.ParticipantScores,
+		&challenge.CreatedAt,
+		&challenge.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("challenge not found")
+		}
+		return nil, fmt.Errorf("failed to get challenge: %w", err)
+	}
+
+	// Convert string array to UUID array
+	for _, idStr := range participantIDs {
+		if id, err := uuid.Parse(idStr); err == nil {
+			challenge.ParticipantIDs = append(challenge.ParticipantIDs, id)
+		}
+	}
+
+	return &challenge, nil
+}
+
+// GetChallengeWithDetails retrieves a challenge with full user and quiz details
+func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.ChallengeWithDetails, error) {
+	log.Printf("GetChallengeWithDetails called: id=%s", id)
+
+	query := `
+		SELECT c.id, c.challenger_id, c.challenged_id, c.quiz_id, c.status,
+			   c.challenger_score, c.challenged_score, c.message, c.expires_at,
+			   c.is_group_challenge, c.participant_ids, c.participant_scores,
+			   c.created_at, c.updated_at,
+			   u1.name, COALESCE(u1.avatar_url, ''),
+			   u2.name, COALESCE(u2.avatar_url, ''),
+			   q.title, q.category_id
+		FROM challenges c
+		JOIN users u1 ON c.challenger_id = u1.id
+		JOIN users u2 ON c.challenged_id = u2.id
+		JOIN quizzes q ON c.quiz_id = q.id
+		WHERE c.id = $1
+	`
+
+	var challenge models.ChallengeWithDetails
+	var participantIDs pq.StringArray
+
+	err := r.db.QueryRow(query, id).Scan(
+		&challenge.ID,
+		&challenge.ChallengerID,
+		&challenge.ChallengedID,
+		&challenge.QuizID,
+		&challenge.Status,
+		&challenge.ChallengerScore,
+		&challenge.ChallengedScore,
+		&challenge.Message,
+		&challenge.ExpiresAt,
+		&challenge.IsGroupChallenge,
+		&participantIDs,
+		&challenge.ParticipantScores,
+		&challenge.CreatedAt,
+		&challenge.UpdatedAt,
+		&challenge.ChallengerName,
+		&challenge.ChallengerAvatar,
+		&challenge.ChallengedName,
+		&challenge.ChallengedAvatar,
+		&challenge.QuizTitle,
+		&challenge.QuizCategory,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("challenge not found")
+		}
+		return nil, fmt.Errorf("failed to get challenge with details: %w", err)
+	}
+
+	// Convert string array to UUID array
+	for _, idStr := range participantIDs {
+		if id, err := uuid.Parse(idStr); err == nil {
+			challenge.ParticipantIDs = append(challenge.ParticipantIDs, id)
+		}
+	}
+
+	return &challenge, nil
+}
+
+// UpdateChallenge updates a challenge
+func (r *ChallengesRepository) UpdateChallenge(challenge *models.Challenge) error {
+	log.Printf("UpdateChallenge called: id=%s", challenge.ID)
+
+	query := `
+		UPDATE challenges
+		SET challenger_score = $2, challenged_score = $3, status = $4,
+			message = $5, expires_at = $6, participant_scores = $7,
+			updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(
+		query,
+		challenge.ID,
+		challenge.ChallengerScore,
+		challenge.ChallengedScore,
+		challenge.Status,
+		challenge.Message,
+		challenge.ExpiresAt,
+		challenge.ParticipantScores,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to update challenge: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found")
+	}
+
+	return nil
+}
+
+// UpdateChallengeStatus updates only the status of a challenge
+func (r *ChallengesRepository) UpdateChallengeStatus(challengeID uuid.UUID, status string) error {
+	log.Printf("UpdateChallengeStatus called: id=%s, status=%s", challengeID, status)
+
+	query := `
+		UPDATE challenges
+		SET status = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(query, challengeID, status)
+	if err != nil {
+		return fmt.Errorf("failed to update challenge status: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found")
+	}
+
+	return nil
+}
+
+// UpdateChallengeScore updates the score for a specific user in a challenge
+func (r *ChallengesRepository) UpdateChallengeScore(challengeID uuid.UUID, userID uuid.UUID, score float64) error {
+	log.Printf("UpdateChallengeScore called: challengeID=%s, userID=%s, score=%f", challengeID, userID, score)
+
+	// First get the challenge to determine which score to update
+	challenge, err := r.GetChallengeByID(challengeID)
+	if err != nil {
+		return err
+	}
+
+	var query string
+	if challenge.ChallengerID == userID {
+		query = `
+			UPDATE challenges
+			SET challenger_score = $2, updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+		`
+	} else if challenge.ChallengedID == userID {
+		query = `
+			UPDATE challenges
+			SET challenged_score = $2, updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+		`
+	} else {
+		return fmt.Errorf("user is not part of this challenge")
+	}
+
+	result, err := r.db.Exec(query, challengeID, score)
+	if err != nil {
+		return fmt.Errorf("failed to update challenge score: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found")
+	}
+
+	// Check if both scores are now set and update status to completed
+	updatedChallenge, err := r.GetChallengeByID(challengeID)
+	if err != nil {
+		return err
+	}
+
+	if updatedChallenge.ChallengerScore != nil && updatedChallenge.ChallengedScore != nil {
+		return r.UpdateChallengeStatus(challengeID, "completed")
+	}
+
+	return nil
+}
+
+// DeleteChallenge deletes a challenge
+func (r *ChallengesRepository) DeleteChallenge(id uuid.UUID) error {
+	log.Printf("DeleteChallenge called: id=%s", id)
+
+	query := `DELETE FROM challenges WHERE id = $1`
+
+	result, err := r.db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete challenge: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found")
+	}
+
+	return nil
+}
+
+// GetUserChallenges retrieves challenges for a user with filtering and pagination
+func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *models.ChallengeFilters) ([]models.ChallengeWithDetails, int, error) {
+	log.Printf("GetUserChallenges called: userID=%s", userID)
+
+	// Build WHERE clause
+	whereConditions := []string{"(c.challenger_id = $1 OR c.challenged_id = $1)"}
+	args := []interface{}{userID}
+	argIndex := 2
+
+	if filters.Status != "" {
+		whereConditions = append(whereConditions, fmt.Sprintf("c.status = $%d", argIndex))
+		args = append(args, filters.Status)
+		argIndex++
+	}
+
+	if filters.QuizID != nil {
+		whereConditions = append(whereConditions, fmt.Sprintf("c.quiz_id = $%d", argIndex))
+		args = append(args, *filters.QuizID)
+		argIndex++
+	}
+
+	if filters.UserType != "" && filters.UserType != "all" {
+		if filters.UserType == "challenger" {
+			whereConditions = append(whereConditions, fmt.Sprintf("c.challenger_id = $%d", argIndex))
+		} else if filters.UserType == "challenged" {
+			whereConditions = append(whereConditions, fmt.Sprintf("c.challenged_id = $%d", argIndex))
+		}
+		args = append(args, userID)
+		argIndex++
+	}
+
+	if filters.StartDate != nil {
+		whereConditions = append(whereConditions, fmt.Sprintf("c.created_at >= $%d", argIndex))
+		args = append(args, *filters.StartDate)
+		argIndex++
+	}
+
+	if filters.EndDate != nil {
+		whereConditions = append(whereConditions, fmt.Sprintf("c.created_at <= $%d", argIndex))
+		args = append(args, *filters.EndDate)
+		argIndex++
+	}
+
+	whereClause := strings.Join(whereConditions, " AND ")
+
+	// Count total records
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM challenges c
+		WHERE %s
+	`, whereClause)
+
+	var total int
+	err := r.db.QueryRow(countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count challenges: %w", err)
+	}
+
+	// Build ORDER BY clause
+	orderBy := "c.created_at DESC"
+	if filters.SortBy != "" {
+		direction := "DESC"
+		if filters.SortOrder == "asc" {
+			direction = "ASC"
+		}
+		orderBy = fmt.Sprintf("c.%s %s", filters.SortBy, direction)
+	}
+
+	// Main query
+	query := fmt.Sprintf(`
+		SELECT c.id, c.challenger_id, c.challenged_id, c.quiz_id, c.status,
+			   c.challenger_score, c.challenged_score, c.message, c.expires_at,
+			   c.is_group_challenge, c.participant_ids, c.participant_scores,
+			   c.created_at, c.updated_at,
+			   u1.name, COALESCE(u1.avatar_url, ''),
+			   u2.name, COALESCE(u2.avatar_url, ''),
+			   q.title, q.category_id
+		FROM challenges c
+		JOIN users u1 ON c.challenger_id = u1.id
+		JOIN users u2 ON c.challenged_id = u2.id
+		JOIN quizzes q ON c.quiz_id = q.id
+		WHERE %s
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d
+	`, whereClause, orderBy, argIndex, argIndex+1)
+
+	offset := (filters.Page - 1) * filters.PageSize
+	args = append(args, filters.PageSize, offset)
+
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get user challenges: %w", err)
+	}
+	defer rows.Close()
+
+	var challenges []models.ChallengeWithDetails
+	for rows.Next() {
+		var challenge models.ChallengeWithDetails
+		var participantIDs pq.StringArray
+
+		err := rows.Scan(
+			&challenge.ID,
+			&challenge.ChallengerID,
+			&challenge.ChallengedID,
+			&challenge.QuizID,
+			&challenge.Status,
+			&challenge.ChallengerScore,
+			&challenge.ChallengedScore,
+			&challenge.Message,
+			&challenge.ExpiresAt,
+			&challenge.IsGroupChallenge,
+			&participantIDs,
+			&challenge.ParticipantScores,
+			&challenge.CreatedAt,
+			&challenge.UpdatedAt,
+			&challenge.ChallengerName,
+			&challenge.ChallengerAvatar,
+			&challenge.ChallengedName,
+			&challenge.ChallengedAvatar,
+			&challenge.QuizTitle,
+			&challenge.QuizCategory,
+		)
+
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan challenge row: %w", err)
+		}
+
+		// Convert string array to UUID array
+		for _, idStr := range participantIDs {
+			if id, err := uuid.Parse(idStr); err == nil {
+				challenge.ParticipantIDs = append(challenge.ParticipantIDs, id)
+			}
+		}
+
+		challenges = append(challenges, challenge)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating challenge rows: %w", err)
+	}
+
+	return challenges, total, nil
+}
+
+// GetPendingChallenges retrieves pending challenges for a user
+func (r *ChallengesRepository) GetPendingChallenges(userID uuid.UUID) ([]models.ChallengeWithDetails, error) {
+	filters := &models.ChallengeFilters{
+		Status:   "pending",
+		Page:     1,
+		PageSize: 100, // Get all pending challenges
+	}
+
+	challenges, _, err := r.GetUserChallenges(userID, filters)
+	return challenges, err
+}
+
+// GetActiveChallenges retrieves active challenges for a user
+func (r *ChallengesRepository) GetActiveChallenges(userID uuid.UUID) ([]models.ChallengeWithDetails, error) {
+	filters := &models.ChallengeFilters{
+		Status:   "accepted",
+		Page:     1,
+		PageSize: 100, // Get all active challenges
+	}
+
+	challenges, _, err := r.GetUserChallenges(userID, filters)
+	return challenges, err
+}
+
+// GetCompletedChallenges retrieves completed challenges for a user
+func (r *ChallengesRepository) GetCompletedChallenges(userID uuid.UUID) ([]models.ChallengeWithDetails, error) {
+	filters := &models.ChallengeFilters{
+		Status:   "completed",
+		Page:     1,
+		PageSize: 100, // Get all completed challenges
+	}
+
+	challenges, _, err := r.GetUserChallenges(userID, filters)
+	return challenges, err
+}
+
+// AcceptChallenge accepts a challenge
+func (r *ChallengesRepository) AcceptChallenge(challengeID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("AcceptChallenge called: challengeID=%s, userID=%s", challengeID, userID)
+
+	// Verify user is the challenged user and challenge is pending
+	query := `
+		UPDATE challenges
+		SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND challenged_id = $2 AND status = 'pending'
+	`
+
+	result, err := r.db.Exec(query, challengeID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to accept challenge: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found or cannot be accepted")
+	}
+
+	return nil
+}
+
+// DeclineChallenge declines a challenge
+func (r *ChallengesRepository) DeclineChallenge(challengeID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("DeclineChallenge called: challengeID=%s, userID=%s", challengeID, userID)
+
+	// Verify user is the challenged user and challenge is pending
+	query := `
+		UPDATE challenges
+		SET status = 'declined', updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND challenged_id = $2 AND status = 'pending'
+	`
+
+	result, err := r.db.Exec(query, challengeID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to decline challenge: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found or cannot be declined")
+	}
+
+	return nil
+}
+
+// CompleteChallenge marks a challenge as completed
+func (r *ChallengesRepository) CompleteChallenge(challengeID uuid.UUID) error {
+	return r.UpdateChallengeStatus(challengeID, "completed")
+}
+
+// GetChallengeStats retrieves challenge statistics for a user
+func (r *ChallengesRepository) GetChallengeStats(userID uuid.UUID) (*models.ChallengeStatsResponse, error) {
+	log.Printf("GetChallengeStats called: userID=%s", userID)
+
+	query := `
+		SELECT
+			COUNT(*) as total_challenges,
+			COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_challenges,
+			COUNT(CASE WHEN status = 'accepted' THEN 1 END) as active_challenges,
+			COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_challenges,
+			COUNT(CASE
+				WHEN status = 'completed' AND (
+					(challenger_id = $1 AND challenger_score > challenged_score) OR
+					(challenged_id = $1 AND challenged_score > challenger_score)
+				) THEN 1
+			END) as won_challenges,
+			COUNT(CASE
+				WHEN status = 'completed' AND (
+					(challenger_id = $1 AND challenger_score < challenged_score) OR
+					(challenged_id = $1 AND challenged_score < challenger_score)
+				) THEN 1
+			END) as lost_challenges,
+			AVG(CASE
+				WHEN challenger_id = $1 THEN challenger_score
+				WHEN challenged_id = $1 THEN challenged_score
+			END) as average_score
+		FROM challenges
+		WHERE challenger_id = $1 OR challenged_id = $1
+	`
+
+	var stats models.ChallengeStatsResponse
+	var avgScore sql.NullFloat64
+
+	err := r.db.QueryRow(query, userID).Scan(
+		&stats.TotalChallenges,
+		&stats.PendingChallenges,
+		&stats.ActiveChallenges,
+		&stats.CompletedChallenges,
+		&stats.WonChallenges,
+		&stats.LostChallenges,
+		&avgScore,
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get challenge stats: %w", err)
+	}
+
+	if avgScore.Valid {
+		stats.AverageScore = avgScore.Float64
+	}
+
+	// Calculate win rate
+	if stats.CompletedChallenges > 0 {
+		stats.WinRate = float64(stats.WonChallenges) / float64(stats.CompletedChallenges) * 100
+	}
+
+	return &stats, nil
+}
+
+// CanUserChallenge checks if a user can challenge another user
+func (r *ChallengesRepository) CanUserChallenge(challengerID, challengedID uuid.UUID) (bool, error) {
+	// Check if users are friends (assuming friendship is required for challenges)
+	query := `
+		SELECT COUNT(*)
+		FROM friendships
+		WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)
+	`
+
+	var count int
+	err := r.db.QueryRow(query, challengerID, challengedID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check friendship: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+// HasPendingChallenge checks if there's already a pending challenge between users for a quiz
+func (r *ChallengesRepository) HasPendingChallenge(challengerID, challengedID uuid.UUID, quizID uuid.UUID) (bool, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM challenges
+		WHERE challenger_id = $1 AND challenged_id = $2 AND quiz_id = $3 AND status = 'pending'
+	`
+
+	var count int
+	err := r.db.QueryRow(query, challengerID, challengedID, quizID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check pending challenge: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+// ExpireChallenges marks expired challenges as expired
+func (r *ChallengesRepository) ExpireChallenges() error {
+	log.Println("ExpireChallenges called")
+
+	query := `
+		UPDATE challenges
+		SET status = 'expired', updated_at = CURRENT_TIMESTAMP
+		WHERE expires_at < CURRENT_TIMESTAMP
+		AND status IN ('pending', 'accepted')
+	`
+
+	result, err := r.db.Exec(query)
+	if err != nil {
+		return fmt.Errorf("failed to expire challenges: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	log.Printf("Expired %d challenges", rowsAffected)
+	return nil
+}

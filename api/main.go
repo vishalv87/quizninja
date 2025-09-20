@@ -48,6 +48,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	appSettingsHandler := handlers.NewAppSettingsHandler(cfg)
 	quizHandler := handlers.NewQuizHandler(cfg)
 	friendsHandler := handlers.NewFriendsHandler(cfg)
+	challengesHandler := handlers.NewChallengesHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -125,6 +126,22 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 				friends.GET("/notifications", friendsHandler.GetFriendNotifications)
 				friends.PUT("/notifications/:id/read", friendsHandler.MarkNotificationAsRead)
 				friends.PUT("/notifications/read-all", friendsHandler.MarkAllNotificationsAsRead)
+			}
+
+			// Challenge endpoints
+			challenges := protected.Group("/challenges")
+			{
+				challenges.POST("", challengesHandler.CreateChallenge)
+				challenges.GET("", challengesHandler.GetChallenges)
+				challenges.GET("/stats", challengesHandler.GetChallengeStats)
+				challenges.GET("/pending", challengesHandler.GetPendingChallenges)
+				challenges.GET("/active", challengesHandler.GetActiveChallenges)
+				challenges.GET("/completed", challengesHandler.GetCompletedChallenges)
+				challenges.GET("/:id", challengesHandler.GetChallengeByID)
+				challenges.PUT("/:id/accept", challengesHandler.AcceptChallenge)
+				challenges.PUT("/:id/decline", challengesHandler.DeclineChallenge)
+				challenges.PUT("/:id/score", challengesHandler.UpdateChallengeScore)
+				challenges.POST("/expire", challengesHandler.ExpireChallenges) // Admin endpoint
 			}
 
 			// Admin endpoints for cache management

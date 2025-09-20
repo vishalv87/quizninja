@@ -98,18 +98,53 @@ type FriendsRepositoryInterface interface {
 	GetUnreadNotificationCount(userID uuid.UUID) (int, error)
 }
 
+// ChallengesRepositoryInterface defines the contract for challenges data operations
+type ChallengesRepositoryInterface interface {
+	// Challenge CRUD operations
+	CreateChallenge(challenge *models.Challenge) error
+	GetChallengeByID(id uuid.UUID) (*models.Challenge, error)
+	GetChallengeWithDetails(id uuid.UUID) (*models.ChallengeWithDetails, error)
+	UpdateChallenge(challenge *models.Challenge) error
+	UpdateChallengeStatus(challengeID uuid.UUID, status string) error
+	UpdateChallengeScore(challengeID uuid.UUID, userID uuid.UUID, score float64) error
+	DeleteChallenge(id uuid.UUID) error
+
+	// Challenge list operations
+	GetUserChallenges(userID uuid.UUID, filters *models.ChallengeFilters) ([]models.ChallengeWithDetails, int, error)
+	GetPendingChallenges(userID uuid.UUID) ([]models.ChallengeWithDetails, error)
+	GetActiveChallenges(userID uuid.UUID) ([]models.ChallengeWithDetails, error)
+	GetCompletedChallenges(userID uuid.UUID) ([]models.ChallengeWithDetails, error)
+
+	// Challenge status operations
+	AcceptChallenge(challengeID uuid.UUID, userID uuid.UUID) error
+	DeclineChallenge(challengeID uuid.UUID, userID uuid.UUID) error
+	CompleteChallenge(challengeID uuid.UUID) error
+
+	// Challenge statistics
+	GetChallengeStats(userID uuid.UUID) (*models.ChallengeStatsResponse, error)
+
+	// Challenge validation
+	CanUserChallenge(challengerID, challengedID uuid.UUID) (bool, error)
+	HasPendingChallenge(challengerID, challengedID uuid.UUID, quizID uuid.UUID) (bool, error)
+
+	// Utility operations
+	ExpireChallenges() error
+}
+
 // Repository aggregates all repository interfaces
 type Repository struct {
-	User    UserRepositoryInterface
-	Quiz    QuizRepositoryInterface
-	Friends FriendsRepositoryInterface
+	User       UserRepositoryInterface
+	Quiz       QuizRepositoryInterface
+	Friends    FriendsRepositoryInterface
+	Challenges ChallengesRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
 func NewRepository() *Repository {
 	return &Repository{
-		User:    NewUserRepository(),
-		Quiz:    NewQuizRepository(),
-		Friends: NewFriendsRepository(),
+		User:       NewUserRepository(),
+		Quiz:       NewQuizRepository(),
+		Friends:    NewFriendsRepository(),
+		Challenges: NewChallengesRepository(),
 	}
 }
