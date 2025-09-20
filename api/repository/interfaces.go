@@ -71,16 +71,45 @@ type QuizRepositoryInterface interface {
 	GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error)
 }
 
+// FriendsRepositoryInterface defines the contract for friends data operations
+type FriendsRepositoryInterface interface {
+	// Friend request operations
+	SendFriendRequest(requesterID, requestedID uuid.UUID, message *string) (*models.FriendRequest, error)
+	GetFriendRequest(id uuid.UUID) (*models.FriendRequest, error)
+	GetFriendRequestBetweenUsers(requesterID, requestedID uuid.UUID) (*models.FriendRequest, error)
+	RespondToFriendRequest(requestID uuid.UUID, status string) error
+	CancelFriendRequest(requestID uuid.UUID, requesterID uuid.UUID) error
+	GetPendingFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error)
+	GetSentFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error)
+
+	// Friendship operations
+	GetFriends(userID uuid.UUID) ([]models.Friend, error)
+	GetFriendship(user1ID, user2ID uuid.UUID) (*models.Friendship, error)
+	RemoveFriend(userID, friendID uuid.UUID) error
+	AreFriends(user1ID, user2ID uuid.UUID) (bool, error)
+
+	// User search operations
+	SearchUsers(searchQuery string, currentUserID uuid.UUID, limit, offset int) ([]models.UserSearchResult, int, error)
+
+	// Friend notification operations
+	GetFriendNotifications(userID uuid.UUID, limit, offset int) ([]models.FriendNotification, int, error)
+	MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error
+	MarkAllNotificationsAsRead(userID uuid.UUID) error
+	GetUnreadNotificationCount(userID uuid.UUID) (int, error)
+}
+
 // Repository aggregates all repository interfaces
 type Repository struct {
-	User UserRepositoryInterface
-	Quiz QuizRepositoryInterface
+	User    UserRepositoryInterface
+	Quiz    QuizRepositoryInterface
+	Friends FriendsRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
 func NewRepository() *Repository {
 	return &Repository{
-		User: NewUserRepository(),
-		Quiz: NewQuizRepository(),
+		User:    NewUserRepository(),
+		Quiz:    NewQuizRepository(),
+		Friends: NewFriendsRepository(),
 	}
 }
