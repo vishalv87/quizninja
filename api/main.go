@@ -52,6 +52,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	leaderboardHandler := handlers.NewLeaderboardHandler(cfg)
 	achievementHandler := handlers.NewAchievementHandler(cfg)
 	favoritesHandler := handlers.NewFavoritesHandler(cfg)
+	discussionHandler := handlers.NewDiscussionHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -181,6 +182,23 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 				favorites.DELETE("/:quizId", favoritesHandler.RemoveFavorite)
 				favorites.GET("", favoritesHandler.GetFavorites)
 				favorites.GET("/check/:quizId", favoritesHandler.CheckFavorite)
+			}
+
+			// Discussion endpoints
+			discussions := protected.Group("/discussions")
+			{
+				discussions.GET("", discussionHandler.GetDiscussions)
+				discussions.POST("", discussionHandler.CreateDiscussion)
+				discussions.GET("/stats", discussionHandler.GetDiscussionStats)
+				discussions.GET("/:id", discussionHandler.GetDiscussion)
+				discussions.PUT("/:id", discussionHandler.UpdateDiscussion)
+				discussions.DELETE("/:id", discussionHandler.DeleteDiscussion)
+				discussions.PUT("/:id/like", discussionHandler.LikeDiscussion)
+				discussions.GET("/:id/replies", discussionHandler.GetDiscussionReplies)
+				discussions.POST("/:id/replies", discussionHandler.CreateDiscussionReply)
+				discussions.PUT("/replies/:replyId", discussionHandler.UpdateDiscussionReply)
+				discussions.DELETE("/replies/:replyId", discussionHandler.DeleteDiscussionReply)
+				discussions.PUT("/replies/:replyId/like", discussionHandler.LikeDiscussionReply)
 			}
 
 			// Admin endpoints for cache management

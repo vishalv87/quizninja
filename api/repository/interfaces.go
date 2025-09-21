@@ -177,6 +177,7 @@ type Repository struct {
 	Challenges  ChallengesRepositoryInterface
 	Leaderboard LeaderboardRepositoryInterface
 	Achievement AchievementRepositoryInterface
+	Discussion  DiscussionRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
@@ -188,5 +189,6 @@ func NewRepository() *Repository {
 		Challenges:  NewChallengesRepository(),
 		Leaderboard: NewLeaderboardRepository(),
 		Achievement: NewAchievementRepository(),
+		Discussion:  NewDiscussionRepository(),
 	}
 }
