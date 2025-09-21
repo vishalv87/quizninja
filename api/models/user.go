@@ -255,6 +255,7 @@ type QuizStatistics struct {
 	AverageTime       int        `json:"average_time" db:"average_time"` // in seconds
 	HighestScore      float64    `json:"highest_score" db:"highest_score"`
 	LowestScore       float64    `json:"lowest_score" db:"lowest_score"`
+	PopularityScore   int        `json:"popularity_score" db:"popularity_score"`
 	LastAttemptAt     *time.Time `json:"last_attempt_at,omitempty" db:"last_attempt_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
@@ -342,17 +343,37 @@ type QuizFilters struct {
 }
 
 type QuizAttempt struct {
-	ID          uuid.UUID  `json:"id" db:"id"`
-	QuizID      uuid.UUID  `json:"quiz_id" db:"quiz_id"`
-	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
-	Score       float64    `json:"score" db:"score"`
-	TotalPoints int        `json:"total_points" db:"total_points"`
-	TimeSpent   int        `json:"time_spent" db:"time_spent"` // in seconds
-	IsCompleted bool       `json:"is_completed" db:"is_completed"`
-	StartedAt   time.Time  `json:"started_at" db:"started_at"`
-	CompletedAt *time.Time `json:"completed_at,omitempty" db:"completed_at"`
-	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
+	ID              uuid.UUID       `json:"id" db:"id"`
+	QuizID          uuid.UUID       `json:"quiz_id" db:"quiz_id"`
+	UserID          uuid.UUID       `json:"user_id" db:"user_id"`
+	Answers         []AttemptAnswer `json:"answers" db:"answers"`
+	Score           float64         `json:"score" db:"score"`
+	TotalPoints     int             `json:"total_points" db:"total_points"`
+	TimeSpent       int             `json:"time_spent" db:"time_spent"` // in seconds
+	PercentageScore float64         `json:"percentage_score" db:"percentage_score"`
+	Passed          bool            `json:"passed" db:"passed"`
+	Status          string          `json:"status" db:"status"` // started, completed, abandoned
+	IsCompleted     bool            `json:"is_completed" db:"is_completed"`
+	StartedAt       time.Time       `json:"started_at" db:"started_at"`
+	CompletedAt     *time.Time      `json:"completed_at,omitempty" db:"completed_at"`
+	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
+}
+
+// AttemptAnswer represents a user's answer to a quiz question
+type AttemptAnswer struct {
+	QuestionID     uuid.UUID `json:"question_id" validate:"required"`
+	SelectedOption int       `json:"selected_option"` // For multiple choice
+	TextAnswer     string    `json:"text_answer"`     // For text answers
+	IsCorrect      bool      `json:"is_correct"`
+	PointsEarned   int       `json:"points_earned"`
+}
+
+// UpdateAttemptRequest represents the request body for updating/completing a quiz attempt
+type UpdateAttemptRequest struct {
+	Answers   []AttemptAnswer `json:"answers" validate:"required"`
+	TimeSpent int             `json:"time_spent" validate:"min=1"`
+	Status    string          `json:"status" validate:"required,oneof=completed abandoned"`
 }
 
 // UserStatistics represents comprehensive user statistics

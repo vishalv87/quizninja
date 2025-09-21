@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"quizninja-api/config"
 	"quizninja-api/models"
@@ -238,16 +240,20 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 
 	// Create quiz attempt
 	attempt := &models.QuizAttempt{
-		ID:          uuid.New(),
-		QuizID:      quizID,
-		UserID:      userID,
-		Score:       0,
-		TotalPoints: 0,
-		TimeSpent:   0,
-		IsCompleted: false,
-		StartedAt:   quiz.CreatedAt, // This should be time.Now() but using CreatedAt to match the pattern
-		CreatedAt:   quiz.CreatedAt,
-		UpdatedAt:   quiz.UpdatedAt,
+		ID:              uuid.New(),
+		QuizID:          quizID,
+		UserID:          userID,
+		Answers:         []models.AttemptAnswer{},
+		Score:           0,
+		TotalPoints:     0,
+		TimeSpent:       0,
+		PercentageScore: 0,
+		Passed:          false,
+		Status:          "started",
+		IsCompleted:     false,
+		StartedAt:       time.Now(),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 	}
 
 	err = h.repo.Quiz.CreateQuizAttempt(attempt)
@@ -533,4 +539,198 @@ func getUserIDFromContext(c *gin.Context) uuid.UUID {
 	}
 
 	return userID
+}
+
+// UpdateQuizAttempt handles PUT /api/v1/quizzes/{id}/attempts/{attemptId}
+func (h *QuizHandler) UpdateQuizAttempt(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	attemptIdParam := c.Param("attemptId")
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	// Parse the request body
+	var updateRequest models.UpdateAttemptRequest
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Verify the attempt exists and belongs to the user
+	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
+	if err != nil {
+		if err.Error() == "quiz attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to update this attempt")
+		return
+	}
+
+	if attempt.QuizID != quizID {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Attempt does not belong to specified quiz")
+		return
+	}
+
+	if attempt.IsCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "Quiz attempt already completed")
+		return
+	}
+
+	// Get quiz with questions to validate answers and calculate score
+	quiz, err := h.repo.Quiz.GetQuizByIDWithQuestions(quizID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Validate answers and calculate score
+	validatedAnswers, correctAnswers, totalQuestions, err := h.validateAndScoreAnswers(updateRequest.Answers, quiz.Questions)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid answers", err.Error())
+		return
+	}
+
+	// Calculate score and percentage
+	basePoints := totalQuestions // 1 point per question as default
+	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
+	finalScore := scorePercentage * float64(basePoints) / 100
+	passed := scorePercentage >= 60.0 // 60% passing threshold
+
+	// Update the attempt
+	attempt.Answers = validatedAnswers
+	attempt.Score = finalScore
+	attempt.TotalPoints = basePoints
+	attempt.TimeSpent = updateRequest.TimeSpent
+	attempt.PercentageScore = scorePercentage
+	attempt.Passed = passed
+	attempt.Status = updateRequest.Status
+
+	if updateRequest.Status == "completed" {
+		attempt.IsCompleted = true
+		now := time.Now()
+		attempt.CompletedAt = &now
+	}
+
+	attempt.UpdatedAt = time.Now()
+
+	err = h.repo.Quiz.UpdateQuizAttempt(attempt)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Update quiz statistics if attempt is completed
+	if updateRequest.Status == "completed" {
+		err = h.updateQuizStatistics(quizID, finalScore, updateRequest.TimeSpent)
+		if err != nil {
+			// Log error but don't fail the request
+			fmt.Printf("Warning: Failed to update quiz statistics: %v\n", err)
+		}
+	}
+
+	// Return the updated attempt
+	response := gin.H{
+		"attempt_id":       attempt.ID,
+		"answers":          validatedAnswers,
+		"score":            int(finalScore),
+		"percentage_score": scorePercentage,
+		"passed":           passed,
+		"total_questions":  totalQuestions,
+		"correct_answers":  correctAnswers,
+		"time_spent":       updateRequest.TimeSpent,
+		"status":           updateRequest.Status,
+		"completed_at":     attempt.CompletedAt,
+	}
+
+	utils.SuccessResponse(c, response)
+}
+
+// validateAndScoreAnswers validates user answers against quiz questions and calculates score
+func (h *QuizHandler) validateAndScoreAnswers(answers []models.AttemptAnswer, questions []models.Question) ([]models.AttemptAnswer, int, int, error) {
+	// Create a map for easy question lookup
+	questionMap := make(map[uuid.UUID]models.Question)
+	for _, q := range questions {
+		questionMap[q.ID] = q
+	}
+
+	totalQuestions := len(questions)
+	correctAnswers := 0
+	validatedAnswers := make([]models.AttemptAnswer, 0, len(answers))
+
+	// Validate and score each answer
+	for _, answer := range answers {
+		question, exists := questionMap[answer.QuestionID]
+		if !exists {
+			return nil, 0, 0, fmt.Errorf("invalid question ID: %s", answer.QuestionID)
+		}
+
+		// Score the answer
+		isCorrect := false
+		pointsEarned := 0
+
+		// Check if answer is correct based on question type
+		if question.QuestionType == "multiple_choice" || question.QuestionType == "multipleChoice" {
+			// For multiple choice, check selected option against correct answer
+			if answer.SelectedOption >= 0 && answer.SelectedOption < len(question.Options) {
+				selectedAnswer := question.Options[answer.SelectedOption]
+				if selectedAnswer == question.CorrectAnswer {
+					isCorrect = true
+					pointsEarned = 1 // Default 1 point per correct answer
+				}
+			}
+		} else {
+			// For other question types, check text answer
+			if strings.TrimSpace(strings.ToLower(answer.TextAnswer)) == strings.TrimSpace(strings.ToLower(question.CorrectAnswer)) {
+				isCorrect = true
+				pointsEarned = 1
+			}
+		}
+
+		if isCorrect {
+			correctAnswers++
+		}
+
+		// Create validated answer
+		validatedAnswer := models.AttemptAnswer{
+			QuestionID:     answer.QuestionID,
+			SelectedOption: answer.SelectedOption,
+			TextAnswer:     answer.TextAnswer,
+			IsCorrect:      isCorrect,
+			PointsEarned:   pointsEarned,
+		}
+
+		validatedAnswers = append(validatedAnswers, validatedAnswer)
+	}
+
+	return validatedAnswers, correctAnswers, totalQuestions, nil
+}
+
+// updateQuizStatistics updates quiz statistics when an attempt is completed
+func (h *QuizHandler) updateQuizStatistics(quizID uuid.UUID, score float64, timeSpent int) error {
+	// Use the repository method to create or update quiz statistics
+	err := h.repo.Quiz.CreateOrUpdateQuizStatistics(quizID, score, timeSpent)
+	if err != nil {
+		return fmt.Errorf("failed to update quiz statistics: %w", err)
+	}
+
+	fmt.Printf("Successfully updated quiz statistics for quiz %s: score=%.2f, time=%d\n",
+		quizID, score, timeSpent)
+
+	return nil
 }

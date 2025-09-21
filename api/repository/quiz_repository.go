@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"quizninja-api/database"
 	"quizninja-api/models"
@@ -335,17 +336,22 @@ func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Questi
 // GetQuizStatistics retrieves quiz statistics
 func (r *QuizRepository) GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatistics, error) {
 	query := `
-		SELECT id, quiz_id, total_attempts, completed_attempts, average_score,
-		       average_time, highest_score, lowest_score, last_attempt_at, created_at, updated_at
+		SELECT quiz_id, total_attempts, total_completions, average_score,
+		       average_time_seconds, difficulty_rating, popularity_score, last_updated
 		FROM quiz_statistics
 		WHERE quiz_id = $1`
 
 	var stats models.QuizStatistics
+	var difficultyRating float64 // temporary variable for difficulty_rating which isn't in model
 	err := r.db.QueryRow(query, quizID).Scan(
-		&stats.ID, &stats.QuizID, &stats.TotalAttempts, &stats.CompletedAttempts,
-		&stats.AverageScore, &stats.AverageTime, &stats.HighestScore, &stats.LowestScore,
-		&stats.LastAttemptAt, &stats.CreatedAt, &stats.UpdatedAt,
+		&stats.QuizID, &stats.TotalAttempts, &stats.CompletedAttempts,
+		&stats.AverageScore, &stats.AverageTime, &difficultyRating, &stats.PopularityScore,
+		&stats.UpdatedAt,
 	)
+
+	// Set default values for fields not retrieved from database
+	stats.ID = stats.QuizID // Use QuizID as ID since it's the primary key
+	stats.CreatedAt = stats.UpdatedAt // Use updated_at as created_at for now
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("quiz statistics not found")
@@ -359,12 +365,20 @@ func (r *QuizRepository) GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatis
 // Quiz attempt operations
 func (r *QuizRepository) CreateQuizAttempt(attempt *models.QuizAttempt) error {
 	query := `
-		INSERT INTO quiz_attempts (id, quiz_id, user_id, score, total_points, time_spent,
-		                         is_completed, started_at, completed_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+		INSERT INTO quiz_attempts (id, quiz_id, user_id, answers, score, total_points, time_spent,
+		                         percentage_score, passed, status, is_completed, started_at,
+		                         completed_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
 
-	_, err := r.db.Exec(query, attempt.ID, attempt.QuizID, attempt.UserID,
-		attempt.Score, attempt.TotalPoints, attempt.TimeSpent, attempt.IsCompleted,
+	// Convert answers to JSON for storage
+	answersJSON, err := json.Marshal(attempt.Answers)
+	if err != nil {
+		return fmt.Errorf("failed to marshal answers: %w", err)
+	}
+
+	_, err = r.db.Exec(query, attempt.ID, attempt.QuizID, attempt.UserID,
+		answersJSON, attempt.Score, attempt.TotalPoints, attempt.TimeSpent,
+		attempt.PercentageScore, attempt.Passed, attempt.Status, attempt.IsCompleted,
 		attempt.StartedAt, attempt.CompletedAt, attempt.CreatedAt, attempt.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create quiz attempt: %w", err)
@@ -376,13 +390,20 @@ func (r *QuizRepository) CreateQuizAttempt(attempt *models.QuizAttempt) error {
 func (r *QuizRepository) UpdateQuizAttempt(attempt *models.QuizAttempt) error {
 	query := `
 		UPDATE quiz_attempts
-		SET score = $3, total_points = $4, time_spent = $5, is_completed = $6,
-		    completed_at = $7, updated_at = $8
+		SET answers = $3, score = $4, total_points = $5, time_spent = $6,
+		    percentage_score = $7, passed = $8, status = $9, is_completed = $10,
+		    completed_at = $11, updated_at = $12
 		WHERE id = $1 AND user_id = $2`
 
-	result, err := r.db.Exec(query, attempt.ID, attempt.UserID, attempt.Score,
-		attempt.TotalPoints, attempt.TimeSpent, attempt.IsCompleted,
-		attempt.CompletedAt, attempt.UpdatedAt)
+	// Convert answers to JSON for storage
+	answersJSON, err := json.Marshal(attempt.Answers)
+	if err != nil {
+		return fmt.Errorf("failed to marshal answers: %w", err)
+	}
+
+	result, err := r.db.Exec(query, attempt.ID, attempt.UserID, answersJSON,
+		attempt.Score, attempt.TotalPoints, attempt.TimeSpent, attempt.PercentageScore,
+		attempt.Passed, attempt.Status, attempt.IsCompleted, attempt.CompletedAt, attempt.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to update quiz attempt: %w", err)
 	}
@@ -401,15 +422,18 @@ func (r *QuizRepository) UpdateQuizAttempt(attempt *models.QuizAttempt) error {
 
 func (r *QuizRepository) GetQuizAttempt(id uuid.UUID) (*models.QuizAttempt, error) {
 	query := `
-		SELECT id, quiz_id, user_id, score, total_points, time_spent, is_completed,
+		SELECT id, quiz_id, user_id, answers, score, total_points, time_spent,
+		       percentage_score, passed, status, is_completed,
 		       started_at, completed_at, created_at, updated_at
 		FROM quiz_attempts
 		WHERE id = $1`
 
 	var attempt models.QuizAttempt
+	var answersJSON []byte
 	err := r.db.QueryRow(query, id).Scan(
-		&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
-		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+		&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON,
+		&attempt.Score, &attempt.TotalPoints, &attempt.TimeSpent,
+		&attempt.PercentageScore, &attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
 	)
 	if err != nil {
@@ -419,12 +443,21 @@ func (r *QuizRepository) GetQuizAttempt(id uuid.UUID) (*models.QuizAttempt, erro
 		return nil, fmt.Errorf("failed to get quiz attempt: %w", err)
 	}
 
+	// Unmarshal answers JSON
+	if answersJSON != nil {
+		err = json.Unmarshal(answersJSON, &attempt.Answers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+		}
+	}
+
 	return &attempt, nil
 }
 
 func (r *QuizRepository) GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models.QuizAttempt, error) {
 	query := `
-		SELECT id, quiz_id, user_id, score, total_points, time_spent, is_completed,
+		SELECT id, quiz_id, user_id, answers, score, total_points, time_spent,
+		       percentage_score, passed, status, is_completed,
 		       started_at, completed_at, created_at, updated_at
 		FROM quiz_attempts
 		WHERE user_id = $1 AND quiz_id = $2
@@ -439,14 +472,25 @@ func (r *QuizRepository) GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models
 	var attempts []models.QuizAttempt
 	for rows.Next() {
 		var attempt models.QuizAttempt
+		var answersJSON []byte
 		err := rows.Scan(
-			&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
-			&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+			&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON,
+			&attempt.Score, &attempt.TotalPoints, &attempt.TimeSpent,
+			&attempt.PercentageScore, &attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 			&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan quiz attempt: %w", err)
 		}
+
+		// Unmarshal answers JSON
+		if answersJSON != nil {
+			err = json.Unmarshal(answersJSON, &attempt.Answers)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+			}
+		}
+
 		attempts = append(attempts, attempt)
 	}
 
@@ -456,7 +500,8 @@ func (r *QuizRepository) GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models
 // GetActiveQuizAttempt retrieves an active (incomplete) quiz attempt for a user and quiz
 func (r *QuizRepository) GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models.QuizAttempt, error) {
 	query := `
-		SELECT id, quiz_id, user_id, score, total_points, time_spent, is_completed,
+		SELECT id, quiz_id, user_id, answers, score, total_points, time_spent,
+		       percentage_score, passed, status, is_completed,
 		       started_at, completed_at, created_at, updated_at
 		FROM quiz_attempts
 		WHERE user_id = $1 AND quiz_id = $2 AND is_completed = false
@@ -464,9 +509,11 @@ func (r *QuizRepository) GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models
 		LIMIT 1`
 
 	var attempt models.QuizAttempt
+	var answersJSON []byte
 	err := r.db.QueryRow(query, userID, quizID).Scan(
-		&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
-		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+		&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON,
+		&attempt.Score, &attempt.TotalPoints, &attempt.TimeSpent,
+		&attempt.PercentageScore, &attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
 	)
 	if err != nil {
@@ -474,6 +521,14 @@ func (r *QuizRepository) GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models
 			return nil, nil // No active attempt found
 		}
 		return nil, fmt.Errorf("failed to get active quiz attempt: %w", err)
+	}
+
+	// Unmarshal answers JSON
+	if answersJSON != nil {
+		err = json.Unmarshal(answersJSON, &attempt.Answers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+		}
 	}
 
 	return &attempt, nil
@@ -587,8 +642,9 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 	// Main query
 	query := fmt.Sprintf(`
 		SELECT
-			qa.id, qa.quiz_id, qa.user_id, qa.score, qa.total_points, qa.time_spent,
-			qa.is_completed, qa.started_at, qa.completed_at, qa.created_at, qa.updated_at,
+			qa.id, qa.quiz_id, qa.user_id, qa.answers, qa.score, qa.total_points, qa.time_spent,
+			qa.percentage_score, qa.passed, qa.status, qa.is_completed, qa.started_at,
+			qa.completed_at, qa.created_at, qa.updated_at,
 			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
 			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at
 		FROM quiz_attempts qa
@@ -614,10 +670,12 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 	for rows.Next() {
 		var attempt models.QuizAttemptWithDetails
 		var tags pq.StringArray
+		var answersJSON []byte
 
 		err := rows.Scan(
-			&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
-			&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+			&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON, &attempt.Score,
+			&attempt.TotalPoints, &attempt.TimeSpent, &attempt.PercentageScore,
+			&attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 			&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
 			&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
 			&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
@@ -626,6 +684,14 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan attempt row: %w", err)
+		}
+
+		// Unmarshal answers JSON
+		if answersJSON != nil {
+			err = json.Unmarshal(answersJSON, &attempt.Answers)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal answers: %w", err)
+			}
 		}
 
 		// Convert tags
@@ -651,8 +717,9 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 
 	query := `
 		SELECT
-			qa.id, qa.quiz_id, qa.user_id, qa.score, qa.total_points, qa.time_spent,
-			qa.is_completed, qa.started_at, qa.completed_at, qa.created_at, qa.updated_at,
+			qa.id, qa.quiz_id, qa.user_id, qa.answers, qa.score, qa.total_points, qa.time_spent,
+			qa.percentage_score, qa.passed, qa.status, qa.is_completed, qa.started_at,
+			qa.completed_at, qa.created_at, qa.updated_at,
 			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
 			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at
 		FROM quiz_attempts qa
@@ -663,10 +730,12 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 
 	var attempt models.QuizAttemptWithDetails
 	var tags pq.StringArray
+	var answersJSON []byte
 
 	err := r.db.QueryRow(query, attemptID).Scan(
-		&attempt.ID, &attempt.QuizID, &attempt.UserID, &attempt.Score,
-		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.IsCompleted,
+		&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON, &attempt.Score,
+		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.PercentageScore,
+		&attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
 		&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
 		&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
@@ -682,6 +751,14 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 		return nil, fmt.Errorf("failed to get attempt with details: %w", err)
 	}
 
+	// Unmarshal answers JSON
+	if answersJSON != nil {
+		err = json.Unmarshal(answersJSON, &attempt.Answers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+		}
+	}
+
 	// Convert tags
 	attempt.Quiz.Tags = []string(tags)
 	// Convert time limit from minutes to seconds for JSON response
@@ -691,6 +768,54 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 		attempt.UserID, attempt.Quiz.Title, attempt.Score)
 
 	return &attempt, nil
+}
+
+// CreateOrUpdateQuizStatistics creates or updates quiz statistics when an attempt is completed
+func (r *QuizRepository) CreateOrUpdateQuizStatistics(quizID uuid.UUID, score float64, timeSpent int) error {
+	// First, try to get existing statistics
+	existingStats, err := r.GetQuizStatistics(quizID)
+
+	if err != nil && err.Error() != "quiz statistics not found" {
+		return fmt.Errorf("failed to check existing quiz statistics: %w", err)
+	}
+
+	if existingStats == nil {
+		// Create new statistics record
+		query := `
+			INSERT INTO quiz_statistics (quiz_id, total_attempts, total_completions, average_score,
+			                          average_time_seconds, difficulty_rating, popularity_score, last_updated)
+			VALUES ($1, 1, 1, $2, $3, 0.0, 1, CURRENT_TIMESTAMP)`
+
+		_, err = r.db.Exec(query, quizID, score, timeSpent)
+		if err != nil {
+			return fmt.Errorf("failed to create quiz statistics: %w", err)
+		}
+	} else {
+		// Update existing statistics
+		newTotalAttempts := existingStats.TotalAttempts + 1
+		newTotalCompletions := existingStats.CompletedAttempts + 1
+
+		// Calculate new averages
+		newAverageScore := ((existingStats.AverageScore * float64(existingStats.CompletedAttempts)) + score) / float64(newTotalCompletions)
+		newAverageTime := ((existingStats.AverageTime * existingStats.CompletedAttempts) + timeSpent) / newTotalCompletions
+
+		// Update popularity score (simple increment for now)
+		newPopularityScore := existingStats.PopularityScore + 1
+
+		query := `
+			UPDATE quiz_statistics
+			SET total_attempts = $2, total_completions = $3, average_score = $4,
+			    average_time_seconds = $5, popularity_score = $6, last_updated = CURRENT_TIMESTAMP
+			WHERE quiz_id = $1`
+
+		_, err = r.db.Exec(query, quizID, newTotalAttempts, newTotalCompletions,
+			newAverageScore, newAverageTime, newPopularityScore)
+		if err != nil {
+			return fmt.Errorf("failed to update quiz statistics: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // AddFavorite adds a quiz to user's favorites

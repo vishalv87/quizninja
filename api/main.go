@@ -117,6 +117,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			{
 				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
 				protectedQuizzes.POST("/:id/attempts/:attemptId/submit", quizHandler.SubmitQuizAttempt)
+				protectedQuizzes.PUT("/:id/attempts/:attemptId", quizHandler.UpdateQuizAttempt)
 			}
 
 			// Friends endpoints

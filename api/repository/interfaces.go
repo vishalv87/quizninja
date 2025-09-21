@@ -57,6 +57,7 @@ type QuizRepositoryInterface interface {
 
 	// Quiz statistics read operations
 	GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatistics, error)
+	CreateOrUpdateQuizStatistics(quizID uuid.UUID, score float64, timeSpent int) error
 
 	// Quiz attempt operations
 	CreateQuizAttempt(attempt *models.QuizAttempt) error
