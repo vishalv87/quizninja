@@ -692,3 +692,115 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 
 	return &attempt, nil
 }
+
+// AddFavorite adds a quiz to user's favorites
+func (r *QuizRepository) AddFavorite(userID, quizID uuid.UUID) error {
+	query := `
+		INSERT INTO user_quiz_favorites (id, user_id, quiz_id, favorited_at)
+		VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+		ON CONFLICT (user_id, quiz_id) DO NOTHING`
+
+	_, err := r.db.Exec(query, uuid.New(), userID, quizID)
+	if err != nil {
+		return fmt.Errorf("failed to add favorite: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveFavorite removes a quiz from user's favorites
+func (r *QuizRepository) RemoveFavorite(userID, quizID uuid.UUID) error {
+	query := `DELETE FROM user_quiz_favorites WHERE user_id = $1 AND quiz_id = $2`
+
+	result, err := r.db.Exec(query, userID, quizID)
+	if err != nil {
+		return fmt.Errorf("failed to remove favorite: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("favorite not found")
+	}
+
+	return nil
+}
+
+// GetUserFavorites retrieves user's favorite quizzes with pagination
+func (r *QuizRepository) GetUserFavorites(userID uuid.UUID, page, pageSize int) ([]models.UserQuizFavorite, int, error) {
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get total count
+	countQuery := `SELECT COUNT(*) FROM user_quiz_favorites WHERE user_id = $1`
+	var total int
+	err := r.db.QueryRow(countQuery, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get favorites count: %w", err)
+	}
+
+	// Get favorites with quiz details
+	query := `
+		SELECT
+			f.id, f.user_id, f.quiz_id, f.favorited_at,
+			q.id, q.title, q.description, q.category_id, q.difficulty,
+			q.time_limit_minutes, q.total_questions, q.is_featured,
+			q.tags, q.thumbnail_url, q.created_at
+		FROM user_quiz_favorites f
+		JOIN quizzes q ON f.quiz_id = q.id
+		WHERE f.user_id = $1
+		ORDER BY f.favorited_at DESC
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.Query(query, userID, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get favorites: %w", err)
+	}
+	defer rows.Close()
+
+	favorites := make([]models.UserQuizFavorite, 0)
+	for rows.Next() {
+		var favorite models.UserQuizFavorite
+		var quiz models.QuizSummary
+		var tags pq.StringArray
+
+		err := rows.Scan(
+			&favorite.ID, &favorite.UserID, &favorite.QuizID, &favorite.FavoritedAt,
+			&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
+			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured,
+			&tags, &quiz.ThumbnailURL, &quiz.CreatedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan favorite: %w", err)
+		}
+
+		// Convert tags and time limit
+		quiz.Tags = []string(tags)
+		quiz.TimeLimit = quiz.TimeLimit * 60 // Convert minutes to seconds
+
+		favorite.Quiz = &quiz
+		favorites = append(favorites, favorite)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("failed to iterate favorites: %w", err)
+	}
+
+	return favorites, total, nil
+}
+
+// IsFavorite checks if a quiz is in user's favorites
+func (r *QuizRepository) IsFavorite(userID, quizID uuid.UUID) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM user_quiz_favorites WHERE user_id = $1 AND quiz_id = $2)`
+
+	var exists bool
+	err := r.db.QueryRow(query, userID, quizID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check favorite status: %w", err)
+	}
+
+	return exists, nil
+}

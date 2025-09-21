@@ -69,6 +69,12 @@ type QuizRepositoryInterface interface {
 	// Attempt history operations
 	GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error)
 	GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error)
+
+	// Favorites operations
+	AddFavorite(userID, quizID uuid.UUID) error
+	RemoveFavorite(userID, quizID uuid.UUID) error
+	GetUserFavorites(userID uuid.UUID, page, pageSize int) ([]models.UserQuizFavorite, int, error)
+	IsFavorite(userID, quizID uuid.UUID) (bool, error)
 }
 
 // FriendsRepositoryInterface defines the contract for friends data operations

@@ -51,6 +51,7 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 	challengesHandler := handlers.NewChallengesHandler(cfg)
 	leaderboardHandler := handlers.NewLeaderboardHandler(cfg)
 	achievementHandler := handlers.NewAchievementHandler(cfg)
+	favoritesHandler := handlers.NewFavoritesHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -172,6 +173,15 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			// User achievement endpoints
 			users.GET("/achievements", achievementHandler.GetUserAchievements)
 			users.GET("/:userId/achievements", achievementHandler.GetUserAchievementsByUserID)
+
+			// Favorites endpoints
+			favorites := protected.Group("/favorites")
+			{
+				favorites.POST("", favoritesHandler.AddFavorite)
+				favorites.DELETE("/:quizId", favoritesHandler.RemoveFavorite)
+				favorites.GET("", favoritesHandler.GetFavorites)
+				favorites.GET("/check/:quizId", favoritesHandler.CheckFavorite)
+			}
 
 			// Admin endpoints for cache management
 			admin := protected.Group("/admin")
