@@ -67,6 +67,11 @@ type QuizRepositoryInterface interface {
 	GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models.QuizAttempt, error)
 	DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
 
+	// Retake operations
+	ValidateRetakeLimit(userID, quizID uuid.UUID) error
+	GetQuizAttemptsForComparison(userID, quizID uuid.UUID) ([]models.QuizAttempt, error)
+	CalculatePerformanceComparison(currentAttempt *models.QuizAttempt, previousAttempts []models.QuizAttempt) map[string]interface{}
+
 	// Attempt history operations
 	GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error)
 	GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error)

@@ -367,8 +367,9 @@ func (r *QuizRepository) CreateQuizAttempt(attempt *models.QuizAttempt) error {
 	query := `
 		INSERT INTO quiz_attempts (id, quiz_id, user_id, answers, score, total_points, time_spent,
 		                         percentage_score, passed, status, is_completed, started_at,
-		                         completed_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
+		                         completed_at, created_at, updated_at, retake_count,
+		                         original_attempt_id, performance_comparison)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)`
 
 	// Convert answers to JSON for storage
 	answersJSON, err := json.Marshal(attempt.Answers)
@@ -376,10 +377,23 @@ func (r *QuizRepository) CreateQuizAttempt(attempt *models.QuizAttempt) error {
 		return fmt.Errorf("failed to marshal answers: %w", err)
 	}
 
+	// Convert performance comparison to JSON for storage
+	var performanceJSON interface{}
+	if attempt.PerformanceComparison != nil {
+		performanceJSONBytes, err := json.Marshal(attempt.PerformanceComparison)
+		if err != nil {
+			return fmt.Errorf("failed to marshal performance comparison: %w", err)
+		}
+		performanceJSON = performanceJSONBytes
+	} else {
+		performanceJSON = nil
+	}
+
 	_, err = r.db.Exec(query, attempt.ID, attempt.QuizID, attempt.UserID,
 		answersJSON, attempt.Score, attempt.TotalPoints, attempt.TimeSpent,
 		attempt.PercentageScore, attempt.Passed, attempt.Status, attempt.IsCompleted,
-		attempt.StartedAt, attempt.CompletedAt, attempt.CreatedAt, attempt.UpdatedAt)
+		attempt.StartedAt, attempt.CompletedAt, attempt.CreatedAt, attempt.UpdatedAt,
+		attempt.RetakeCount, attempt.OriginalAttemptID, performanceJSON)
 	if err != nil {
 		return fmt.Errorf("failed to create quiz attempt: %w", err)
 	}
@@ -392,7 +406,7 @@ func (r *QuizRepository) UpdateQuizAttempt(attempt *models.QuizAttempt) error {
 		UPDATE quiz_attempts
 		SET answers = $3, score = $4, total_points = $5, time_spent = $6,
 		    percentage_score = $7, passed = $8, status = $9, is_completed = $10,
-		    completed_at = $11, updated_at = $12
+		    completed_at = $11, updated_at = $12, performance_comparison = $13
 		WHERE id = $1 AND user_id = $2`
 
 	// Convert answers to JSON for storage
@@ -401,9 +415,22 @@ func (r *QuizRepository) UpdateQuizAttempt(attempt *models.QuizAttempt) error {
 		return fmt.Errorf("failed to marshal answers: %w", err)
 	}
 
+	// Convert performance comparison to JSON for storage
+	var performanceJSON interface{}
+	if attempt.PerformanceComparison != nil {
+		performanceJSONBytes, err := json.Marshal(attempt.PerformanceComparison)
+		if err != nil {
+			return fmt.Errorf("failed to marshal performance comparison: %w", err)
+		}
+		performanceJSON = performanceJSONBytes
+	} else {
+		performanceJSON = nil
+	}
+
 	result, err := r.db.Exec(query, attempt.ID, attempt.UserID, answersJSON,
 		attempt.Score, attempt.TotalPoints, attempt.TimeSpent, attempt.PercentageScore,
-		attempt.Passed, attempt.Status, attempt.IsCompleted, attempt.CompletedAt, attempt.UpdatedAt)
+		attempt.Passed, attempt.Status, attempt.IsCompleted, attempt.CompletedAt, attempt.UpdatedAt,
+		performanceJSON)
 	if err != nil {
 		return fmt.Errorf("failed to update quiz attempt: %w", err)
 	}
@@ -420,21 +447,179 @@ func (r *QuizRepository) UpdateQuizAttempt(attempt *models.QuizAttempt) error {
 	return nil
 }
 
+// ValidateRetakeLimit checks if a user can retake a quiz (max 3 retakes)
+func (r *QuizRepository) ValidateRetakeLimit(userID, quizID uuid.UUID) error {
+	query := `
+		SELECT COALESCE(MAX(retake_count), 0) as max_retake_count
+		FROM quiz_attempts
+		WHERE user_id = $1 AND quiz_id = $2 AND is_completed = true`
+
+	var maxRetakeCount int
+	err := r.db.QueryRow(query, userID, quizID).Scan(&maxRetakeCount)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("failed to check retake limit: %w", err)
+	}
+
+	if maxRetakeCount >= 3 {
+		return fmt.Errorf("maximum retake limit (3) exceeded for this quiz")
+	}
+
+	return nil
+}
+
+// GetQuizAttemptsForComparison gets all completed attempts for a quiz by a user for performance comparison
+func (r *QuizRepository) GetQuizAttemptsForComparison(userID, quizID uuid.UUID) ([]models.QuizAttempt, error) {
+	query := `
+		SELECT id, quiz_id, user_id, answers, score, total_points, time_spent,
+		       percentage_score, passed, status, is_completed,
+		       started_at, completed_at, created_at, updated_at,
+		       retake_count, original_attempt_id, performance_comparison
+		FROM quiz_attempts
+		WHERE user_id = $1 AND quiz_id = $2 AND is_completed = true
+		ORDER BY created_at ASC`
+
+	rows, err := r.db.Query(query, userID, quizID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get quiz attempts for comparison: %w", err)
+	}
+	defer rows.Close()
+
+	var attempts []models.QuizAttempt
+	for rows.Next() {
+		var attempt models.QuizAttempt
+		var answersJSON []byte
+		var performanceJSON []byte
+
+		err := rows.Scan(
+			&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON,
+			&attempt.Score, &attempt.TotalPoints, &attempt.TimeSpent,
+			&attempt.PercentageScore, &attempt.Passed, &attempt.Status,
+			&attempt.IsCompleted, &attempt.StartedAt, &attempt.CompletedAt,
+			&attempt.CreatedAt, &attempt.UpdatedAt, &attempt.RetakeCount,
+			&attempt.OriginalAttemptID, &performanceJSON,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan quiz attempt: %w", err)
+		}
+
+		// Unmarshal answers JSON
+		if len(answersJSON) > 0 {
+			err = json.Unmarshal(answersJSON, &attempt.Answers)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+			}
+		}
+
+		// Unmarshal performance comparison JSON
+		if len(performanceJSON) > 0 {
+			err = json.Unmarshal(performanceJSON, &attempt.PerformanceComparison)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal performance comparison: %w", err)
+			}
+		}
+
+		attempts = append(attempts, attempt)
+	}
+
+	return attempts, nil
+}
+
+// CalculatePerformanceComparison compares a new attempt with previous attempts
+func (r *QuizRepository) CalculatePerformanceComparison(currentAttempt *models.QuizAttempt, previousAttempts []models.QuizAttempt) map[string]interface{} {
+	if len(previousAttempts) == 0 {
+		return nil
+	}
+
+	// Get the most recent previous attempt
+	latestPrevious := previousAttempts[len(previousAttempts)-1]
+
+	comparison := make(map[string]interface{})
+
+	// Score improvement (percentage points)
+	scoreImprovement := currentAttempt.PercentageScore - latestPrevious.PercentageScore
+	comparison["score_improvement"] = scoreImprovement
+
+	// Time improvement (seconds - negative means faster)
+	timeImprovement := currentAttempt.TimeSpent - latestPrevious.TimeSpent
+	comparison["time_improvement"] = timeImprovement
+
+	// Accuracy improvement (percentage points)
+	if len(currentAttempt.Answers) > 0 && len(latestPrevious.Answers) > 0 {
+		currentAccuracy := float64(r.countCorrectAnswers(currentAttempt.Answers)) / float64(len(currentAttempt.Answers)) * 100
+		previousAccuracy := float64(r.countCorrectAnswers(latestPrevious.Answers)) / float64(len(latestPrevious.Answers)) * 100
+		accuracyImprovement := currentAccuracy - previousAccuracy
+		comparison["accuracy_improvement"] = accuracyImprovement
+	}
+
+	// Question-level improvements
+	if len(currentAttempt.Answers) == len(latestPrevious.Answers) {
+		questionImprovements := make(map[string]bool)
+		improvedCount := 0
+
+		for i := 0; i < len(currentAttempt.Answers); i++ {
+			current := currentAttempt.Answers[i]
+			previous := latestPrevious.Answers[i]
+
+			if current.QuestionID == previous.QuestionID {
+				improved := current.IsCorrect && !previous.IsCorrect
+				questionImprovements[current.QuestionID.String()] = improved
+				if improved {
+					improvedCount++
+				}
+			}
+		}
+
+		comparison["question_improvements"] = questionImprovements
+		comparison["improved_questions_count"] = improvedCount
+		comparison["total_questions"] = len(currentAttempt.Answers)
+	}
+
+	// Overall improvement indicators
+	comparison["overall_improvement"] = scoreImprovement > 0
+	comparison["time_efficiency_improved"] = timeImprovement < 0
+
+	// Best score tracking
+	bestScore := currentAttempt.PercentageScore
+	for _, attempt := range previousAttempts {
+		if attempt.PercentageScore > bestScore {
+			bestScore = attempt.PercentageScore
+		}
+	}
+	comparison["best_score"] = bestScore
+	comparison["is_personal_best"] = currentAttempt.PercentageScore >= bestScore
+
+	return comparison
+}
+
+// countCorrectAnswers counts the number of correct answers in a slice
+func (r *QuizRepository) countCorrectAnswers(answers []models.AttemptAnswer) int {
+	count := 0
+	for _, answer := range answers {
+		if answer.IsCorrect {
+			count++
+		}
+	}
+	return count
+}
+
 func (r *QuizRepository) GetQuizAttempt(id uuid.UUID) (*models.QuizAttempt, error) {
 	query := `
 		SELECT id, quiz_id, user_id, answers, score, total_points, time_spent,
 		       percentage_score, passed, status, is_completed,
-		       started_at, completed_at, created_at, updated_at
+		       started_at, completed_at, created_at, updated_at,
+		       retake_count, original_attempt_id, performance_comparison
 		FROM quiz_attempts
 		WHERE id = $1`
 
 	var attempt models.QuizAttempt
 	var answersJSON []byte
+	var performanceJSON []byte
 	err := r.db.QueryRow(query, id).Scan(
 		&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON,
 		&attempt.Score, &attempt.TotalPoints, &attempt.TimeSpent,
 		&attempt.PercentageScore, &attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
+		&attempt.RetakeCount, &attempt.OriginalAttemptID, &performanceJSON,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -444,10 +629,18 @@ func (r *QuizRepository) GetQuizAttempt(id uuid.UUID) (*models.QuizAttempt, erro
 	}
 
 	// Unmarshal answers JSON
-	if answersJSON != nil {
+	if len(answersJSON) > 0 {
 		err = json.Unmarshal(answersJSON, &attempt.Answers)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+		}
+	}
+
+	// Unmarshal performance comparison JSON
+	if len(performanceJSON) > 0 {
+		err = json.Unmarshal(performanceJSON, &attempt.PerformanceComparison)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal performance comparison: %w", err)
 		}
 	}
 
@@ -644,7 +837,8 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 		SELECT
 			qa.id, qa.quiz_id, qa.user_id, qa.answers, qa.score, qa.total_points, qa.time_spent,
 			qa.percentage_score, qa.passed, qa.status, qa.is_completed, qa.started_at,
-			qa.completed_at, qa.created_at, qa.updated_at,
+			qa.completed_at, qa.created_at, qa.updated_at, qa.retake_count, qa.original_attempt_id,
+			qa.performance_comparison,
 			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
 			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at
 		FROM quiz_attempts qa
@@ -671,12 +865,14 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 		var attempt models.QuizAttemptWithDetails
 		var tags pq.StringArray
 		var answersJSON []byte
+		var performanceJSON []byte
 
 		err := rows.Scan(
 			&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON, &attempt.Score,
 			&attempt.TotalPoints, &attempt.TimeSpent, &attempt.PercentageScore,
 			&attempt.Passed, &attempt.Status, &attempt.IsCompleted,
 			&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
+			&attempt.RetakeCount, &attempt.OriginalAttemptID, &performanceJSON,
 			&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
 			&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
 			&attempt.Quiz.QuestionCount, &attempt.Quiz.IsFeatured, &tags,
@@ -687,10 +883,18 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 		}
 
 		// Unmarshal answers JSON
-		if answersJSON != nil {
+		if len(answersJSON) > 0 {
 			err = json.Unmarshal(answersJSON, &attempt.Answers)
 			if err != nil {
 				return nil, 0, fmt.Errorf("failed to unmarshal answers: %w", err)
+			}
+		}
+
+		// Unmarshal performance comparison JSON
+		if len(performanceJSON) > 0 {
+			err = json.Unmarshal(performanceJSON, &attempt.PerformanceComparison)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal performance comparison: %w", err)
 			}
 		}
 
