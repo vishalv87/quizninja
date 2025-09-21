@@ -56,6 +56,11 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 		DifficultyPreference:    req.DifficultyPreference,
 		NotificationsEnabled:    req.NotificationsEnabled,
 		NotificationFrequency:   req.NotificationFrequency,
+		ProfileVisibility:       getBoolValue(req.ProfileVisibility, true),
+		ShowOnlineStatus:        getBoolValue(req.ShowOnlineStatus, true),
+		AllowFriendRequests:     getBoolValue(req.AllowFriendRequests, true),
+		ShareActivityStatus:     getBoolValue(req.ShareActivityStatus, true),
+		NotificationTypes:       req.NotificationTypes,
 	}
 
 	err = ph.userRepo.UpdateUserPreferences(preferences)
@@ -162,4 +167,12 @@ func (ph *PreferencesHandler) GetNotificationFrequencies(c *gin.Context) {
 			"total": len(frequencies),
 		},
 	})
+}
+
+// Helper function to get boolean value from pointer with default
+func getBoolValue(ptr *bool, defaultValue bool) bool {
+	if ptr == nil {
+		return defaultValue
+	}
+	return *ptr
 }

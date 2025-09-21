@@ -30,13 +30,19 @@ type User struct {
 }
 
 type UserPreferences struct {
-	ID                    uuid.UUID   `json:"id" db:"id"`
-	UserID                uuid.UUID   `json:"user_id" db:"user_id"`
-	SelectedInterests     StringArray `json:"selected_interests" db:"selected_interests"`
-	DifficultyPreference  string      `json:"difficulty_preference" db:"difficulty_preference"`
-	NotificationsEnabled  bool        `json:"notifications_enabled" db:"notifications_enabled"`
-	NotificationFrequency string      `json:"notification_frequency" db:"notification_frequency"`
-	CreatedAt             time.Time   `json:"created_at" db:"created_at"`
+	ID                    uuid.UUID            `json:"id" db:"id"`
+	UserID                uuid.UUID            `json:"user_id" db:"user_id"`
+	SelectedInterests     StringArray          `json:"selected_interests" db:"selected_interests"`
+	DifficultyPreference  string               `json:"difficulty_preference" db:"difficulty_preference"`
+	NotificationsEnabled  bool                 `json:"notifications_enabled" db:"notifications_enabled"`
+	NotificationFrequency string               `json:"notification_frequency" db:"notification_frequency"`
+	ProfileVisibility     bool                 `json:"profile_visibility" db:"profile_visibility"`
+	ShowOnlineStatus      bool                 `json:"show_online_status" db:"show_online_status"`
+	AllowFriendRequests   bool                 `json:"allow_friend_requests" db:"allow_friend_requests"`
+	ShareActivityStatus   bool                 `json:"share_activity_status" db:"share_activity_status"`
+	NotificationTypes     map[string]interface{} `json:"notification_types" db:"notification_types"`
+	CreatedAt             time.Time            `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time            `json:"updated_at" db:"updated_at"`
 }
 
 // StringArray handles PostgreSQL array type
@@ -159,10 +165,15 @@ type Category struct {
 
 // API Request/Response types
 type UpdatePreferencesRequest struct {
-	SelectedInterests     []string `json:"selected_interests" binding:"dive,required"`
-	DifficultyPreference  string   `json:"difficulty_preference" binding:"required,oneof=Easy Medium Hard"`
-	NotificationsEnabled  bool     `json:"notifications_enabled"`
-	NotificationFrequency string   `json:"notification_frequency" binding:"required,oneof=Daily Weekly Never"`
+	SelectedInterests     []string               `json:"selected_interests" binding:"dive,required"`
+	DifficultyPreference  string                 `json:"difficulty_preference" binding:"required,oneof=Easy Medium Hard"`
+	NotificationsEnabled  bool                   `json:"notifications_enabled"`
+	NotificationFrequency string                 `json:"notification_frequency" binding:"required,oneof=Daily Weekly Never"`
+	ProfileVisibility     *bool                  `json:"profile_visibility,omitempty"`
+	ShowOnlineStatus      *bool                  `json:"show_online_status,omitempty"`
+	AllowFriendRequests   *bool                  `json:"allow_friend_requests,omitempty"`
+	ShareActivityStatus   *bool                  `json:"share_activity_status,omitempty"`
+	NotificationTypes     map[string]interface{} `json:"notification_types,omitempty"`
 }
 
 type AppSettingsResponse struct {
