@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"quizninja-api/config"
 	"quizninja-api/models"
@@ -166,6 +167,115 @@ func (ph *PreferencesHandler) GetNotificationFrequencies(c *gin.Context) {
 		"meta": gin.H{
 			"total": len(frequencies),
 		},
+	})
+}
+
+// CompleteOnboarding handles completing the onboarding process
+func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
+	var req models.OnboardingCompleteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request data: " + err.Error(),
+		})
+		return
+	}
+
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	now := time.Now()
+	preferences := &models.UserPreferences{
+		UserID:                  userID,
+		SelectedInterests:       models.StringArray(req.SelectedInterests),
+		DifficultyPreference:    req.DifficultyPreference,
+		NotificationsEnabled:    req.NotificationsEnabled,
+		NotificationFrequency:   req.NotificationFrequency,
+		OnboardingCompletedAt:   &now,
+		ProfileVisibility:       true,  // Default values for new onboarding
+		ShowOnlineStatus:        true,
+		AllowFriendRequests:     true,
+		ShareActivityStatus:     true,
+	}
+
+	// Check if preferences already exist
+	existingPrefs, err := ph.userRepo.GetUserPreferences(userID)
+	if err == nil && existingPrefs != nil {
+		// Update existing preferences
+		preferences.ID = existingPrefs.ID
+		preferences.CreatedAt = existingPrefs.CreatedAt
+		err = ph.userRepo.UpdateUserPreferences(preferences)
+	} else {
+		// Create new preferences
+		err = ph.userRepo.CreateUserPreferences(preferences)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to save onboarding preferences",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": preferences,
+		"message": "Onboarding completed successfully",
+	})
+}
+
+// GetOnboardingStatus checks if user has completed onboarding
+func (ph *PreferencesHandler) GetOnboardingStatus(c *gin.Context) {
+	userIDStr, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "User not authenticated",
+		})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID",
+		})
+		return
+	}
+
+	preferences, err := ph.userRepo.GetUserPreferences(userID)
+	if err != nil {
+		// No preferences found - onboarding not completed
+		response := models.OnboardingStatusResponse{
+			IsCompleted: false,
+			CompletedAt: nil,
+			Preferences: nil,
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"data": response,
+		})
+		return
+	}
+
+	isCompleted := preferences.OnboardingCompletedAt != nil
+	response := models.OnboardingStatusResponse{
+		IsCompleted: isCompleted,
+		CompletedAt: preferences.OnboardingCompletedAt,
+		Preferences: preferences,
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": response,
 	})
 }
 

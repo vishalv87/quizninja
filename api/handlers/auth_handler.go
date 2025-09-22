@@ -75,12 +75,14 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 
 	// Create user preferences if provided
 	if req.Preferences != nil {
+		now := time.Now()
 		preferences := &models.UserPreferences{
-			UserID:                user.ID,
-			SelectedInterests:     models.StringArray(req.Preferences.SelectedInterests),
-			DifficultyPreference:  req.Preferences.DifficultyPreference,
-			NotificationsEnabled:  req.Preferences.NotificationsEnabled,
-			NotificationFrequency: req.Preferences.NotificationFrequency,
+			UserID:                  user.ID,
+			SelectedInterests:       models.StringArray(req.Preferences.SelectedInterests),
+			DifficultyPreference:    req.Preferences.DifficultyPreference,
+			NotificationsEnabled:    req.Preferences.NotificationsEnabled,
+			NotificationFrequency:   req.Preferences.NotificationFrequency,
+			OnboardingCompletedAt:   &now, // Mark onboarding as completed
 		}
 
 		if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {

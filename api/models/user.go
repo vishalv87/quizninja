@@ -31,19 +31,20 @@ type User struct {
 }
 
 type UserPreferences struct {
-	ID                    uuid.UUID            `json:"id" db:"id"`
-	UserID                uuid.UUID            `json:"user_id" db:"user_id"`
-	SelectedInterests     StringArray          `json:"selected_interests" db:"selected_interests"`
-	DifficultyPreference  string               `json:"difficulty_preference" db:"difficulty_preference"`
-	NotificationsEnabled  bool                 `json:"notifications_enabled" db:"notifications_enabled"`
-	NotificationFrequency string               `json:"notification_frequency" db:"notification_frequency"`
-	ProfileVisibility     bool                 `json:"profile_visibility" db:"profile_visibility"`
-	ShowOnlineStatus      bool                 `json:"show_online_status" db:"show_online_status"`
-	AllowFriendRequests   bool                 `json:"allow_friend_requests" db:"allow_friend_requests"`
-	ShareActivityStatus   bool                 `json:"share_activity_status" db:"share_activity_status"`
-	NotificationTypes     map[string]interface{} `json:"notification_types" db:"notification_types"`
-	CreatedAt             time.Time            `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time            `json:"updated_at" db:"updated_at"`
+	ID                      uuid.UUID            `json:"id" db:"id"`
+	UserID                  uuid.UUID            `json:"user_id" db:"user_id"`
+	SelectedInterests       StringArray          `json:"selected_interests" db:"selected_interests"`
+	DifficultyPreference    string               `json:"difficulty_preference" db:"difficulty_preference"`
+	NotificationsEnabled    bool                 `json:"notifications_enabled" db:"notifications_enabled"`
+	NotificationFrequency   string               `json:"notification_frequency" db:"notification_frequency"`
+	ProfileVisibility       bool                 `json:"profile_visibility" db:"profile_visibility"`
+	ShowOnlineStatus        bool                 `json:"show_online_status" db:"show_online_status"`
+	AllowFriendRequests     bool                 `json:"allow_friend_requests" db:"allow_friend_requests"`
+	ShareActivityStatus     bool                 `json:"share_activity_status" db:"share_activity_status"`
+	NotificationTypes       map[string]interface{} `json:"notification_types" db:"notification_types"`
+	OnboardingCompletedAt   *time.Time           `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
+	CreatedAt               time.Time            `json:"created_at" db:"created_at"`
+	UpdatedAt               time.Time            `json:"updated_at" db:"updated_at"`
 }
 
 // StringArray handles PostgreSQL array type
@@ -848,4 +849,21 @@ type FavoritesListResponse struct {
 // AddFavoriteRequest represents the request to add a quiz to favorites
 type AddFavoriteRequest struct {
 	QuizID uuid.UUID `json:"quiz_id" binding:"required"`
+}
+
+// Onboarding-related models
+
+// OnboardingCompleteRequest represents the request to complete onboarding
+type OnboardingCompleteRequest struct {
+	SelectedInterests     []string `json:"selected_interests" binding:"required,dive,required"`
+	DifficultyPreference  string   `json:"difficulty_preference" binding:"required,oneof=Easy Medium Hard"`
+	NotificationsEnabled  bool     `json:"notifications_enabled"`
+	NotificationFrequency string   `json:"notification_frequency" binding:"required,oneof=Daily Weekly Never"`
+}
+
+// OnboardingStatusResponse represents the response for onboarding status
+type OnboardingStatusResponse struct {
+	IsCompleted   bool       `json:"is_completed"`
+	CompletedAt   *time.Time `json:"completed_at,omitempty"`
+	Preferences   *UserPreferences `json:"preferences,omitempty"`
 }
