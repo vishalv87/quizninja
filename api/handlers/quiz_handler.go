@@ -336,6 +336,31 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		return
 	}
 
+	// Create a quiz session for the attempt
+	timeLimit := quiz.TimeLimit * 60 // Convert minutes to seconds
+	session := &models.QuizSession{
+		ID:                   uuid.New(),
+		AttemptID:            attempt.ID,
+		UserID:               userID,
+		QuizID:               quizID,
+		CurrentQuestionIndex: 0,
+		CurrentAnswers:       []models.AttemptAnswer{},
+		SessionState:         "active",
+		TimeRemaining:        &timeLimit,
+		TimeSpentSoFar:       0,
+		LastActivityAt:       time.Now(),
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
+	}
+
+	err = h.repo.QuizSession.CreateSession(session)
+	if err != nil {
+		// If session creation fails, we should clean up the attempt
+		_ = h.repo.Quiz.DeleteActiveQuizAttempt(userID, quizID)
+		utils.HandleError(c, err)
+		return
+	}
+
 	// Return quiz with questions for the attempt
 	quizWithQuestions, err := h.repo.Quiz.GetQuizByIDWithQuestions(quizID)
 	if err != nil {
@@ -350,8 +375,10 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 
 	response := gin.H{
 		"attempt_id":           attempt.ID,
+		"session_id":           session.ID,
 		"quiz":                 quizWithQuestions,
 		"started_at":           attempt.StartedAt,
+		"time_remaining":       session.TimeRemaining,
 		"is_retake":            attempt.IsRetake(),
 		"retake_count":         attempt.RetakeCount,
 		"original_attempt_id":  attempt.OriginalAttemptID,
@@ -479,6 +506,13 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 	if err != nil {
 		utils.HandleError(c, err)
 		return
+	}
+
+	// Complete the quiz session
+	err = h.repo.QuizSession.CompleteSession(attemptID)
+	if err != nil {
+		// Log error but don't fail the request since the attempt is already completed
+		fmt.Printf("Failed to complete quiz session for attempt %s: %v\n", attemptID, err)
 	}
 
 	// TODO: Update user statistics (total_quizzes_completed, average_score, etc.)
@@ -818,4 +852,371 @@ func (h *QuizHandler) updateQuizStatistics(quizID uuid.UUID, score float64, time
 		quizID, score, timeSpent)
 
 	return nil
+}
+
+// Quiz Session Management Handlers
+
+// PauseQuizSession handles POST /api/v1/quizzes/{id}/attempts/{attemptId}/pause
+func (h *QuizHandler) PauseQuizSession(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	attemptIdParam := c.Param("attemptId")
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	var pauseRequest models.PauseSessionRequest
+	if err := c.ShouldBindJSON(&pauseRequest); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Verify the attempt exists and belongs to the user
+	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
+	if err != nil {
+		if err.Error() == "quiz attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to pause this attempt")
+		return
+	}
+
+	if attempt.QuizID != quizID {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Attempt does not belong to specified quiz")
+		return
+	}
+
+	if attempt.IsCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "Quiz attempt already completed")
+		return
+	}
+
+	// Pause the session
+	err = h.repo.QuizSession.PauseSession(attemptID, &pauseRequest)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Get the updated session details
+	session, err := h.repo.QuizSession.GetSessionByAttemptID(attemptID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	response := models.SessionActionResponse{
+		SessionID:     session.ID,
+		Action:        "paused",
+		SessionState:  session.SessionState,
+		Message:       "Quiz session paused successfully",
+		TimeRemaining: session.TimeRemaining,
+		Progress:      session.GetProgress(),
+	}
+
+	utils.SuccessResponse(c, response)
+}
+
+// ResumeQuizSession handles POST /api/v1/quizzes/{id}/attempts/{attemptId}/resume
+func (h *QuizHandler) ResumeQuizSession(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	attemptIdParam := c.Param("attemptId")
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	// Verify the attempt exists and belongs to the user
+	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
+	if err != nil {
+		if err.Error() == "quiz attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to resume this attempt")
+		return
+	}
+
+	if attempt.QuizID != quizID {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Attempt does not belong to specified quiz")
+		return
+	}
+
+	if attempt.IsCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "Quiz attempt already completed")
+		return
+	}
+
+	// Check if session can be resumed
+	canResume, err := h.repo.QuizSession.CanResumeSession(attemptID, userID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	if !canResume {
+		utils.ErrorResponse(c, http.StatusConflict, "Session cannot be resumed (expired or not paused)")
+		return
+	}
+
+	// Resume the session
+	err = h.repo.QuizSession.ResumeSession(attemptID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Get the updated session details with quiz information
+	sessionDetails, err := h.repo.QuizSession.GetSessionByAttemptID(attemptID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Get quiz with questions for resuming
+	quiz, err := h.repo.Quiz.GetQuizByIDWithQuestions(quizID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Remove correct answers from questions
+	for i := range quiz.Questions {
+		quiz.Questions[i].CorrectAnswer = ""
+	}
+
+	response := gin.H{
+		"session_id":     sessionDetails.ID,
+		"action":         "resumed",
+		"session_state":  sessionDetails.SessionState,
+		"message":        "Quiz session resumed successfully",
+		"quiz":           quiz,
+		"current_question_index": sessionDetails.CurrentQuestionIndex,
+		"current_answers":        sessionDetails.CurrentAnswers,
+		"time_remaining":         sessionDetails.TimeRemaining,
+		"time_spent_so_far":      sessionDetails.TimeSpentSoFar,
+		"progress":               sessionDetails.GetProgress(),
+	}
+
+	utils.SuccessResponse(c, response)
+}
+
+// GetUserActiveSessions handles GET /api/v1/users/active-sessions
+func (h *QuizHandler) GetUserActiveSessions(c *gin.Context) {
+	userID := getUserIDFromContext(c)
+
+	var filters models.SessionFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid query parameters", err.Error())
+		return
+	}
+
+	// Set defaults for pagination
+	if filters.Page <= 0 {
+		filters.Page = 1
+	}
+	if filters.PageSize <= 0 {
+		filters.PageSize = 10
+	}
+	if filters.PageSize > 50 {
+		filters.PageSize = 50
+	}
+
+	// Set defaults for sorting
+	if filters.SortBy == "" {
+		filters.SortBy = "last_activity_at"
+	}
+	if filters.SortOrder == "" {
+		filters.SortOrder = "desc"
+	}
+
+	sessions, total, err := h.repo.QuizSession.GetUserActiveSessions(userID, &filters)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Count active and paused sessions
+	activeCount := 0
+	pausedCount := 0
+	for _, session := range sessions {
+		if session.SessionState == "active" {
+			activeCount++
+		} else if session.SessionState == "paused" {
+			pausedCount++
+		}
+	}
+
+	response := models.ActiveSessionsResponse{
+		Sessions:    sessions,
+		Total:       total,
+		ActiveCount: activeCount,
+		PausedCount: pausedCount,
+	}
+
+	utils.SuccessResponse(c, response)
+}
+
+// SaveQuizProgress handles PUT /api/v1/quizzes/{id}/attempts/{attemptId}/save-progress
+func (h *QuizHandler) SaveQuizProgress(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	attemptIdParam := c.Param("attemptId")
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	var updateRequest models.UpdateQuizSessionRequest
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
+		return
+	}
+
+	// Verify the attempt exists and belongs to the user
+	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
+	if err != nil {
+		if err.Error() == "quiz attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to save progress for this attempt")
+		return
+	}
+
+	if attempt.QuizID != quizID {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Attempt does not belong to specified quiz")
+		return
+	}
+
+	if attempt.IsCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "Quiz attempt already completed")
+		return
+	}
+
+	// Get the session for this attempt
+	session, err := h.repo.QuizSession.GetSessionByAttemptID(attemptID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	// Save the progress
+	err = h.repo.QuizSession.SaveSessionProgress(session.ID, &updateRequest)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	response := gin.H{
+		"session_id": session.ID,
+		"message":    "Progress saved successfully",
+		"timestamp":  time.Now(),
+	}
+
+	utils.SuccessResponse(c, response)
+}
+
+// AbandonQuizSession handles DELETE /api/v1/quizzes/{id}/attempts/{attemptId}/abandon
+func (h *QuizHandler) AbandonQuizSession(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	attemptIdParam := c.Param("attemptId")
+	attemptID, err := uuid.Parse(attemptIdParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID format: "+attemptIdParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	// Verify the attempt exists and belongs to the user
+	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
+	if err != nil {
+		if err.Error() == "quiz attempt not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz attempt not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to abandon this attempt")
+		return
+	}
+
+	if attempt.QuizID != quizID {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Attempt does not belong to specified quiz")
+		return
+	}
+
+	if attempt.IsCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "Quiz attempt already completed")
+		return
+	}
+
+	// Abandon the session
+	err = h.repo.QuizSession.AbandonSession(attemptID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	response := models.SessionActionResponse{
+		SessionID:    uuid.Nil, // Session is abandoned
+		Action:       "abandoned",
+		SessionState: "abandoned",
+		Message:      "Quiz session abandoned successfully",
+		Progress:     0.0,
+	}
+
+	utils.SuccessResponse(c, response)
 }
