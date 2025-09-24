@@ -381,3 +381,90 @@ func (dh *DigestHandler) GetOrCreateTodaysDigest(c *gin.Context) {
 		Digest:  *digest,
 	})
 }
+
+// GetTrendingArticles handles GET /digest/trending
+func (dh *DigestHandler) GetTrendingArticles(c *gin.Context) {
+	// Parse query parameters
+	page := 1
+	pageSize := 10
+
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+
+	articles, totalCount, err := dh.digestRepo.GetTrendingArticles(page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.TrendingArticlesResponse{
+			Success: false,
+			Error:   "Failed to fetch trending articles",
+		})
+		return
+	}
+
+	hasMore := page*pageSize < totalCount
+
+	c.JSON(http.StatusOK, models.TrendingArticlesResponse{
+		Success:    true,
+		Articles:   articles,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+		HasMore:    hasMore,
+	})
+}
+
+// GetTrendingArticlesByCategory handles GET /digest/trending/:category
+func (dh *DigestHandler) GetTrendingArticlesByCategory(c *gin.Context) {
+	category := c.Param("category")
+	if category == "" {
+		c.JSON(http.StatusBadRequest, models.TrendingArticlesResponse{
+			Success: false,
+			Error:   "Category parameter is required",
+		})
+		return
+	}
+
+	// Parse query parameters
+	page := 1
+	pageSize := 10
+
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+
+	articles, totalCount, err := dh.digestRepo.GetTrendingArticlesByCategory(category, page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.TrendingArticlesResponse{
+			Success: false,
+			Error:   "Failed to fetch trending articles for category",
+		})
+		return
+	}
+
+	hasMore := page*pageSize < totalCount
+
+	c.JSON(http.StatusOK, models.TrendingArticlesResponse{
+		Success:    true,
+		Articles:   articles,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+		HasMore:    hasMore,
+	})
+}

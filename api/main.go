@@ -97,6 +97,8 @@ func setupRoutes(r *gin.Engine, cfg *config.Config) {
 			digest.GET("/:date", digestHandler.GetDigestByDate)
 			digest.GET("/articles/:id", digestHandler.GetArticleByID)
 			digest.GET("/stats", digestHandler.GetDigestStats)
+			digest.GET("/trending", digestHandler.GetTrendingArticles)
+			digest.GET("/trending/:category", digestHandler.GetTrendingArticlesByCategory)
 		}
 
 		auth := api.Group("/auth")

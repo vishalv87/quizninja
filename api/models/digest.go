@@ -36,6 +36,9 @@ type Article struct {
 	IsBreaking       bool       `json:"is_breaking" db:"is_breaking"`
 	IsHot            bool       `json:"is_hot" db:"is_hot"`
 	IsDummy          bool       `json:"is_dummy" db:"is_dummy"`
+	IsTrending       bool       `json:"is_trending" db:"is_trending"`
+	TrendingScore    float64    `json:"trending_score" db:"trending_score"`
+	TrendingRank     *int       `json:"trending_rank" db:"trending_rank"`
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
 }
 
@@ -95,6 +98,9 @@ type ArticleRequest struct {
 	IsBreaking      bool       `json:"is_breaking"`
 	IsHot           bool       `json:"is_hot"`
 	IsDummy         bool       `json:"is_dummy"`
+	IsTrending      bool       `json:"is_trending"`
+	TrendingScore   float64    `json:"trending_score"`
+	TrendingRank    *int       `json:"trending_rank"`
 }
 
 // DigestWithStats represents a digest with additional statistics
@@ -151,4 +157,15 @@ type DigestStatsResponse struct {
 	Success bool        `json:"success"`
 	Stats   DigestStats `json:"stats"`
 	Error   string      `json:"error,omitempty"`
+}
+
+// TrendingArticlesResponse represents the API response for trending articles
+type TrendingArticlesResponse struct {
+	Success    bool      `json:"success"`
+	Articles   []Article `json:"articles"`
+	TotalCount int       `json:"total_count"`
+	Page       int       `json:"page"`
+	PageSize   int       `json:"page_size"`
+	HasMore    bool      `json:"has_more"`
+	Error      string    `json:"error,omitempty"`
 }

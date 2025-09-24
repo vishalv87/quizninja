@@ -151,7 +151,7 @@ func (dr *DigestRepository) GetArticlesByDigestID(digestID uuid.UUID) ([]models.
 	query := `
 		SELECT id, digest_id, title, content, summary, source, author, published_at,
 		       category, image_url, external_url, read_time_minutes, is_breaking,
-		       is_hot, is_dummy, created_at
+		       is_hot, is_dummy, is_trending, trending_score, trending_rank, created_at
 		FROM digest_articles
 		WHERE digest_id = $1
 		ORDER BY
@@ -168,7 +168,7 @@ func (dr *DigestRepository) GetArticlesByDigestID(digestID uuid.UUID) ([]models.
 
 	for rows.Next() {
 		var article models.Article
-		err := rows.Scan(&article.ID, &article.DigestID, &article.Title, &article.Content, &article.Summary, &article.Source, &article.Author, &article.PublishedAt, &article.Category, &article.ImageURL, &article.ExternalURL, &article.ReadTimeMinutes, &article.IsBreaking, &article.IsHot, &article.IsDummy, &article.CreatedAt)
+		err := rows.Scan(&article.ID, &article.DigestID, &article.Title, &article.Content, &article.Summary, &article.Source, &article.Author, &article.PublishedAt, &article.Category, &article.ImageURL, &article.ExternalURL, &article.ReadTimeMinutes, &article.IsBreaking, &article.IsHot, &article.IsDummy, &article.IsTrending, &article.TrendingScore, &article.TrendingRank, &article.CreatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan article: %v", err)
 		}
@@ -188,11 +188,11 @@ func (dr *DigestRepository) GetArticleByID(articleID uuid.UUID) (*models.Article
 	query := `
 		SELECT id, digest_id, title, content, summary, source, author, published_at,
 		       category, image_url, external_url, read_time_minutes, is_breaking,
-		       is_hot, is_dummy, created_at
+		       is_hot, is_dummy, is_trending, trending_score, trending_rank, created_at
 		FROM digest_articles
 		WHERE id = $1
 	`
-	err := dr.db.QueryRow(query, articleID).Scan(&article.ID, &article.DigestID, &article.Title, &article.Content, &article.Summary, &article.Source, &article.Author, &article.PublishedAt, &article.Category, &article.ImageURL, &article.ExternalURL, &article.ReadTimeMinutes, &article.IsBreaking, &article.IsHot, &article.IsDummy, &article.CreatedAt)
+	err := dr.db.QueryRow(query, articleID).Scan(&article.ID, &article.DigestID, &article.Title, &article.Content, &article.Summary, &article.Source, &article.Author, &article.PublishedAt, &article.Category, &article.ImageURL, &article.ExternalURL, &article.ReadTimeMinutes, &article.IsBreaking, &article.IsHot, &article.IsDummy, &article.IsTrending, &article.TrendingScore, &article.TrendingRank, &article.CreatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("article not found")
@@ -276,20 +276,25 @@ func (dr *DigestRepository) CreateArticle(article *models.ArticleRequest) (*mode
 		IsBreaking:       article.IsBreaking,
 		IsHot:            article.IsHot,
 		IsDummy:          article.IsDummy,
+		IsTrending:       article.IsTrending,
+		TrendingScore:    article.TrendingScore,
+		TrendingRank:     article.TrendingRank,
 	}
 
 	query := `
 		INSERT INTO digest_articles (id, digest_id, title, content, summary, source, author,
 		                            published_at, category, image_url, external_url,
-		                            read_time_minutes, is_breaking, is_hot, is_dummy)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+		                            read_time_minutes, is_breaking, is_hot, is_dummy,
+		                            is_trending, trending_score, trending_rank)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
 		RETURNING created_at
 	`
 	err := dr.db.QueryRow(query, newArticle.ID, newArticle.DigestID, newArticle.Title,
 		newArticle.Content, newArticle.Summary, newArticle.Source, newArticle.Author,
 		newArticle.PublishedAt, newArticle.Category, newArticle.ImageURL, newArticle.ExternalURL,
 		newArticle.ReadTimeMinutes, newArticle.IsBreaking, newArticle.IsHot,
-		newArticle.IsDummy).Scan(&newArticle.CreatedAt)
+		newArticle.IsDummy, newArticle.IsTrending, newArticle.TrendingScore,
+		newArticle.TrendingRank).Scan(&newArticle.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create article: %v", err)
 	}
@@ -436,4 +441,118 @@ func (dr *DigestRepository) GetOrCreateTodaysDigest() (*models.Digest, error) {
 	newDigest.Articles = []models.Article{}
 	return newDigest, nil
 }
+
+// GetTrendingArticles retrieves a paginated list of trending articles
+func (dr *DigestRepository) GetTrendingArticles(page, pageSize int) ([]models.Article, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count of trending articles
+	var totalCount int
+	countQuery := "SELECT COUNT(*) FROM digest_articles WHERE is_trending = true"
+	err := dr.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get trending articles count: %v", err)
+	}
+
+	// Get trending articles
+	var articles []models.Article
+	query := `
+		SELECT id, digest_id, title, content, summary, source, author, published_at,
+		       category, image_url, external_url, read_time_minutes, is_breaking,
+		       is_hot, is_dummy, is_trending, trending_score, trending_rank, created_at
+		FROM digest_articles
+		WHERE is_trending = true
+		ORDER BY trending_rank ASC NULLS LAST, trending_score DESC, created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := dr.db.Query(query, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get trending articles: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var article models.Article
+		err := rows.Scan(&article.ID, &article.DigestID, &article.Title, &article.Content, &article.Summary, &article.Source, &article.Author, &article.PublishedAt, &article.Category, &article.ImageURL, &article.ExternalURL, &article.ReadTimeMinutes, &article.IsBreaking, &article.IsHot, &article.IsDummy, &article.IsTrending, &article.TrendingScore, &article.TrendingRank, &article.CreatedAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan trending article: %v", err)
+		}
+		articles = append(articles, article)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("failed to iterate trending articles: %v", err)
+	}
+
+	return articles, totalCount, nil
+}
+
+// GetTrendingArticlesByCategory retrieves a paginated list of trending articles filtered by category
+func (dr *DigestRepository) GetTrendingArticlesByCategory(category string, page, pageSize int) ([]models.Article, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+
+	// Get total count of trending articles in this category
+	var totalCount int
+	countQuery := "SELECT COUNT(*) FROM digest_articles WHERE is_trending = true AND LOWER(category) = LOWER($1)"
+	err := dr.db.QueryRow(countQuery, category).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get trending articles count for category: %v", err)
+	}
+
+	// Get trending articles for this category
+	var articles []models.Article
+	query := `
+		SELECT id, digest_id, title, content, summary, source, author, published_at,
+		       category, image_url, external_url, read_time_minutes, is_breaking,
+		       is_hot, is_dummy, is_trending, trending_score, trending_rank, created_at
+		FROM digest_articles
+		WHERE is_trending = true AND LOWER(category) = LOWER($1)
+		ORDER BY trending_rank ASC NULLS LAST, trending_score DESC, created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+	rows, err := dr.db.Query(query, category, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get trending articles by category: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var article models.Article
+		err := rows.Scan(&article.ID, &article.DigestID, &article.Title, &article.Content, &article.Summary, &article.Source, &article.Author, &article.PublishedAt, &article.Category, &article.ImageURL, &article.ExternalURL, &article.ReadTimeMinutes, &article.IsBreaking, &article.IsHot, &article.IsDummy, &article.IsTrending, &article.TrendingScore, &article.TrendingRank, &article.CreatedAt)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan trending article: %v", err)
+		}
+		articles = append(articles, article)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("failed to iterate trending articles by category: %v", err)
+	}
+
+	return articles, totalCount, nil
+}
+
+// UpdateTrendingRankings updates the trending rankings for all articles
+func (dr *DigestRepository) UpdateTrendingRankings() error {
+	_, err := dr.db.Exec("SELECT update_trending_rankings()")
+	if err != nil {
+		return fmt.Errorf("failed to update trending rankings: %v", err)
+	}
+	return nil
+}
+
 
