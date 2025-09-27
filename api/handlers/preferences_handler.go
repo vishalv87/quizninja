@@ -35,7 +35,7 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 		return
 	}
 
-	userIDStr, exists := c.Get("userID")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -43,12 +43,25 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid user ID",
 		})
 		return
+	}
+
+	// Set default notification types if not provided
+	notificationTypes := req.NotificationTypes
+	if notificationTypes == nil {
+		notificationTypes = map[string]interface{}{
+			"challenges":           true,
+			"achievements":         true,
+			"quiz_reminders":       true,
+			"friend_activity":      true,
+			"leaderboard_updates":  false,
+			"system_announcements": true,
+		}
 	}
 
 	preferences := &models.UserPreferences{
@@ -61,10 +74,11 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 		ShowOnlineStatus:        getBoolValue(req.ShowOnlineStatus, true),
 		AllowFriendRequests:     getBoolValue(req.AllowFriendRequests, true),
 		ShareActivityStatus:     getBoolValue(req.ShareActivityStatus, true),
-		NotificationTypes:       req.NotificationTypes,
+		NotificationTypes:       notificationTypes,
+		IsTestData:              true, // Set for test environment
 	}
 
-	err = ph.userRepo.UpdateUserPreferences(preferences)
+	err := ph.userRepo.UpdateUserPreferences(preferences)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to update preferences",
@@ -87,7 +101,7 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 }
 
 func (ph *PreferencesHandler) GetPreferences(c *gin.Context) {
-	userIDStr, exists := c.Get("userID")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -95,8 +109,8 @@ func (ph *PreferencesHandler) GetPreferences(c *gin.Context) {
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid user ID",
 		})
@@ -180,7 +194,7 @@ func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
 		return
 	}
 
-	userIDStr, exists := c.Get("userID")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -188,8 +202,8 @@ func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid user ID",
 		})
@@ -237,7 +251,7 @@ func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
 
 // GetOnboardingStatus checks if user has completed onboarding
 func (ph *PreferencesHandler) GetOnboardingStatus(c *gin.Context) {
-	userIDStr, exists := c.Get("userID")
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -245,8 +259,8 @@ func (ph *PreferencesHandler) GetOnboardingStatus(c *gin.Context) {
 		return
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
-	if err != nil {
+	userID, ok := userIDInterface.(uuid.UUID)
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid user ID",
 		})

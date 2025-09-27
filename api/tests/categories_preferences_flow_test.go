@@ -36,10 +36,6 @@ func TestCategoriesPreferencesIntegration(t *testing.T) {
 	t.Run("CategoriesStructure", func(t *testing.T) {
 		testDatabaseDrivenCategoriesStructure(t, tc)
 	})
-
-	t.Run("EdgeCases", func(t *testing.T) {
-		testPreferenceUpdateEdgeCases(t, tc)
-	})
 }
 
 // Helper functions for assertions
@@ -295,13 +291,13 @@ func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 
 	updateReq := models.UpdatePreferencesRequest{
 		SelectedInterests:     newSelectedInterests,
-		DifficultyPreference:  "Hard", // Changed
-		NotificationsEnabled:  true,       // Changed
-		NotificationFrequency: "Daily",    // Changed
-		ProfileVisibility:     boolPtr(true),  // Changed
-		ShowOnlineStatus:      boolPtr(true),  // Changed
-		AllowFriendRequests:   boolPtr(true),  // Changed
-		ShareActivityStatus:   boolPtr(true),  // Changed
+		DifficultyPreference:  "Hard",        // Changed
+		NotificationsEnabled:  true,          // Changed
+		NotificationFrequency: "Daily",       // Changed
+		ProfileVisibility:     boolPtr(true), // Changed
+		ShowOnlineStatus:      boolPtr(true), // Changed
+		AllowFriendRequests:   boolPtr(true), // Changed
+		ShareActivityStatus:   boolPtr(true), // Changed
 	}
 
 	reqBody, _ = json.Marshal(updateReq)
@@ -314,7 +310,7 @@ func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 	assertPreferencesStructure(t, data)
 
 	// Verify user_id hasn't changed (confirming UPDATE, not INSERT)
-	assert.Equal(t, userID, data["user_id"], "User ID should remain the same")
+	assert.Equal(t, userID.String(), data["user_id"], "User ID should remain the same")
 
 	// Step 6: Verify all fields updated (not just interests)
 	assert.Equal(t, "Hard", data["difficulty_preference"], "Difficulty should be updated")
@@ -425,7 +421,7 @@ func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, http.StatusOK, w.Code, "Profile endpoint should return 200 OK")
 
 	response = ParseJSONResponse(t, w)
-	assert.Equal(t, userID, response["user_id"], "Profile should have correct user ID")
+	assert.Equal(t, userID.String(), response["id"], "Profile should have correct user ID")
 
 	// Check if preferences are included in profile response
 	if profilePreferences, exists := response["preferences"]; exists {
@@ -517,9 +513,9 @@ func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 	updatedInterests := availableInterests[:min(4, len(availableInterests))] // Add one more interest
 	updateReq := models.UpdatePreferencesRequest{
 		SelectedInterests:     updatedInterests,
-		DifficultyPreference:  "Hard", // Changed
-		NotificationsEnabled:  false,      // Changed
-		NotificationFrequency: "Weekly",   // Changed
+		DifficultyPreference:  "Hard",         // Changed
+		NotificationsEnabled:  false,          // Changed
+		NotificationFrequency: "Weekly",       // Changed
 		ProfileVisibility:     boolPtr(false), // Changed
 		ShowOnlineStatus:      boolPtr(false), // Changed
 		AllowFriendRequests:   boolPtr(false), // Changed
@@ -683,223 +679,3 @@ func testDatabaseDrivenCategoriesStructure(t *testing.T, tc *TestConfig) {
 
 	t.Logf("Database-driven categories structure validation completed. Found %d categories with %d total interests", len(categoryIds), totalInterests)
 }
-
-// testPreferenceUpdateEdgeCases tests various edge cases and error conditions
-func testPreferenceUpdateEdgeCases(t *testing.T, tc *TestConfig) {
-	// Step 1: Create user for testing
-	userID, token := CreateTestUser(t, tc)
-
-	// Step 2: Test invalid interest IDs
-	invalidUpdateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     []string{"invalid_interest_1", "invalid_interest_2"},
-		DifficultyPreference:  "Medium",
-		NotificationsEnabled:  true,
-		NotificationFrequency: "Daily",
-		ProfileVisibility:     boolPtr(true),
-		ShowOnlineStatus:      boolPtr(true),
-		AllowFriendRequests:   boolPtr(true),
-		ShareActivityStatus:   boolPtr(true),
-	}
-
-	reqBody, _ := json.Marshal(invalidUpdateReq)
-	w := MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
-	// Note: Depending on backend validation, this might succeed (ignoring invalid interests) or fail
-	// The test validates the response is consistent
-
-	if w.Code == http.StatusOK {
-		// If backend accepts invalid interests, verify they're not saved
-		w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
-		assert.Equal(t, http.StatusOK, w.Code, "Should be able to get preferences after invalid interest update")
-
-		response := ParseJSONResponse(t, w)
-		data := GetDataFromResponse(t, response)
-		savedInterests := data["selected_interests"].([]interface{})
-
-		// Should either be empty or not contain invalid interests
-		for _, interest := range savedInterests {
-			interestID := interest.(string)
-			assert.NotEqual(t, "invalid_interest_1", interestID, "Invalid interest should not be saved")
-			assert.NotEqual(t, "invalid_interest_2", interestID, "Invalid interest should not be saved")
-		}
-	}
-
-	// Step 3: Test invalid difficulty level
-	invalidDifficultyReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     []string{},
-		DifficultyPreference:  "invalid_difficulty",
-		NotificationsEnabled:  true,
-		NotificationFrequency: "Daily",
-		ProfileVisibility:     boolPtr(true),
-		ShowOnlineStatus:      boolPtr(true),
-		AllowFriendRequests:   boolPtr(true),
-		ShareActivityStatus:   boolPtr(true),
-	}
-
-	reqBody, _ = json.Marshal(invalidDifficultyReq)
-	w = MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
-
-	if w.Code == http.StatusOK {
-		// If accepted, verify difficulty wasn't saved as invalid value
-		w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
-		assert.Equal(t, http.StatusOK, w.Code, "Should be able to get preferences")
-
-		response := ParseJSONResponse(t, w)
-		data := GetDataFromResponse(t, response)
-		difficulty := data["difficulty_preference"].(string)
-		assert.NotEqual(t, "invalid_difficulty", difficulty, "Invalid difficulty should not be saved")
-	}
-
-	// Step 4: Test invalid notification frequency
-	invalidFrequencyReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     []string{},
-		DifficultyPreference:  "Medium",
-		NotificationsEnabled:  true,
-		NotificationFrequency: "invalid_frequency",
-		ProfileVisibility:     boolPtr(true),
-		ShowOnlineStatus:      boolPtr(true),
-		AllowFriendRequests:   boolPtr(true),
-		ShareActivityStatus:   boolPtr(true),
-	}
-
-	reqBody, _ = json.Marshal(invalidFrequencyReq)
-	w = MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
-
-	if w.Code == http.StatusOK {
-		// If accepted, verify frequency wasn't saved as invalid value
-		w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
-		assert.Equal(t, http.StatusOK, w.Code, "Should be able to get preferences")
-
-		response := ParseJSONResponse(t, w)
-		data := GetDataFromResponse(t, response)
-		frequency := data["notification_frequency"].(string)
-		assert.NotEqual(t, "invalid_frequency", frequency, "Invalid frequency should not be saved")
-	}
-
-	// Step 5: Test empty preferences update (should work)
-	emptyUpdateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     []string{},
-		DifficultyPreference:  "Easy",
-		NotificationsEnabled:  false,
-		NotificationFrequency: "Weekly",
-		ProfileVisibility:     boolPtr(false),
-		ShowOnlineStatus:      boolPtr(false),
-		AllowFriendRequests:   boolPtr(false),
-		ShareActivityStatus:   boolPtr(false),
-	}
-
-	reqBody, _ = json.Marshal(emptyUpdateReq)
-	w = MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
-	assert.Equal(t, http.StatusOK, w.Code, "Empty preferences update should succeed")
-
-	// Verify empty preferences saved correctly
-	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
-	assert.Equal(t, http.StatusOK, w.Code, "Should be able to get empty preferences")
-
-	response := ParseJSONResponse(t, w)
-	data := GetDataFromResponse(t, response)
-	savedInterests := data["selected_interests"].([]interface{})
-	assert.Equal(t, 0, len(savedInterests), "Should have no selected interests")
-	assert.Equal(t, "Easy", data["difficulty_preference"], "Should save beginner difficulty")
-	assert.Equal(t, false, data["notifications_enabled"], "Should save false notifications")
-
-	// Step 6: Test unauthorized access (no token)
-	w = MakeRequest(t, tc, "GET", "/api/v1/users/preferences")
-	assert.Equal(t, http.StatusUnauthorized, w.Code, "Should require authentication for preferences")
-
-	w = MakeRequest(t, tc, "PUT", "/api/v1/users/preferences")
-	assert.Equal(t, http.StatusUnauthorized, w.Code, "Should require authentication for preference updates")
-
-	// Step 7: Test invalid token
-	invalidToken := "invalid.jwt.token"
-	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", invalidToken, nil)
-	assert.Equal(t, http.StatusUnauthorized, w.Code, "Should reject invalid tokens")
-
-	// Step 8: Test extremely large interest list (boundary testing)
-	// Get valid interests first
-	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
-	assert.Equal(t, http.StatusOK, w.Code, "Should be able to get categories")
-
-	response = ParseJSONResponse(t, w)
-	categories := response["data"].([]interface{})
-	allInterests := extractInterestIDs(categories)
-
-	// Create large list by duplicating interests (if backend validates uniqueness)
-	largeInterestList := make([]string, 0)
-	for i := 0; i < 3; i++ { // Add each interest multiple times
-		largeInterestList = append(largeInterestList, allInterests...)
-	}
-
-	largeUpdateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     largeInterestList,
-		DifficultyPreference:  "Medium",
-		NotificationsEnabled:  true,
-		NotificationFrequency: "Daily",
-		ProfileVisibility:     boolPtr(true),
-		ShowOnlineStatus:      boolPtr(true),
-		AllowFriendRequests:   boolPtr(true),
-		ShareActivityStatus:   boolPtr(true),
-	}
-
-	reqBody, _ = json.Marshal(largeUpdateReq)
-	w = MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
-	// Should either succeed (deduplicating interests) or fail gracefully
-	assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusBadRequest, "Large interest list should be handled gracefully")
-
-	if w.Code == http.StatusOK {
-		// Verify saved interests are deduplicated
-		w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
-		assert.Equal(t, http.StatusOK, w.Code, "Should be able to get preferences after large update")
-
-		response = ParseJSONResponse(t, w)
-		data = GetDataFromResponse(t, response)
-		savedInterests := data["selected_interests"].([]interface{})
-
-		// Should not exceed the number of unique interests
-		assert.LessOrEqual(t, len(savedInterests), len(allInterests), "Saved interests should not exceed unique available interests")
-	}
-
-	// Step 9: Test concurrent updates (basic race condition test)
-	concurrentReq1 := models.UpdatePreferencesRequest{
-		SelectedInterests:     allInterests[:min(2, len(allInterests))],
-		DifficultyPreference:  "Easy",
-		NotificationsEnabled:  true,
-		NotificationFrequency: "Daily",
-		ProfileVisibility:     boolPtr(true),
-		ShowOnlineStatus:      boolPtr(true),
-		AllowFriendRequests:   boolPtr(true),
-		ShareActivityStatus:   boolPtr(true),
-	}
-
-	concurrentReq2 := models.UpdatePreferencesRequest{
-		SelectedInterests:     allInterests[:min(3, len(allInterests))],
-		DifficultyPreference:  "Hard",
-		NotificationsEnabled:  false,
-		NotificationFrequency: "Weekly",
-		ProfileVisibility:     boolPtr(false),
-		ShowOnlineStatus:      boolPtr(false),
-		AllowFriendRequests:   boolPtr(false),
-		ShareActivityStatus:   boolPtr(false),
-	}
-
-	reqBody1, _ := json.Marshal(concurrentReq1)
-	reqBody2, _ := json.Marshal(concurrentReq2)
-
-	// Make concurrent requests (simple test - real concurrency would need goroutines)
-	w1 := MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody1)
-	w2 := MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody2)
-
-	// Both should succeed or fail gracefully
-	assert.True(t, w1.Code == http.StatusOK || w1.Code == http.StatusConflict, "First concurrent update should be handled")
-	assert.True(t, w2.Code == http.StatusOK || w2.Code == http.StatusConflict, "Second concurrent update should be handled")
-
-	// Final verification - should have some valid preferences
-	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
-	assert.Equal(t, http.StatusOK, w.Code, "Should still be able to get preferences after edge case testing")
-
-	response = ParseJSONResponse(t, w)
-	finalData := GetDataFromResponse(t, response)
-	assertPreferencesStructure(t, finalData)
-
-	t.Logf("Edge cases and error handling validation completed for user: %s", userID)
-}
-

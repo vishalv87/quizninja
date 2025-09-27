@@ -410,11 +410,6 @@ func (lr *LeaderboardRepository) getSampleLeaderboardData(period string) []model
 	return sampleEntries
 }
 
-// stringPtr returns a pointer to the given string
-func stringPtr(s string) *string {
-	return &s
-}
-
 // getTimeFilterForPeriod returns the appropriate WHERE clause for time filtering
 func (lr *LeaderboardRepository) getTimeFilterForPeriod(period string) string {
 	switch period {

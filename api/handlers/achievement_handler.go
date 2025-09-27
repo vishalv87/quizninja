@@ -42,7 +42,7 @@ func (ah *AchievementHandler) GetAllAchievements(c *gin.Context) {
 
 // GetUserAchievements retrieves all achievements unlocked by the current user
 func (ah *AchievementHandler) GetUserAchievements(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -76,7 +76,7 @@ func (ah *AchievementHandler) GetUserAchievements(c *gin.Context) {
 
 // GetAchievementProgress retrieves achievement progress for the current user
 func (ah *AchievementHandler) GetAchievementProgress(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -147,7 +147,7 @@ func (ah *AchievementHandler) GetUserAchievementsByUserID(c *gin.Context) {
 
 // UnlockAchievement manually unlocks an achievement for a user (admin/testing endpoint)
 func (ah *AchievementHandler) UnlockAchievement(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -248,7 +248,7 @@ func (ah *AchievementHandler) GetAchievementsByCategory(c *gin.Context) {
 
 // GetAchievementStats returns achievement statistics for a user
 func (ah *AchievementHandler) GetAchievementStats(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",
@@ -323,7 +323,7 @@ func (ah *AchievementHandler) GetAchievementStats(c *gin.Context) {
 // CheckAchievements checks and unlocks achievements for a user based on their current stats
 // This is typically called after quiz completion or other achievement-triggering events
 func (ah *AchievementHandler) CheckAchievements(c *gin.Context) {
-	userID, exists := c.Get("userID")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error": "User not authenticated",

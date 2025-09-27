@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"quizninja-api/models"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type UserRepository struct {
@@ -147,14 +149,41 @@ func (ur *UserRepository) DeleteUser(id uuid.UUID) error {
 // CreateUserPreferences creates user preferences
 func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferences) error {
 	query := `
-		INSERT INTO user_preferences (user_id, selected_interests, difficulty_preference,
-		                              notifications_enabled, notification_frequency, is_test_data)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, created_at
+		INSERT INTO user_preferences (
+			user_id, selected_interests, difficulty_preference, notifications_enabled,
+			notification_frequency, profile_visibility, show_online_status,
+			allow_friend_requests, share_activity_status, notification_types,
+			onboarding_completed_at, is_test_data
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		RETURNING id, created_at, updated_at
 	`
-	err := ur.db.QueryRow(query, preferences.UserID, preferences.SelectedInterests,
-		preferences.DifficultyPreference, preferences.NotificationsEnabled,
-		preferences.NotificationFrequency, preferences.IsTestData).Scan(&preferences.ID, &preferences.CreatedAt)
+	// Handle JSONB field properly - marshal to JSON bytes
+	var notificationTypesData map[string]interface{}
+	if preferences.NotificationTypes != nil && len(preferences.NotificationTypes) > 0 {
+		notificationTypesData = preferences.NotificationTypes
+	} else {
+		notificationTypesData = map[string]interface{}{
+			"challenges":           true,
+			"achievements":         true,
+			"quiz_reminders":       true,
+			"friend_activity":      true,
+			"leaderboard_updates":  false,
+			"system_announcements": true,
+		}
+	}
+
+	notificationTypesJSON, err := json.Marshal(notificationTypesData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal notification_types: %w", err)
+	}
+
+	err = ur.db.QueryRow(query,
+		preferences.UserID, preferences.SelectedInterests, preferences.DifficultyPreference,
+		preferences.NotificationsEnabled, preferences.NotificationFrequency,
+		preferences.ProfileVisibility, preferences.ShowOnlineStatus,
+		preferences.AllowFriendRequests, preferences.ShareActivityStatus,
+		string(notificationTypesJSON), preferences.OnboardingCompletedAt,
+		preferences.IsTestData).Scan(&preferences.ID, &preferences.CreatedAt, &preferences.UpdatedAt)
 	return err
 }
 
@@ -163,18 +192,39 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 	preferences := &models.UserPreferences{}
 	query := `
 		SELECT id, user_id, selected_interests, difficulty_preference,
-		       notifications_enabled, notification_frequency, created_at, is_test_data
+		       notifications_enabled, notification_frequency, profile_visibility,
+		       show_online_status, allow_friend_requests, share_activity_status,
+		       notification_types, onboarding_completed_at, created_at, updated_at, is_test_data
 		FROM user_preferences
 		WHERE user_id = $1
 	`
+
+	var selectedInterestsSlice []string
+	var notificationTypesJSON string
 	err := ur.db.QueryRow(query, userID).Scan(
-		&preferences.ID, &preferences.UserID, &preferences.SelectedInterests,
+		&preferences.ID, &preferences.UserID, pq.Array(&selectedInterestsSlice),
 		&preferences.DifficultyPreference, &preferences.NotificationsEnabled,
-		&preferences.NotificationFrequency, &preferences.CreatedAt, &preferences.IsTestData,
+		&preferences.NotificationFrequency, &preferences.ProfileVisibility,
+		&preferences.ShowOnlineStatus, &preferences.AllowFriendRequests,
+		&preferences.ShareActivityStatus, &notificationTypesJSON,
+		&preferences.OnboardingCompletedAt, &preferences.CreatedAt,
+		&preferences.UpdatedAt, &preferences.IsTestData,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	// Convert []string to StringArray
+	preferences.SelectedInterests = models.StringArray(selectedInterestsSlice)
+
+	// Unmarshal the JSON for notification_types
+	if notificationTypesJSON != "" {
+		err = json.Unmarshal([]byte(notificationTypesJSON), &preferences.NotificationTypes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal notification_types: %w", err)
+		}
+	}
+
 	return preferences, nil
 }
 
@@ -186,9 +236,10 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 			notifications_enabled, notification_frequency,
 			profile_visibility, show_online_status,
 			allow_friend_requests, share_activity_status,
-			notification_types, created_at, updated_at
+			notification_types, onboarding_completed_at,
+			is_test_data, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 		)
 		ON CONFLICT (user_id) DO UPDATE SET
 			selected_interests = EXCLUDED.selected_interests,
@@ -200,9 +251,31 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 			allow_friend_requests = EXCLUDED.allow_friend_requests,
 			share_activity_status = EXCLUDED.share_activity_status,
 			notification_types = EXCLUDED.notification_types,
+			onboarding_completed_at = EXCLUDED.onboarding_completed_at,
 			updated_at = CURRENT_TIMESTAMP
 	`
-	_, err := ur.db.Exec(query,
+	// Handle JSONB field properly - marshal to JSON bytes
+	var notificationTypesData map[string]interface{}
+	if preferences.NotificationTypes != nil && len(preferences.NotificationTypes) > 0 {
+		notificationTypesData = preferences.NotificationTypes
+	} else {
+		// Use default notification types if nil or empty
+		notificationTypesData = map[string]interface{}{
+			"challenges":           true,
+			"achievements":         true,
+			"quiz_reminders":       true,
+			"friend_activity":      true,
+			"leaderboard_updates":  false,
+			"system_announcements": true,
+		}
+	}
+
+	notificationTypesJSON, err := json.Marshal(notificationTypesData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal notification_types: %w", err)
+	}
+
+	_, err = ur.db.Exec(query,
 		preferences.UserID,
 		preferences.SelectedInterests,
 		preferences.DifficultyPreference,
@@ -212,7 +285,9 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 		preferences.ShowOnlineStatus,
 		preferences.AllowFriendRequests,
 		preferences.ShareActivityStatus,
-		preferences.NotificationTypes)
+		string(notificationTypesJSON),
+		preferences.OnboardingCompletedAt,
+		preferences.IsTestData)
 	return err
 }
 
