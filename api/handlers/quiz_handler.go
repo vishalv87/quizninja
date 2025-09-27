@@ -103,9 +103,6 @@ func (h *QuizHandler) GetQuizByID(c *gin.Context) {
 	utils.SuccessResponse(c, response)
 }
 
-
-
-
 // GetFeaturedQuizzes handles GET /api/v1/quizzes/featured
 func (h *QuizHandler) GetFeaturedQuizzes(c *gin.Context) {
 	limitParam := c.DefaultQuery("limit", "10")
@@ -376,14 +373,14 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"attempt_id":           attempt.ID,
-		"session_id":           session.ID,
-		"quiz":                 quizWithQuestions,
-		"started_at":           attempt.StartedAt,
-		"time_remaining":       session.TimeRemaining,
-		"is_retake":            attempt.IsRetake(),
-		"retake_count":         attempt.RetakeCount,
-		"original_attempt_id":  attempt.OriginalAttemptID,
+		"attempt_id":             attempt.ID,
+		"session_id":             session.ID,
+		"quiz":                   quizWithQuestions,
+		"started_at":             attempt.StartedAt,
+		"time_remaining":         session.TimeRemaining,
+		"is_retake":              attempt.IsRetake(),
+		"retake_count":           attempt.RetakeCount,
+		"original_attempt_id":    attempt.OriginalAttemptID,
 		"performance_comparison": attempt.PerformanceComparison,
 	}
 
@@ -419,9 +416,9 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 	var submitRequest struct {
 		AttemptId string `json:"attemptId"`
 		Answers   []struct {
-			QuestionId         string  `json:"questionId"`
-			SelectedOption     *string `json:"selectedOption"`
-			SelectedOptionIndex *int   `json:"selectedOptionIndex"`
+			QuestionId          string  `json:"questionId"`
+			SelectedOption      *string `json:"selectedOption"`
+			SelectedOptionIndex *int    `json:"selectedOptionIndex"`
 		} `json:"answers"`
 		TimeSpent int `json:"timeSpent"`
 	}
@@ -517,8 +514,12 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		fmt.Printf("Failed to complete quiz session for attempt %s: %v\n", attemptID, err)
 	}
 
-	// TODO: Update user statistics (total_quizzes_completed, average_score, etc.)
-	// This is a placeholder for updating user stats after quiz completion
+	// Update user statistics (total_quizzes_completed, average_score, etc.)
+	err = h.repo.User.UpdateUserStatistics(userID, scorePercentage)
+	if err != nil {
+		// Log error but don't fail the request since the quiz is already completed
+		fmt.Printf("Failed to update user statistics for user %s: %v\n", userID, err)
+	}
 
 	// Check for achievements after quiz completion
 	var achievementNotifications []models.AchievementNotification
@@ -532,11 +533,11 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 
 	// Return the results
 	response := gin.H{
-		"attempt_id":       attempt.ID,
-		"score":           int(finalScore), // Convert back to int for response
-		"total_questions": totalQuestions,
-		"correct_answers": correctAnswers,
-		"time_spent":      submitRequest.TimeSpent,
+		"attempt_id":                attempt.ID,
+		"score":                     int(finalScore), // Convert back to int for response
+		"total_questions":           totalQuestions,
+		"correct_answers":           correctAnswers,
+		"time_spent":                submitRequest.TimeSpent,
 		"achievement_notifications": achievementNotifications, // Include achievement notifications
 	}
 
@@ -1017,11 +1018,11 @@ func (h *QuizHandler) ResumeQuizSession(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"session_id":     sessionDetails.ID,
-		"action":         "resumed",
-		"session_state":  sessionDetails.SessionState,
-		"message":        "Quiz session resumed successfully",
-		"quiz":           quiz,
+		"session_id":             sessionDetails.ID,
+		"action":                 "resumed",
+		"session_state":          sessionDetails.SessionState,
+		"message":                "Quiz session resumed successfully",
+		"quiz":                   quiz,
 		"current_question_index": sessionDetails.CurrentQuestionIndex,
 		"current_answers":        sessionDetails.CurrentAnswers,
 		"time_remaining":         sessionDetails.TimeRemaining,

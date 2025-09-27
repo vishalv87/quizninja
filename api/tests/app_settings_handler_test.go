@@ -13,30 +13,83 @@ func TestAppSettingsHandler(t *testing.T) {
 	userID, token := CreateTestUser(t, tc)
 
 	t.Run("GetAppSettings", func(t *testing.T) {
-		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/app/settings", token, nil)
+		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/config/app-settings", token, nil)
+
+		assert.Equal(t, http.StatusOK, w.Code, "App settings endpoint should return 200 OK")
 
 		if w.Code == http.StatusOK {
 			response := ParseJSONResponse(t, w)
+			data := GetDataFromResponse(t, response)
 
-			// App settings might not have is_test_data field as they're configuration data
-			// This test mainly ensures the endpoint is working and returns valid data
-			assert.NotNil(t, response, "Should receive valid response from app settings")
+			assert.NotEmpty(t, data, "App settings response should not be empty")
 
-			// Check for common app settings fields
-			if settings, exists := response["settings"]; exists {
-				settingsMap, ok := settings.(map[string]interface{})
-				if ok {
-					// Common app settings might include version, features, etc.
-					// We don't expect is_test_data here as these are app configuration
-					assert.NotEmpty(t, settingsMap, "Settings should not be empty")
+			// Verify expected settings from original mock and migration 027
+			expectedSettings := []string{
+				"app_name",
+				"app_version",
+				"max_questions_per_quiz",
+				"default_quiz_duration",
+				"quiz_categories_enabled",
+				"leaderboard_enabled",
+				"achievements_enabled",
+			}
+
+			for _, settingKey := range expectedSettings {
+				value, exists := data[settingKey]
+				assert.True(t, exists, "Should have setting: %s", settingKey)
+				assert.NotNil(t, value, "Setting %s should not be nil", settingKey)
+
+				// Verify specific values match our migration
+				switch settingKey {
+				case "app_name":
+					assert.Equal(t, "QuizNinja", value, "App name should match migration value")
+				case "max_questions_per_quiz":
+					// Should be 20 after our migration update
+					if intVal, ok := value.(float64); ok {
+						assert.Equal(t, float64(20), intVal, "Max questions should be 20 after migration")
+					}
+				case "default_quiz_duration":
+					if intVal, ok := value.(float64); ok {
+						assert.Equal(t, float64(300), intVal, "Default quiz duration should be 300")
+					}
+				case "quiz_categories_enabled", "leaderboard_enabled", "achievements_enabled":
+					assert.Equal(t, true, value, "Feature flag %s should be enabled", settingKey)
 				}
 			}
 
-			// Alternative response structure - data field
-			if data, exists := response["data"]; exists {
-				dataMap, ok := data.(map[string]interface{})
-				if ok {
-					assert.NotEmpty(t, dataMap, "Data should not be empty")
+			// Verify computed settings are present
+			computedSettings := []string{
+				"supported_languages",
+				"difficulty_levels",
+				"notification_frequencies",
+			}
+
+			for _, settingKey := range computedSettings {
+				value, exists := data[settingKey]
+				assert.True(t, exists, "Should have computed setting: %s", settingKey)
+				assert.NotNil(t, value, "Computed setting %s should not be nil", settingKey)
+
+				// Verify structure of computed settings
+				switch settingKey {
+				case "supported_languages":
+					if languages, ok := value.([]interface{}); ok {
+						assert.Contains(t, languages, "en", "Should support English")
+						assert.Contains(t, languages, "es", "Should support Spanish")
+					}
+				case "difficulty_levels":
+					if levels, ok := value.([]interface{}); ok {
+						assert.Greater(t, len(levels), 0, "Should have difficulty levels")
+						if len(levels) > 0 {
+							if firstLevel, ok := levels[0].(map[string]interface{}); ok {
+								assert.Contains(t, firstLevel, "id", "Difficulty level should have id")
+								assert.Contains(t, firstLevel, "name", "Difficulty level should have name")
+							}
+						}
+					}
+				case "notification_frequencies":
+					if frequencies, ok := value.([]interface{}); ok {
+						assert.Greater(t, len(frequencies), 0, "Should have notification frequencies")
+					}
 				}
 			}
 		}

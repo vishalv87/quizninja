@@ -178,17 +178,41 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 	return preferences, nil
 }
 
-// UpdateUserPreferences updates user preferences
+// UpdateUserPreferences updates or inserts user preferences (UPSERT)
 func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferences) error {
 	query := `
-		UPDATE user_preferences SET
-			selected_interests = $2, difficulty_preference = $3,
-			notifications_enabled = $4, notification_frequency = $5
-		WHERE user_id = $1
+		INSERT INTO user_preferences (
+			user_id, selected_interests, difficulty_preference,
+			notifications_enabled, notification_frequency,
+			profile_visibility, show_online_status,
+			allow_friend_requests, share_activity_status,
+			notification_types, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+		)
+		ON CONFLICT (user_id) DO UPDATE SET
+			selected_interests = EXCLUDED.selected_interests,
+			difficulty_preference = EXCLUDED.difficulty_preference,
+			notifications_enabled = EXCLUDED.notifications_enabled,
+			notification_frequency = EXCLUDED.notification_frequency,
+			profile_visibility = EXCLUDED.profile_visibility,
+			show_online_status = EXCLUDED.show_online_status,
+			allow_friend_requests = EXCLUDED.allow_friend_requests,
+			share_activity_status = EXCLUDED.share_activity_status,
+			notification_types = EXCLUDED.notification_types,
+			updated_at = CURRENT_TIMESTAMP
 	`
-	_, err := ur.db.Exec(query, preferences.UserID, preferences.SelectedInterests,
-		preferences.DifficultyPreference, preferences.NotificationsEnabled,
-		preferences.NotificationFrequency)
+	_, err := ur.db.Exec(query,
+		preferences.UserID,
+		preferences.SelectedInterests,
+		preferences.DifficultyPreference,
+		preferences.NotificationsEnabled,
+		preferences.NotificationFrequency,
+		preferences.ProfileVisibility,
+		preferences.ShowOnlineStatus,
+		preferences.AllowFriendRequests,
+		preferences.ShareActivityStatus,
+		preferences.NotificationTypes)
 	return err
 }
 
@@ -325,6 +349,66 @@ func (ur *UserRepository) GetUserStatistics(userID uuid.UUID) (*models.UserStati
 	stats.MonthlyProgress = monthlyProgress
 
 	return stats, nil
+}
+
+// UpdateUserStatistics updates user statistics after quiz completion
+func (ur *UserRepository) UpdateUserStatistics(userID uuid.UUID, newScore float64) error {
+	// Start a transaction to ensure consistency
+	tx, err := ur.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// First, get current user statistics
+	var currentTotalQuizzes int
+	var currentAverageScore sql.NullFloat64
+
+	query := `
+		SELECT total_quizzes_completed, average_score
+		FROM users
+		WHERE id = $1
+	`
+
+	err = tx.QueryRow(query, userID).Scan(&currentTotalQuizzes, &currentAverageScore)
+	if err != nil {
+		return fmt.Errorf("failed to get current user statistics: %w", err)
+	}
+
+	// Calculate new statistics
+	newTotalQuizzes := currentTotalQuizzes + 1
+
+	// Calculate new average score
+	var newAverageScore float64
+	if currentAverageScore.Valid && currentTotalQuizzes > 0 {
+		// Existing average exists, calculate weighted average
+		totalPreviousScore := currentAverageScore.Float64 * float64(currentTotalQuizzes)
+		newAverageScore = (totalPreviousScore + newScore) / float64(newTotalQuizzes)
+	} else {
+		// First quiz, new score becomes the average
+		newAverageScore = newScore
+	}
+
+	// Update user statistics
+	updateQuery := `
+		UPDATE users
+		SET total_quizzes_completed = $1,
+		    average_score = $2,
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE id = $3
+	`
+
+	_, err = tx.Exec(updateQuery, newTotalQuizzes, newAverageScore, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user statistics: %w", err)
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // getCategoryPerformance retrieves performance metrics by category

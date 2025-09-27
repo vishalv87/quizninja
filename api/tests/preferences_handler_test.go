@@ -17,7 +17,7 @@ func TestPreferencesHandler(t *testing.T) {
 	userID, token := CreateTestUser(t, tc)
 
 	t.Run("GetPreferences", func(t *testing.T) {
-		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/preferences", token, nil)
+		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
 
 		if w.Code == http.StatusOK {
 			response := ParseJSONResponse(t, w)
@@ -31,7 +31,7 @@ func TestPreferencesHandler(t *testing.T) {
 	t.Run("UpdatePreferences", func(t *testing.T) {
 		updateReq := models.UpdatePreferencesRequest{
 			SelectedInterests:     []string{"technology", "science"},
-			DifficultyPreference:  "medium",
+			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "daily",
 			ProfileVisibility:     boolPtr(true),
@@ -41,7 +41,7 @@ func TestPreferencesHandler(t *testing.T) {
 		}
 
 		reqBody, _ := json.Marshal(updateReq)
-		w := MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/preferences", token, reqBody)
+		w := MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
 
 		if w.Code == http.StatusOK {
 			response := ParseJSONResponse(t, w)
@@ -133,7 +133,7 @@ func TestPreferencesHandler(t *testing.T) {
 	t.Run("CompleteOnboarding", func(t *testing.T) {
 		onboardingReq := models.OnboardingCompleteRequest{
 			SelectedInterests:     []string{"technology", "science", "sports"},
-			DifficultyPreference:  "medium",
+			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "weekly",
 		}

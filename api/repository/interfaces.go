@@ -36,6 +36,7 @@ type UserRepositoryInterface interface {
 
 	// User statistics operations
 	GetUserStatistics(userID uuid.UUID) (*models.UserStatistics, error)
+	UpdateUserStatistics(userID uuid.UUID, newScore float64) error
 }
 
 // QuizRepositoryInterface defines the contract for quiz data operations

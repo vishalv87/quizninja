@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"quizninja-api/config"
-	"quizninja-api/models"
 	"quizninja-api/repository"
 
 	"github.com/gin-gonic/gin"
@@ -31,10 +30,12 @@ func NewAppSettingsHandler(config *config.Config) *AppSettingsHandler {
 func (ash *AppSettingsHandler) GetAppSettings(c *gin.Context) {
 	// Check cache first
 	if time.Since(ash.lastCacheUpdate) < ash.cacheTTL && len(ash.cache) > 0 {
-		c.JSON(http.StatusOK, models.AppSettingsResponse{
-			Settings:    ash.cache,
-			Version:     "1.0.0",
-			LastUpdated: ash.lastCacheUpdate,
+		c.JSON(http.StatusOK, gin.H{
+			"data": ash.cache,
+			"meta": gin.H{
+				"version":      "1.0.0",
+				"last_updated": ash.lastCacheUpdate,
+			},
 		})
 		return
 	}
@@ -52,10 +53,12 @@ func (ash *AppSettingsHandler) GetAppSettings(c *gin.Context) {
 	ash.cache = settings
 	ash.lastCacheUpdate = time.Now()
 
-	c.JSON(http.StatusOK, models.AppSettingsResponse{
-		Settings:    settings,
-		Version:     "1.0.0",
-		LastUpdated: ash.lastCacheUpdate,
+	c.JSON(http.StatusOK, gin.H{
+		"data": settings,
+		"meta": gin.H{
+			"version":      "1.0.0",
+			"last_updated": ash.lastCacheUpdate,
+		},
 	})
 }
 

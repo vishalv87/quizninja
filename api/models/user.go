@@ -420,7 +420,7 @@ type UpdateAttemptRequest struct {
 type UserStatistics struct {
 	UserID                uuid.UUID             `json:"user_id"`
 	TotalAttempts         int                   `json:"total_attempts"`
-	CompletedQuizzes      int                   `json:"completed_quizzes"`
+	CompletedQuizzes      int                   `json:"total_quizzes_completed"`
 	CompletionRate        float64               `json:"completion_rate"`
 	AverageScore          float64               `json:"average_score"`
 	TotalPoints           int                   `json:"total_points"`

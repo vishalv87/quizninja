@@ -164,12 +164,12 @@ func TestAuthHandler(t *testing.T) {
 
 		response := ParseJSONResponse(t, w)
 
-		// Verify statistics contain is_test_data field
-		statistics, statsExist := response["statistics"]
-		assert.True(t, statsExist, "Response should contain 'statistics' field")
+		// Verify data contains statistics with is_test_data field
+		data, dataExists := response["data"]
+		assert.True(t, dataExists, "Response should contain 'data' field")
 
-		statisticsMap, ok := statistics.(map[string]interface{})
-		assert.True(t, ok, "Statistics field should be an object")
+		statisticsMap, ok := data.(map[string]interface{})
+		assert.True(t, ok, "Data field should be an object")
 
 		VerifyIsTestDataField(t, statisticsMap, true, "user statistics")
 	})

@@ -437,10 +437,8 @@ func (ah *AuthHandler) GetUserStats(c *gin.Context) {
 		return
 	}
 
-	response := models.UserStatisticsResponse{
-		Statistics: *stats,
-		Message:    "User statistics retrieved successfully",
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{
+		"data":    *stats,
+		"message": "User statistics retrieved successfully",
+	})
 }
