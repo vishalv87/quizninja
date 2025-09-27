@@ -59,7 +59,28 @@ func createMigrationsTable(db *sql.DB) error {
 func getMigrationFiles() ([]string, error) {
 	var files []string
 
-	err := filepath.WalkDir("database/migrations", func(path string, d os.DirEntry, err error) error {
+	// Try multiple possible migration directory paths
+	migrationPaths := []string{
+		"database/migrations",     // from project root
+		"../database/migrations",  // from tests directory
+	}
+
+	var migrationDir string
+	var err error
+
+	// Find the first path that exists
+	for _, path := range migrationPaths {
+		if _, statErr := os.Stat(path); statErr == nil {
+			migrationDir = path
+			break
+		}
+	}
+
+	if migrationDir == "" {
+		return nil, fmt.Errorf("migration directory not found in any of the expected locations: %v", migrationPaths)
+	}
+
+	err = filepath.WalkDir(migrationDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}

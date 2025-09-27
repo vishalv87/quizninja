@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -389,6 +390,35 @@ func getTriggers(db *sql.DB) ([]string, error) {
 
 // UpdateSchemaAfterMigration should be called after running migrations
 func UpdateSchemaAfterMigration(db *sql.DB) error {
-	schemaPath := "database/schema.sql"
+	// Get the current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Try multiple possible paths for schema.sql
+	possiblePaths := []string{
+		"database/schema.sql",                    // From project root
+		"../database/schema.sql",                 // From tests directory
+		filepath.Join(cwd, "database/schema.sql"), // Absolute path from cwd
+	}
+
+	var schemaPath string
+	for _, path := range possiblePaths {
+		dir := filepath.Dir(path)
+		if _, err := os.Stat(dir); err == nil {
+			schemaPath = path
+			break
+		}
+	}
+
+	if schemaPath == "" {
+		// If no valid path found, create the database directory in current location
+		if err := os.MkdirAll("database", 0755); err != nil {
+			return fmt.Errorf("failed to create database directory: %w", err)
+		}
+		schemaPath = "database/schema.sql"
+	}
+
 	return GenerateSchemaSQL(db, schemaPath)
 }

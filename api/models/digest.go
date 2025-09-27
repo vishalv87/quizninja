@@ -16,6 +16,7 @@ type Digest struct {
 	IsDummy      bool      `json:"is_dummy" db:"is_dummy"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+	IsTestData   bool      `json:"is_test_data" db:"is_test_data"`
 	Articles     []Article `json:"articles,omitempty"`
 }
 
@@ -40,6 +41,7 @@ type Article struct {
 	TrendingScore    float64    `json:"trending_score" db:"trending_score"`
 	TrendingRank     *int       `json:"trending_rank" db:"trending_rank"`
 	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	IsTestData       bool       `json:"is_test_data" db:"is_test_data"`
 }
 
 // DigestResponse represents the API response for a single digest

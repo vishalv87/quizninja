@@ -24,7 +24,7 @@ func NewAchievementRepository() *AchievementRepository {
 // GetAllAchievements retrieves all active achievements
 func (ar *AchievementRepository) GetAllAchievements() ([]models.Achievement, error) {
 	query := `
-		SELECT id, key, title, description, icon, color, points_reward, category, is_rare, is_active, created_at, updated_at
+		SELECT id, key, title, description, icon, color, points_reward, category, is_rare, is_active, created_at, updated_at, is_test_data
 		FROM achievements
 		WHERE is_active = true
 		ORDER BY category, title
@@ -54,6 +54,7 @@ func (ar *AchievementRepository) GetAllAchievements() ([]models.Achievement, err
 			&achievement.IsActive,
 			&achievement.CreatedAt,
 			&achievement.UpdatedAt,
+			&achievement.IsTestData,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan achievement: %w", err)
@@ -76,7 +77,7 @@ func (ar *AchievementRepository) GetAllAchievements() ([]models.Achievement, err
 // GetAchievementByKey retrieves an achievement by its unique key
 func (ar *AchievementRepository) GetAchievementByKey(key string) (*models.Achievement, error) {
 	query := `
-		SELECT id, key, title, description, icon, color, points_reward, category, is_rare, is_active, created_at, updated_at
+		SELECT id, key, title, description, icon, color, points_reward, category, is_rare, is_active, created_at, updated_at, is_test_data
 		FROM achievements
 		WHERE key = $1 AND is_active = true
 	`
@@ -97,6 +98,7 @@ func (ar *AchievementRepository) GetAchievementByKey(key string) (*models.Achiev
 		&achievement.IsActive,
 		&achievement.CreatedAt,
 		&achievement.UpdatedAt,
+		&achievement.IsTestData,
 	)
 
 	if err != nil {
@@ -118,7 +120,7 @@ func (ar *AchievementRepository) GetUserAchievements(userID uuid.UUID) ([]models
 	query := `
 		SELECT
 			ua.id, ua.user_id, ua.achievement_id, ua.unlocked_at, ua.points_awarded,
-			a.id, a.key, a.title, a.description, a.icon, a.color, a.points_reward, a.category, a.is_rare, a.is_active, a.created_at, a.updated_at
+			a.id, a.key, a.title, a.description, a.icon, a.color, a.points_reward, a.category, a.is_rare, a.is_active, a.created_at, a.updated_at, a.is_test_data
 		FROM user_achievements ua
 		JOIN achievements a ON ua.achievement_id = a.id
 		WHERE ua.user_id = $1
@@ -155,6 +157,7 @@ func (ar *AchievementRepository) GetUserAchievements(userID uuid.UUID) ([]models
 			&achievement.IsActive,
 			&achievement.CreatedAt,
 			&achievement.UpdatedAt,
+			&achievement.IsTestData,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user achievement: %w", err)
@@ -199,8 +202,8 @@ func (ar *AchievementRepository) UnlockAchievement(userID uuid.UUID, achievement
 
 	// Insert user achievement
 	insertQuery := `
-		INSERT INTO user_achievements (user_id, achievement_id, unlocked_at, points_awarded)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO user_achievements (user_id, achievement_id, unlocked_at, points_awarded, is_test_data)
+		VALUES ($1, $2, $3, $4, true)
 		RETURNING id
 	`
 

@@ -27,6 +27,7 @@ type User struct {
 	AvatarURL             *string          `json:"avatar_url,omitempty" db:"avatar_url"`
 	CreatedAt             time.Time        `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time        `json:"updated_at" db:"updated_at"`
+	IsTestData            bool             `json:"is_test_data" db:"is_test_data"`
 	Preferences           *UserPreferences `json:"preferences,omitempty"`
 }
 
@@ -45,6 +46,7 @@ type UserPreferences struct {
 	OnboardingCompletedAt   *time.Time           `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
 	CreatedAt               time.Time            `json:"created_at" db:"created_at"`
 	UpdatedAt               time.Time            `json:"updated_at" db:"updated_at"`
+	IsTestData              bool                 `json:"is_test_data" db:"is_test_data"`
 }
 
 // StringArray handles PostgreSQL array type
@@ -120,6 +122,7 @@ type Interest struct {
 	IsActive    bool      `json:"is_active" db:"is_active"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	IsTestData  bool      `json:"is_test_data" db:"is_test_data"`
 }
 
 // DifficultyLevel represents quiz difficulty levels
@@ -130,6 +133,7 @@ type DifficultyLevel struct {
 	Description string `json:"description" db:"description"`
 	Order       int    `json:"order" db:"order"`
 	IsActive    bool   `json:"is_active" db:"is_active"`
+	IsTestData  bool   `json:"is_test_data" db:"is_test_data"`
 }
 
 // NotificationFrequency represents notification frequency options
@@ -139,6 +143,7 @@ type NotificationFrequency struct {
 	DisplayName string `json:"display_name" db:"display_name"`
 	Description string `json:"description" db:"description"`
 	IsActive    bool   `json:"is_active" db:"is_active"`
+	IsTestData  bool   `json:"is_test_data" db:"is_test_data"`
 }
 
 // AppSettings represents application configuration settings
@@ -201,6 +206,7 @@ type Quiz struct {
 	ThumbnailURL  *string         `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
 	CreatedAt     time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
+	IsTestData    bool            `json:"is_test_data" db:"is_test_data"`
 	Questions     []Question      `json:"questions,omitempty"`
 	Statistics    *QuizStatistics `json:"statistics,omitempty"`
 }
@@ -246,6 +252,7 @@ type Question struct {
 	ImageURL      *string     `json:"image_url,omitempty" db:"image_url"`
 	CreatedAt     time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time   `json:"updated_at" db:"updated_at"`
+	IsTestData    bool        `json:"is_test_data" db:"is_test_data"`
 }
 
 type QuizStatistics struct {
@@ -261,6 +268,7 @@ type QuizStatistics struct {
 	LastAttemptAt     *time.Time `json:"last_attempt_at,omitempty" db:"last_attempt_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
+	IsTestData        bool       `json:"is_test_data" db:"is_test_data"`
 }
 
 // Quiz DTOs
@@ -321,6 +329,7 @@ type QuizSummary struct {
 	Tags          []string               `json:"tags"`
 	ThumbnailURL  *string                `json:"thumbnail_url,omitempty"`
 	CreatedAt     time.Time              `json:"created_at"`
+	IsTestData    bool                   `json:"is_test_data" db:"is_test_data"`
 	Statistics    *QuizStatisticsSummary `json:"statistics,omitempty"`
 }
 
@@ -363,6 +372,7 @@ type QuizAttempt struct {
 	RetakeCount           int                        `json:"retake_count" db:"retake_count"`
 	OriginalAttemptID     *uuid.UUID                 `json:"original_attempt_id,omitempty" db:"original_attempt_id"`
 	PerformanceComparison map[string]interface{}     `json:"performance_comparison,omitempty" db:"performance_comparison"`
+	IsTestData            bool                       `json:"is_test_data" db:"is_test_data"`
 }
 
 // AttemptAnswer represents a user's answer to a quiz question
@@ -423,6 +433,7 @@ type UserStatistics struct {
 	QuizzesByDifficulty   map[string]int        `json:"quizzes_by_difficulty"`
 	ScoreDistribution     ScoreDistribution     `json:"score_distribution"`
 	MonthlyProgress       []MonthlyProgressItem `json:"monthly_progress"`
+	IsTestData            bool                  `json:"is_test_data"`
 }
 
 // CategoryPerformance represents performance metrics for a specific category
@@ -516,18 +527,20 @@ type FriendRequest struct {
 	Message     *string    `json:"message,omitempty" db:"message"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	RespondedAt *time.Time `json:"responded_at,omitempty" db:"responded_at"`
+	IsTestData  bool       `json:"is_test_data" db:"is_test_data"`
 	Requester   *User      `json:"requester,omitempty"`
 	Requested   *User      `json:"requested,omitempty"`
 }
 
 // Friendship represents an accepted friendship between two users
 type Friendship struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	User1ID   uuid.UUID `json:"user1_id" db:"user1_id"`
-	User2ID   uuid.UUID `json:"user2_id" db:"user2_id"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	User1     *User     `json:"user1,omitempty"`
-	User2     *User     `json:"user2,omitempty"`
+	ID         uuid.UUID `json:"id" db:"id"`
+	User1ID    uuid.UUID `json:"user1_id" db:"user1_id"`
+	User2ID    uuid.UUID `json:"user2_id" db:"user2_id"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
+	IsTestData bool      `json:"is_test_data" db:"is_test_data"`
+	User1      *User     `json:"user1,omitempty"`
+	User2      *User     `json:"user2,omitempty"`
 }
 
 // FriendNotification represents a notification related to friends
@@ -542,6 +555,7 @@ type FriendNotification struct {
 	IsRead          bool       `json:"is_read" db:"is_read"`
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	ReadAt          *time.Time `json:"read_at,omitempty" db:"read_at"`
+	IsTestData      bool       `json:"is_test_data" db:"is_test_data"`
 	RelatedUser     *User      `json:"related_user,omitempty"`
 }
 
@@ -560,6 +574,7 @@ type Friend struct {
 	IsOnline              bool      `json:"is_online"`
 	LastActive            time.Time `json:"last_active"`
 	FriendsSince          time.Time `json:"friends_since"`
+	IsTestData            bool      `json:"is_test_data"`
 }
 
 // Friends DTOs
@@ -608,6 +623,7 @@ type UserSearchResult struct {
 	IsFriend              bool      `json:"is_friend"`
 	HasPendingRequest     bool      `json:"has_pending_request"`
 	RequestSentByMe       bool      `json:"request_sent_by_me"`
+	IsTestData            bool      `json:"is_test_data"`
 }
 
 // FriendNotificationsResponse represents the response for friend notifications
@@ -635,6 +651,7 @@ type Challenge struct {
 	ParticipantScores map[string]interface{} `json:"participant_scores,omitempty" db:"participant_scores"`
 	CreatedAt         time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time              `json:"updated_at" db:"updated_at"`
+	IsTestData        bool                   `json:"is_test_data" db:"is_test_data"`
 	Challenger        *User                  `json:"challenger,omitempty"`
 	Challenged        *User                  `json:"challenged,omitempty"`
 	Quiz              *QuizSummary           `json:"quiz,omitempty"`
@@ -774,6 +791,7 @@ type Achievement struct {
 	IsActive     bool      `json:"is_active" db:"is_active"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+	IsTestData   bool      `json:"is_test_data" db:"is_test_data"`
 }
 
 // UserAchievement represents a user's unlocked achievement
@@ -783,6 +801,7 @@ type UserAchievement struct {
 	AchievementID  uuid.UUID `json:"achievement_id" db:"achievement_id"`
 	UnlockedAt     time.Time `json:"unlocked_at" db:"unlocked_at"`
 	PointsAwarded  int       `json:"points_awarded" db:"points_awarded"`
+	IsTestData     bool      `json:"is_test_data" db:"is_test_data"`
 	Achievement    *Achievement `json:"achievement,omitempty"`
 }
 
@@ -834,6 +853,7 @@ type UserQuizFavorite struct {
 	UserID      uuid.UUID `json:"user_id" db:"user_id"`
 	QuizID      uuid.UUID `json:"quiz_id" db:"quiz_id"`
 	FavoritedAt time.Time `json:"favorited_at" db:"favorited_at"`
+	IsTestData  bool      `json:"is_test_data" db:"is_test_data"`
 	Quiz        *QuizSummary `json:"quiz,omitempty"`
 }
 
@@ -868,6 +888,7 @@ type QuizSession struct {
 	PausedAt              *time.Time             `json:"paused_at,omitempty" db:"paused_at"`
 	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time              `json:"updated_at" db:"updated_at"`
+	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
 	Quiz                  *QuizSummary           `json:"quiz,omitempty"`
 	Attempt               *QuizAttempt           `json:"attempt,omitempty"`
 }
@@ -928,12 +949,13 @@ func (qs *QuizSession) HasExpired() bool {
 // QuizSessionWithDetails represents a quiz session with full quiz and attempt details
 type QuizSessionWithDetails struct {
 	QuizSession
-	QuizTitle       string    `json:"quiz_title"`
-	QuizCategory    string    `json:"quiz_category"`
-	QuizDifficulty  string    `json:"quiz_difficulty"`
-	QuizThumbnail   *string   `json:"quiz_thumbnail,omitempty"`
-	TotalQuestions  int       `json:"total_questions"`
-	OriginalTimeLimit int     `json:"original_time_limit"` // in seconds
+	QuizTitle         string    `json:"quiz_title"`
+	QuizCategory      string    `json:"quiz_category"`
+	QuizDifficulty    string    `json:"quiz_difficulty"`
+	QuizThumbnail     *string   `json:"quiz_thumbnail,omitempty"`
+	TotalQuestions    int       `json:"total_questions"`
+	OriginalTimeLimit int       `json:"original_time_limit"` // in seconds
+	QuizIsTestData    bool      `json:"quiz_is_test_data" db:"quiz_is_test_data"`
 }
 
 // Quiz Session DTOs

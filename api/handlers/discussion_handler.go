@@ -184,6 +184,7 @@ func (h *DiscussionHandler) GetDiscussion(c *gin.Context) {
 			Type:         discussion.Type,
 			CreatedAt:    discussion.CreatedAt,
 			UpdatedAt:    discussion.UpdatedAt,
+			IsTestData:   discussion.IsTestData,
 			IsLikedByUser: discussion.IsLikedByUser,
 		},
 	}

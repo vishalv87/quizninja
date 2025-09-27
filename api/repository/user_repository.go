@@ -24,15 +24,15 @@ func NewUserRepository() *UserRepository {
 
 func (ur *UserRepository) CreateUser(user *models.User) error {
 	query := `
-		INSERT INTO users (email, password_hash, name, age)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO users (email, password_hash, name, age, is_test_data)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at, updated_at, level, total_points, current_streak,
-		          best_streak, total_quizzes_completed, average_score, is_online, last_active
+		          best_streak, total_quizzes_completed, average_score, is_online, last_active, is_test_data
 	`
-	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.Age).Scan(
+	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.Age, user.IsTestData).Scan(
 		&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Level, &user.TotalPoints,
 		&user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
-		&user.AverageScore, &user.IsOnline, &user.LastActive,
+		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.IsTestData,
 	)
 	return err
 }
@@ -42,7 +42,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at
+		       last_active, avatar_url, created_at, updated_at, is_test_data
 		FROM users
 		WHERE email = $1
 	`
@@ -50,7 +50,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-		&user.CreatedAt, &user.UpdatedAt,
+		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
 	)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at
+		       last_active, avatar_url, created_at, updated_at, is_test_data
 		FROM users
 		WHERE id = $1
 	`
@@ -71,7 +71,7 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-		&user.CreatedAt, &user.UpdatedAt,
+		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
 	)
 	if err != nil {
 		return nil, err
@@ -148,13 +148,13 @@ func (ur *UserRepository) DeleteUser(id uuid.UUID) error {
 func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferences) error {
 	query := `
 		INSERT INTO user_preferences (user_id, selected_interests, difficulty_preference,
-		                              notifications_enabled, notification_frequency)
-		VALUES ($1, $2, $3, $4, $5)
+		                              notifications_enabled, notification_frequency, is_test_data)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at
 	`
 	err := ur.db.QueryRow(query, preferences.UserID, preferences.SelectedInterests,
 		preferences.DifficultyPreference, preferences.NotificationsEnabled,
-		preferences.NotificationFrequency).Scan(&preferences.ID, &preferences.CreatedAt)
+		preferences.NotificationFrequency, preferences.IsTestData).Scan(&preferences.ID, &preferences.CreatedAt)
 	return err
 }
 
@@ -163,14 +163,14 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 	preferences := &models.UserPreferences{}
 	query := `
 		SELECT id, user_id, selected_interests, difficulty_preference,
-		       notifications_enabled, notification_frequency, created_at
+		       notifications_enabled, notification_frequency, created_at, is_test_data
 		FROM user_preferences
 		WHERE user_id = $1
 	`
 	err := ur.db.QueryRow(query, userID).Scan(
 		&preferences.ID, &preferences.UserID, &preferences.SelectedInterests,
 		&preferences.DifficultyPreference, &preferences.NotificationsEnabled,
-		&preferences.NotificationFrequency, &preferences.CreatedAt,
+		&preferences.NotificationFrequency, &preferences.CreatedAt, &preferences.IsTestData,
 	)
 	if err != nil {
 		return nil, err
@@ -247,13 +247,13 @@ func (ur *UserRepository) GetUserStatistics(userID uuid.UUID) (*models.UserStati
 
 	// Get basic user stats from users table
 	userQuery := `
-		SELECT total_points, current_streak, best_streak, total_quizzes_completed, average_score
+		SELECT total_points, current_streak, best_streak, total_quizzes_completed, average_score, is_test_data
 		FROM users
 		WHERE id = $1
 	`
 	err := ur.db.QueryRow(userQuery, userID).Scan(
 		&stats.TotalPoints, &stats.CurrentStreak, &stats.BestStreak,
-		&stats.CompletedQuizzes, &stats.AverageScore,
+		&stats.CompletedQuizzes, &stats.AverageScore, &stats.IsTestData,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get basic user stats: %w", err)

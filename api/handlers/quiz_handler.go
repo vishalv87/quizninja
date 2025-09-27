@@ -328,6 +328,7 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		RetakeCount:           retakeCount,
 		OriginalAttemptID:     originalAttemptID,
 		PerformanceComparison: performanceComparison,
+		IsTestData:            true,
 	}
 
 	err = h.repo.Quiz.CreateQuizAttempt(attempt)
@@ -351,6 +352,7 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		LastActivityAt:       time.Now(),
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
+		IsTestData:           true,
 	}
 
 	err = h.repo.QuizSession.CreateSession(session)

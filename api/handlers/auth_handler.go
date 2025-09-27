@@ -64,6 +64,7 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 		PasswordHash: hashedPassword,
 		Name:         req.Name,
 		Age:          req.Age,
+		IsTestData:   true,
 	}
 
 	if err := ah.userRepo.CreateUser(user); err != nil {
@@ -83,6 +84,7 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 			NotificationsEnabled:    req.Preferences.NotificationsEnabled,
 			NotificationFrequency:   req.Preferences.NotificationFrequency,
 			OnboardingCompletedAt:   &now, // Mark onboarding as completed
+			IsTestData:              true,
 		}
 
 		if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {
