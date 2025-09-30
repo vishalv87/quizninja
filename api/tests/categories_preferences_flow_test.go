@@ -465,7 +465,7 @@ func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, http.StatusOK, w.Code, "Notification frequencies should load")
 
 	// Fetch current user preferences (will be empty for new user)
-	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
+	_ = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
 	// For new user, this might return 404 or empty preferences
 
 	// Step 3: User selects interests and other preferences (simulating form interaction)

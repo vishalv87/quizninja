@@ -234,19 +234,92 @@ func TestAuthHandler(t *testing.T) {
 		// Cleanup this specific test user
 		defer CleanupTestUser(registerResponse.User.ID)
 
-		// Logout using refresh token
+		// Logout using refresh token - now requires authentication
 		logoutReq := models.RefreshTokenRequest{
 			RefreshToken: registerResponse.RefreshToken,
 		}
 
 		reqBody, _ = json.Marshal(logoutReq)
-		w = MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/logout", "", reqBody)
+		w = MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/logout", registerResponse.AccessToken, reqBody)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		response := ParseJSONResponse(t, w)
 		message, exists := response["message"]
 		assert.True(t, exists, "Response should contain logout message")
 		assert.Contains(t, message, "Successfully logged out", "Should confirm successful logout")
+	})
+
+	t.Run("LogoutWithoutAuth", func(t *testing.T) {
+		// Test that logout fails without authentication
+		logoutReq := models.RefreshTokenRequest{
+			RefreshToken: "dummy-token",
+		}
+
+		reqBody, _ := json.Marshal(logoutReq)
+		w := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/logout", "", reqBody)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+		// Parse error response manually since ParseJSONResponse expects 200/201
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err, "Should parse error response JSON")
+
+		errorMsg, exists := response["error"]
+		assert.True(t, exists, "Response should contain error message")
+		assert.Contains(t, errorMsg, "Authorization header required", "Should indicate missing authorization")
+	})
+
+	t.Run("LogoutWithWrongUserToken", func(t *testing.T) {
+		// Create two users to test cross-user token validation
+		registerReq1 := models.RegisterRequest{
+			Email:    fmt.Sprintf("testlogout1_%s@example.com", uuid.New().String()[:8]),
+			Password: "testpassword123",
+			Name:     "Test Logout User 1",
+			Age:      intPtr(25),
+		}
+
+		reqBody, _ := json.Marshal(registerReq1)
+		w1 := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/register", "", reqBody)
+		assert.Equal(t, http.StatusCreated, w1.Code)
+
+		var user1Response models.AuthResponse
+		err := json.Unmarshal(w1.Body.Bytes(), &user1Response)
+		assert.NoError(t, err)
+		defer CleanupTestUser(user1Response.User.ID)
+
+		registerReq2 := models.RegisterRequest{
+			Email:    fmt.Sprintf("testlogout2_%s@example.com", uuid.New().String()[:8]),
+			Password: "testpassword123",
+			Name:     "Test Logout User 2",
+			Age:      intPtr(25),
+		}
+
+		reqBody, _ = json.Marshal(registerReq2)
+		w2 := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/register", "", reqBody)
+		assert.Equal(t, http.StatusCreated, w2.Code)
+
+		var user2Response models.AuthResponse
+		err = json.Unmarshal(w2.Body.Bytes(), &user2Response)
+		assert.NoError(t, err)
+		defer CleanupTestUser(user2Response.User.ID)
+
+		// Try to logout user1's refresh token using user2's access token
+		logoutReq := models.RefreshTokenRequest{
+			RefreshToken: user1Response.RefreshToken,
+		}
+
+		reqBody, _ = json.Marshal(logoutReq)
+		w := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/logout", user2Response.AccessToken, reqBody)
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+		// Parse error response manually since ParseJSONResponse expects 200/201
+		var response map[string]interface{}
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err, "Should parse error response JSON")
+
+		errorMsg, exists := response["error"]
+		assert.True(t, exists, "Response should contain error message")
+		assert.Contains(t, errorMsg, "Token does not belong to authenticated user", "Should indicate token ownership mismatch")
 	})
 
 	_ = userID // Use userID to avoid unused variable warning

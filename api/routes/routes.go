@@ -82,13 +82,13 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/refresh", authHandler.RefreshToken)
-			auth.POST("/logout", authHandler.Logout)
 		}
 
 		// Protected endpoints
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
+			protected.POST("/auth/logout", authHandler.Logout)
 			protected.GET("/profile", authHandler.GetProfile)
 			protected.PUT("/profile", authHandler.UpdateProfile)
 
