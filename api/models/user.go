@@ -941,9 +941,8 @@ func (qs *QuizSession) GetTimeRemainingFormatted() string {
 
 // HasExpired returns true if the session has been inactive for too long
 func (qs *QuizSession) HasExpired() bool {
-	// Sessions expire after 24 hours of inactivity
-	expiryTime := qs.LastActivityAt.Add(24 * time.Hour)
-	return time.Now().After(expiryTime)
+	// Sessions no longer expire automatically - users can resume anytime
+	return false
 }
 
 // QuizSessionWithDetails represents a quiz session with full quiz and attempt details

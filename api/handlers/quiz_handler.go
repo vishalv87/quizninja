@@ -987,7 +987,7 @@ func (h *QuizHandler) ResumeQuizSession(c *gin.Context) {
 	}
 
 	if !canResume {
-		utils.ErrorResponse(c, http.StatusConflict, "Session cannot be resumed (expired or not paused)")
+		utils.ErrorResponse(c, http.StatusConflict, "Session cannot be resumed (not paused, already completed, or abandoned)")
 		return
 	}
 

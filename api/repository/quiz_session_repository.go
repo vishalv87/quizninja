@@ -550,9 +550,10 @@ func (r *QuizSessionRepository) HasActiveSession(userID, quizID uuid.UUID) (bool
 func (r *QuizSessionRepository) CanResumeSession(attemptID uuid.UUID, userID uuid.UUID) (bool, error) {
 	query := `
 		SELECT EXISTS(
-			SELECT 1 FROM quiz_sessions
-			WHERE attempt_id = $1 AND user_id = $2 AND session_state = 'paused'
-			AND last_activity_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'
+			SELECT 1 FROM quiz_sessions qs
+			JOIN quiz_attempts qa ON qs.attempt_id = qa.id
+			WHERE qs.attempt_id = $1 AND qs.user_id = $2 AND qs.session_state = 'paused'
+			AND qa.is_completed = false AND qa.status != 'abandoned'
 		)`
 
 	var canResume bool
