@@ -176,6 +176,28 @@ type AchievementRepositoryInterface interface {
 	GetAchievementProgress(userID uuid.UUID) ([]models.AchievementProgress, error)
 }
 
+// NotificationRepositoryInterface defines the contract for notification data operations
+type NotificationRepositoryInterface interface {
+	// Notification CRUD operations
+	CreateNotification(notification *models.CreateNotificationRequest) (*models.Notification, error)
+	GetNotifications(userID uuid.UUID, filters *models.NotificationFilters) ([]models.Notification, int, error)
+	GetNotificationByID(notificationID uuid.UUID, userID uuid.UUID) (*models.Notification, error)
+	DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error
+
+	// Notification read status operations
+	MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error
+	MarkAllNotificationsAsRead(userID uuid.UUID) error
+	GetUnreadNotificationCount(userID uuid.UUID) (int, error)
+
+	// Notification statistics and management
+	GetNotificationStats(userID uuid.UUID) (*models.NotificationStatsResponse, error)
+	CleanupExpiredNotifications() error
+
+	// Backward compatibility for friend notifications
+	GetFriendNotifications(userID uuid.UUID, limit, offset int) ([]models.FriendNotificationCompat, int, error)
+	GetFriendUnreadNotificationCount(userID uuid.UUID) (int, error)
+}
+
 // QuizSessionRepositoryInterface defines the contract for quiz session data operations
 type QuizSessionRepositoryInterface interface {
 	// Session CRUD operations
@@ -208,26 +230,28 @@ type QuizSessionRepositoryInterface interface {
 
 // Repository aggregates all repository interfaces
 type Repository struct {
-	User        UserRepositoryInterface
-	Quiz        QuizRepositoryInterface
-	QuizSession QuizSessionRepositoryInterface
-	Friends     FriendsRepositoryInterface
-	Challenges  ChallengesRepositoryInterface
-	Leaderboard LeaderboardRepositoryInterface
-	Achievement AchievementRepositoryInterface
-	Discussion  DiscussionRepositoryInterface
+	User         UserRepositoryInterface
+	Quiz         QuizRepositoryInterface
+	QuizSession  QuizSessionRepositoryInterface
+	Friends      FriendsRepositoryInterface
+	Challenges   ChallengesRepositoryInterface
+	Leaderboard  LeaderboardRepositoryInterface
+	Achievement  AchievementRepositoryInterface
+	Notification NotificationRepositoryInterface
+	Discussion   DiscussionRepositoryInterface
 }
 
 // NewRepository creates a new repository instance
 func NewRepository() *Repository {
 	return &Repository{
-		User:        NewUserRepository(),
-		Quiz:        NewQuizRepository(),
-		QuizSession: NewQuizSessionRepository(),
-		Friends:     NewFriendsRepository(),
-		Challenges:  NewChallengesRepository(),
-		Leaderboard: NewLeaderboardRepository(),
-		Achievement: NewAchievementRepository(),
-		Discussion:  NewDiscussionRepository(),
+		User:         NewUserRepository(),
+		Quiz:         NewQuizRepository(),
+		QuizSession:  NewQuizSessionRepository(),
+		Friends:      NewFriendsRepository(),
+		Challenges:   NewChallengesRepository(),
+		Leaderboard:  NewLeaderboardRepository(),
+		Achievement:  NewAchievementRepository(),
+		Notification: NewNotificationRepository(),
+		Discussion:   NewDiscussionRepository(),
 	}
 }

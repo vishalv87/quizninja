@@ -30,6 +30,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 	favoritesHandler := handlers.NewFavoritesHandler(cfg)
 	discussionHandler := handlers.NewDiscussionHandler(cfg)
 	digestHandler := handlers.NewDigestHandler(cfg)
+	notificationHandler := handlers.NewNotificationHandler(cfg)
 
 	api := r.Group("/api/v1")
 	{
@@ -129,9 +130,23 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				friends.GET("", friendsHandler.GetFriends)
 				friends.DELETE("/:id", friendsHandler.RemoveFriend)
 				friends.GET("/search", friendsHandler.SearchUsers)
-				friends.GET("/notifications", friendsHandler.GetFriendNotifications)
-				friends.PUT("/notifications/:id/read", friendsHandler.MarkNotificationAsRead)
-				friends.PUT("/notifications/read-all", friendsHandler.MarkAllNotificationsAsRead)
+				// Friend notification endpoints (backward compatibility)
+				friends.GET("/notifications", notificationHandler.GetFriendNotifications)
+				friends.PUT("/notifications/:id/read", notificationHandler.MarkFriendNotificationAsRead)
+				friends.PUT("/notifications/read-all", notificationHandler.MarkAllFriendNotificationsAsRead)
+			}
+
+			// Unified notification endpoints
+			notifications := protected.Group("/notifications")
+			{
+				notifications.GET("", notificationHandler.GetNotifications)
+				notifications.GET("/stats", notificationHandler.GetNotificationStats)
+				notifications.GET("/:id", notificationHandler.GetNotificationByID)
+				notifications.PUT("/:id/read", notificationHandler.MarkNotificationAsRead)
+				notifications.PUT("/read-all", notificationHandler.MarkAllNotificationsAsRead)
+				notifications.DELETE("/:id", notificationHandler.DeleteNotification)
+				notifications.POST("", notificationHandler.CreateNotification) // Admin/system endpoint
+				notifications.POST("/cleanup", notificationHandler.CleanupExpiredNotifications) // Admin endpoint
 			}
 
 			// Challenge endpoints

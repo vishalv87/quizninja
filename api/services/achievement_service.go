@@ -10,6 +10,11 @@ import (
 	"github.com/google/uuid"
 )
 
+// StringPtr returns a pointer to the given string
+func StringPtr(s string) *string {
+	return &s
+}
+
 // AchievementService handles achievement logic and checking
 type AchievementService struct {
 	repo *repository.Repository
@@ -99,7 +104,36 @@ func (as *AchievementService) CheckAchievementsForUser(userID uuid.UUID, trigger
 
 			newAchievements = append(newAchievements, *userAchievement)
 
-			// Create notification
+			// Create persistent notification in the database
+			notificationData := map[string]interface{}{
+				"achievement_id":    userAchievement.Achievement.ID,
+				"achievement_key":   userAchievement.Achievement.Key,
+				"achievement_title": userAchievement.Achievement.Title,
+				"achievement_description": userAchievement.Achievement.Description,
+				"points_awarded":    userAchievement.PointsAwarded,
+				"is_rare":          userAchievement.Achievement.IsRare,
+				"icon":             userAchievement.Achievement.Icon,
+				"color":            userAchievement.Achievement.Color,
+			}
+
+			notificationReq := &models.CreateNotificationRequest{
+				UserID:            userID,
+				Type:              models.NotificationTypeAchievementUnlocked,
+				Title:             "Achievement Unlocked!",
+				Message:           &userAchievement.Achievement.Title,
+				Data:              notificationData,
+				RelatedEntityID:   &userAchievement.Achievement.ID,
+				RelatedEntityType: StringPtr("achievement"),
+			}
+
+			// Persist the notification to database
+			_, err = as.repo.Notification.CreateNotification(notificationReq)
+			if err != nil {
+				log.Printf("Error creating achievement notification for user %s: %v", userID, err)
+				// Don't fail the whole operation, just log the error
+			}
+
+			// Create in-memory notification for immediate response
 			notification := models.AchievementNotification{
 				AchievementID: userAchievement.Achievement.ID,
 				Title:         userAchievement.Achievement.Title,
