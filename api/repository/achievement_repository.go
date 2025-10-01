@@ -227,6 +227,25 @@ func (ar *AchievementRepository) UnlockAchievement(userID uuid.UUID, achievement
 		return nil, fmt.Errorf("failed to update user points: %w", err)
 	}
 
+	// Create achievement notification using database function
+	notificationQuery := `
+		SELECT create_achievement_notification($1, $2, $3, $4, $5, $6)
+	`
+
+	var notificationID uuid.UUID
+	err = tx.QueryRow(
+		notificationQuery,
+		userID,
+		achievement.ID,
+		achievement.Key,
+		achievement.Title,
+		achievement.Description,
+		achievement.PointsReward,
+	).Scan(&notificationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create achievement notification: %w", err)
+	}
+
 	// Commit transaction
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
