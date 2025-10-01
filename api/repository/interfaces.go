@@ -182,10 +182,13 @@ type NotificationRepositoryInterface interface {
 	CreateNotification(notification *models.CreateNotificationRequest) (*models.Notification, error)
 	GetNotifications(userID uuid.UUID, filters *models.NotificationFilters) ([]models.Notification, int, error)
 	GetNotificationByID(notificationID uuid.UUID, userID uuid.UUID) (*models.Notification, error)
-	DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error
+	DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error // Soft delete
+	HardDeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error // Hard delete (admin)
+	RestoreNotification(notificationID uuid.UUID, userID uuid.UUID) error // Restore soft deleted
 
 	// Notification read status operations
 	MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error
+	MarkNotificationAsUnread(notificationID uuid.UUID, userID uuid.UUID) error
 	MarkAllNotificationsAsRead(userID uuid.UUID) error
 	GetUnreadNotificationCount(userID uuid.UUID) (int, error)
 

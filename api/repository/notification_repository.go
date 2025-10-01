@@ -34,8 +34,8 @@ func (r *NotificationRepository) CreateNotification(notification *models.CreateN
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
 		RETURNING id, user_id, type, title, message, data, related_user_id,
-				  related_entity_id, related_entity_type, is_read, created_at,
-				  read_at, expires_at, is_test_data
+				  related_entity_id, related_entity_type, is_read, is_deleted, created_at,
+				  read_at, deleted_at, expires_at, is_test_data
 	`
 
 	var created models.Notification
@@ -61,8 +61,10 @@ func (r *NotificationRepository) CreateNotification(notification *models.CreateN
 		&created.RelatedEntityID,
 		&created.RelatedEntityType,
 		&created.IsRead,
+		&created.IsDeleted,
 		&created.CreatedAt,
 		&created.ReadAt,
+		&created.DeletedAt,
 		&created.ExpiresAt,
 		&created.IsTestData,
 	)
@@ -87,6 +89,9 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 	whereConditions = append(whereConditions, fmt.Sprintf("n.user_id = $%d", argCount))
 	args = append(args, userID)
 	argCount++
+
+	// Always filter out soft-deleted notifications
+	whereConditions = append(whereConditions, "n.is_deleted = FALSE")
 
 	// Filter by type
 	if filters.Type != "" {
@@ -144,7 +149,7 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 		SELECT
 			n.id, n.user_id, n.type, n.title, n.message, n.data,
 			n.related_user_id, n.related_entity_id, n.related_entity_type,
-			n.is_read, n.created_at, n.read_at, n.expires_at, n.is_test_data,
+			n.is_read, n.is_deleted, n.created_at, n.read_at, n.deleted_at, n.expires_at, n.is_test_data,
 			u.id, u.name, u.email, u.avatar_url, u.level, u.total_points,
 			u.current_streak, u.best_streak, u.total_quizzes_completed,
 			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at, u.is_test_data
@@ -167,7 +172,13 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 	for rows.Next() {
 		var notification models.Notification
 		var relatedUser models.User
-		var relatedUserID sql.NullString
+
+		// Use nullable types for user fields that can be NULL from LEFT JOIN
+		var relatedUserID, relatedUserName, relatedUserEmail, relatedUserAvatarURL, relatedUserLevel sql.NullString
+		var relatedUserTotalPoints, relatedUserCurrentStreak, relatedUserBestStreak, relatedUserTotalQuizzes sql.NullInt64
+		var relatedUserAverageScore sql.NullFloat64
+		var relatedUserIsOnline, relatedUserIsTestData sql.NullBool
+		var relatedUserLastActive, relatedUserCreatedAt, relatedUserUpdatedAt sql.NullTime
 
 		// Scan notification fields and optional related user
 		err := rows.Scan(
@@ -181,25 +192,27 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 			&notification.RelatedEntityID,
 			&notification.RelatedEntityType,
 			&notification.IsRead,
+			&notification.IsDeleted,
 			&notification.CreatedAt,
 			&notification.ReadAt,
+			&notification.DeletedAt,
 			&notification.ExpiresAt,
 			&notification.IsTestData,
 			&relatedUserID,
-			&relatedUser.Name,
-			&relatedUser.Email,
-			&relatedUser.AvatarURL,
-			&relatedUser.Level,
-			&relatedUser.TotalPoints,
-			&relatedUser.CurrentStreak,
-			&relatedUser.BestStreak,
-			&relatedUser.TotalQuizzesCompleted,
-			&relatedUser.AverageScore,
-			&relatedUser.IsOnline,
-			&relatedUser.LastActive,
-			&relatedUser.CreatedAt,
-			&relatedUser.UpdatedAt,
-			&relatedUser.IsTestData,
+			&relatedUserName,
+			&relatedUserEmail,
+			&relatedUserAvatarURL,
+			&relatedUserLevel,
+			&relatedUserTotalPoints,
+			&relatedUserCurrentStreak,
+			&relatedUserBestStreak,
+			&relatedUserTotalQuizzes,
+			&relatedUserAverageScore,
+			&relatedUserIsOnline,
+			&relatedUserLastActive,
+			&relatedUserCreatedAt,
+			&relatedUserUpdatedAt,
+			&relatedUserIsTestData,
 		)
 
 		if err != nil {
@@ -207,11 +220,57 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 			continue
 		}
 
-		// Set related user if it exists
+		// Set related user if it exists and has valid data
 		if notification.RelatedUserID != nil && relatedUserID.Valid {
 			userUUID, err := uuid.Parse(relatedUserID.String)
 			if err == nil {
 				relatedUser.ID = userUUID
+
+				// Populate user fields from nullable values
+				if relatedUserName.Valid {
+					relatedUser.Name = relatedUserName.String
+				}
+				if relatedUserEmail.Valid {
+					relatedUser.Email = relatedUserEmail.String
+				}
+				if relatedUserAvatarURL.Valid {
+					avatarURL := relatedUserAvatarURL.String
+					relatedUser.AvatarURL = &avatarURL
+				}
+				if relatedUserLevel.Valid {
+					relatedUser.Level = relatedUserLevel.String
+				}
+				if relatedUserTotalPoints.Valid {
+					relatedUser.TotalPoints = int(relatedUserTotalPoints.Int64)
+				}
+				if relatedUserCurrentStreak.Valid {
+					relatedUser.CurrentStreak = int(relatedUserCurrentStreak.Int64)
+				}
+				if relatedUserBestStreak.Valid {
+					relatedUser.BestStreak = int(relatedUserBestStreak.Int64)
+				}
+				if relatedUserTotalQuizzes.Valid {
+					relatedUser.TotalQuizzesCompleted = int(relatedUserTotalQuizzes.Int64)
+				}
+				if relatedUserAverageScore.Valid {
+					relatedUser.AverageScore = relatedUserAverageScore.Float64
+				}
+				if relatedUserIsOnline.Valid {
+					relatedUser.IsOnline = relatedUserIsOnline.Bool
+				}
+				if relatedUserLastActive.Valid {
+					relatedUser.LastActive = relatedUserLastActive.Time
+				}
+				if relatedUserCreatedAt.Valid {
+					relatedUser.CreatedAt = relatedUserCreatedAt.Time
+				}
+				if relatedUserUpdatedAt.Valid {
+					relatedUser.UpdatedAt = relatedUserUpdatedAt.Time
+				}
+				if relatedUserIsTestData.Valid {
+					relatedUser.IsTestData = relatedUserIsTestData.Bool
+				}
+
 				notification.RelatedUser = &relatedUser
 			}
 		}
@@ -235,19 +294,24 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 		SELECT
 			n.id, n.user_id, n.type, n.title, n.message, n.data,
 			n.related_user_id, n.related_entity_id, n.related_entity_type,
-			n.is_read, n.created_at, n.read_at, n.expires_at, n.is_test_data,
+			n.is_read, n.is_deleted, n.created_at, n.read_at, n.deleted_at, n.expires_at, n.is_test_data,
 			u.id, u.name, u.email, u.avatar_url, u.level, u.total_points,
 			u.current_streak, u.best_streak, u.total_quizzes_completed,
 			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at, u.is_test_data
 		FROM notifications n
 		LEFT JOIN users u ON n.related_user_id = u.id
-		WHERE n.id = $1 AND n.user_id = $2
+		WHERE n.id = $1 AND n.user_id = $2 AND n.is_deleted = FALSE
 	`
 
 	var notification models.Notification
 	var relatedUser models.User
-	var relatedUserID sql.NullString
-	var relatedUserFound bool
+
+	// Use nullable types for user fields that can be NULL from LEFT JOIN
+	var relatedUserID, relatedUserName, relatedUserEmail, relatedUserAvatarURL, relatedUserLevel sql.NullString
+	var relatedUserTotalPoints, relatedUserCurrentStreak, relatedUserBestStreak, relatedUserTotalQuizzes sql.NullInt64
+	var relatedUserAverageScore sql.NullFloat64
+	var relatedUserIsOnline, relatedUserIsTestData sql.NullBool
+	var relatedUserLastActive, relatedUserCreatedAt, relatedUserUpdatedAt sql.NullTime
 
 	err := r.db.QueryRow(query, notificationID, userID).Scan(
 		&notification.ID,
@@ -260,25 +324,27 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 		&notification.RelatedEntityID,
 		&notification.RelatedEntityType,
 		&notification.IsRead,
+		&notification.IsDeleted,
 		&notification.CreatedAt,
 		&notification.ReadAt,
+		&notification.DeletedAt,
 		&notification.ExpiresAt,
 		&notification.IsTestData,
 		&relatedUserID,
-		&relatedUser.Name,
-		&relatedUser.Email,
-		&relatedUser.AvatarURL,
-		&relatedUser.Level,
-		&relatedUser.TotalPoints,
-		&relatedUser.CurrentStreak,
-		&relatedUser.BestStreak,
-		&relatedUser.TotalQuizzesCompleted,
-		&relatedUser.AverageScore,
-		&relatedUser.IsOnline,
-		&relatedUser.LastActive,
-		&relatedUser.CreatedAt,
-		&relatedUser.UpdatedAt,
-		&relatedUser.IsTestData,
+		&relatedUserName,
+		&relatedUserEmail,
+		&relatedUserAvatarURL,
+		&relatedUserLevel,
+		&relatedUserTotalPoints,
+		&relatedUserCurrentStreak,
+		&relatedUserBestStreak,
+		&relatedUserTotalQuizzes,
+		&relatedUserAverageScore,
+		&relatedUserIsOnline,
+		&relatedUserLastActive,
+		&relatedUserCreatedAt,
+		&relatedUserUpdatedAt,
+		&relatedUserIsTestData,
 	)
 
 	if err != nil {
@@ -288,17 +354,62 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 		return nil, fmt.Errorf("failed to get notification: %w", err)
 	}
 
-	// Set related user if it exists
+	// Set related user if it exists and has valid data
 	if notification.RelatedUserID != nil && relatedUserID.Valid {
 		userUUID, err := uuid.Parse(relatedUserID.String)
 		if err == nil {
 			relatedUser.ID = userUUID
+
+			// Populate user fields from nullable values
+			if relatedUserName.Valid {
+				relatedUser.Name = relatedUserName.String
+			}
+			if relatedUserEmail.Valid {
+				relatedUser.Email = relatedUserEmail.String
+			}
+			if relatedUserAvatarURL.Valid {
+				avatarURL := relatedUserAvatarURL.String
+				relatedUser.AvatarURL = &avatarURL
+			}
+			if relatedUserLevel.Valid {
+				relatedUser.Level = relatedUserLevel.String
+			}
+			if relatedUserTotalPoints.Valid {
+				relatedUser.TotalPoints = int(relatedUserTotalPoints.Int64)
+			}
+			if relatedUserCurrentStreak.Valid {
+				relatedUser.CurrentStreak = int(relatedUserCurrentStreak.Int64)
+			}
+			if relatedUserBestStreak.Valid {
+				relatedUser.BestStreak = int(relatedUserBestStreak.Int64)
+			}
+			if relatedUserTotalQuizzes.Valid {
+				relatedUser.TotalQuizzesCompleted = int(relatedUserTotalQuizzes.Int64)
+			}
+			if relatedUserAverageScore.Valid {
+				relatedUser.AverageScore = relatedUserAverageScore.Float64
+			}
+			if relatedUserIsOnline.Valid {
+				relatedUser.IsOnline = relatedUserIsOnline.Bool
+			}
+			if relatedUserLastActive.Valid {
+				relatedUser.LastActive = relatedUserLastActive.Time
+			}
+			if relatedUserCreatedAt.Valid {
+				relatedUser.CreatedAt = relatedUserCreatedAt.Time
+			}
+			if relatedUserUpdatedAt.Valid {
+				relatedUser.UpdatedAt = relatedUserUpdatedAt.Time
+			}
+			if relatedUserIsTestData.Valid {
+				relatedUser.IsTestData = relatedUserIsTestData.Bool
+			}
+
 			notification.RelatedUser = &relatedUser
-			relatedUserFound = true
 		}
 	}
 
-	log.Printf("Retrieved notification: id=%s, relatedUser=%t", notification.ID, relatedUserFound)
+	log.Printf("Retrieved notification: id=%s, relatedUser=%t", notification.ID, notification.RelatedUser != nil)
 	return &notification, nil
 }
 
@@ -309,7 +420,7 @@ func (r *NotificationRepository) MarkNotificationAsRead(notificationID uuid.UUID
 	query := `
 		UPDATE notifications
 		SET is_read = true, read_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND user_id = $2 AND is_read = false
+		WHERE id = $1 AND user_id = $2 AND is_read = false AND is_deleted = false
 	`
 
 	result, err := r.db.Exec(query, notificationID, userID)
@@ -330,6 +441,34 @@ func (r *NotificationRepository) MarkNotificationAsRead(notificationID uuid.UUID
 	return nil
 }
 
+// MarkNotificationAsUnread marks a specific notification as unread
+func (r *NotificationRepository) MarkNotificationAsUnread(notificationID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("MarkNotificationAsUnread called: notificationID=%s, userID=%s", notificationID, userID)
+
+	query := `
+		UPDATE notifications
+		SET is_read = false, read_at = NULL
+		WHERE id = $1 AND user_id = $2 AND is_read = true AND is_deleted = false
+	`
+
+	result, err := r.db.Exec(query, notificationID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to mark notification as unread: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("notification not found, not owned by user, or already unread")
+	}
+
+	log.Printf("Notification marked as unread: id=%s", notificationID)
+	return nil
+}
+
 // MarkAllNotificationsAsRead marks all notifications as read for a user
 func (r *NotificationRepository) MarkAllNotificationsAsRead(userID uuid.UUID) error {
 	log.Printf("MarkAllNotificationsAsRead called: userID=%s", userID)
@@ -337,7 +476,7 @@ func (r *NotificationRepository) MarkAllNotificationsAsRead(userID uuid.UUID) er
 	query := `
 		UPDATE notifications
 		SET is_read = true, read_at = CURRENT_TIMESTAMP
-		WHERE user_id = $1 AND is_read = false
+		WHERE user_id = $1 AND is_read = false AND is_deleted = false
 	`
 
 	result, err := r.db.Exec(query, userID)
@@ -361,7 +500,7 @@ func (r *NotificationRepository) GetUnreadNotificationCount(userID uuid.UUID) (i
 	query := `
 		SELECT COUNT(*)
 		FROM notifications
-		WHERE user_id = $1 AND is_read = false
+		WHERE user_id = $1 AND is_read = false AND is_deleted = false
 	`
 
 	var count int
@@ -374,18 +513,19 @@ func (r *NotificationRepository) GetUnreadNotificationCount(userID uuid.UUID) (i
 	return count, nil
 }
 
-// DeleteNotification deletes a notification (for user's own notifications only)
+// DeleteNotification soft deletes a notification (for user's own notifications only)
 func (r *NotificationRepository) DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error {
-	log.Printf("DeleteNotification called: notificationID=%s, userID=%s", notificationID, userID)
+	log.Printf("DeleteNotification (soft delete) called: notificationID=%s, userID=%s", notificationID, userID)
 
 	query := `
-		DELETE FROM notifications
-		WHERE id = $1 AND user_id = $2
+		UPDATE notifications
+		SET is_deleted = true, deleted_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND user_id = $2 AND is_deleted = false
 	`
 
 	result, err := r.db.Exec(query, notificationID, userID)
 	if err != nil {
-		return fmt.Errorf("failed to delete notification: %w", err)
+		return fmt.Errorf("failed to soft delete notification: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -397,7 +537,62 @@ func (r *NotificationRepository) DeleteNotification(notificationID uuid.UUID, us
 		return fmt.Errorf("notification not found or not owned by user")
 	}
 
-	log.Printf("Notification deleted: id=%s", notificationID)
+	log.Printf("Notification soft deleted: id=%s", notificationID)
+	return nil
+}
+
+// HardDeleteNotification permanently deletes a notification (admin use)
+func (r *NotificationRepository) HardDeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("HardDeleteNotification called: notificationID=%s, userID=%s", notificationID, userID)
+
+	query := `
+		DELETE FROM notifications
+		WHERE id = $1 AND user_id = $2
+	`
+
+	result, err := r.db.Exec(query, notificationID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to hard delete notification: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("notification not found or not owned by user")
+	}
+
+	log.Printf("Notification hard deleted: id=%s", notificationID)
+	return nil
+}
+
+// RestoreNotification restores a soft deleted notification
+func (r *NotificationRepository) RestoreNotification(notificationID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("RestoreNotification called: notificationID=%s, userID=%s", notificationID, userID)
+
+	query := `
+		UPDATE notifications
+		SET is_deleted = false, deleted_at = NULL
+		WHERE id = $1 AND user_id = $2 AND is_deleted = true
+	`
+
+	result, err := r.db.Exec(query, notificationID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to restore notification: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("notification not found, not owned by user, or not deleted")
+	}
+
+	log.Printf("Notification restored: id=%s", notificationID)
 	return nil
 }
 
@@ -405,13 +600,13 @@ func (r *NotificationRepository) DeleteNotification(notificationID uuid.UUID, us
 func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models.NotificationStatsResponse, error) {
 	log.Printf("GetNotificationStats called: userID=%s", userID)
 
-	// Get total and unread counts
+	// Get total and unread counts (excluding soft-deleted)
 	countQuery := `
 		SELECT
 			COUNT(*) as total,
 			COUNT(CASE WHEN is_read = false THEN 1 END) as unread
 		FROM notifications
-		WHERE user_id = $1
+		WHERE user_id = $1 AND is_deleted = false
 	`
 
 	var totalCount, unreadCount int
@@ -420,11 +615,11 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 		return nil, fmt.Errorf("failed to get notification counts: %w", err)
 	}
 
-	// Get counts by type
+	// Get counts by type (excluding soft-deleted)
 	typeQuery := `
 		SELECT type, COUNT(*)
 		FROM notifications
-		WHERE user_id = $1
+		WHERE user_id = $1 AND is_deleted = false
 		GROUP BY type
 	`
 
@@ -444,14 +639,14 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 		notificationsByType[notificationType] = count
 	}
 
-	// Get recent notifications (last 5)
+	// Get recent notifications (last 5, excluding soft-deleted)
 	recentQuery := `
 		SELECT
 			id, user_id, type, title, message, data,
 			related_user_id, related_entity_id, related_entity_type,
-			is_read, created_at, read_at, expires_at, is_test_data
+			is_read, is_deleted, created_at, read_at, deleted_at, expires_at, is_test_data
 		FROM notifications
-		WHERE user_id = $1
+		WHERE user_id = $1 AND is_deleted = false
 		ORDER BY created_at DESC
 		LIMIT 5
 	`
@@ -476,8 +671,10 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 			&notification.RelatedEntityID,
 			&notification.RelatedEntityType,
 			&notification.IsRead,
+			&notification.IsDeleted,
 			&notification.CreatedAt,
 			&notification.ReadAt,
+			&notification.DeletedAt,
 			&notification.ExpiresAt,
 			&notification.IsTestData,
 		)

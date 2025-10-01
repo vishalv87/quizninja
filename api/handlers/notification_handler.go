@@ -158,6 +158,42 @@ func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
 	})
 }
 
+// MarkNotificationAsUnread marks a specific notification as unread
+// PUT /api/v1/notifications/:id/unread
+func (h *NotificationHandler) MarkNotificationAsUnread(c *gin.Context) {
+	log.Println("MarkNotificationAsUnread called")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+
+	currentUserID := userID.(uuid.UUID)
+
+	notificationIDStr := c.Param("id")
+	notificationID, err := uuid.Parse(notificationIDStr)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid notification ID")
+		return
+	}
+
+	log.Printf("MarkNotificationAsUnread: notificationID=%s, userID=%s", notificationID, currentUserID)
+
+	err = h.repo.Notification.MarkNotificationAsUnread(notificationID, currentUserID)
+	if err != nil {
+		if err.Error() == "notification not found, not owned by user, or already unread" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Notification not found or already unread")
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to mark notification as unread")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Notification marked as unread",
+	})
+}
+
 // MarkAllNotificationsAsRead marks all notifications as read for the user
 // PUT /api/v1/notifications/read-all
 func (h *NotificationHandler) MarkAllNotificationsAsRead(c *gin.Context) {

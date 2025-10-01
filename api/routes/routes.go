@@ -143,6 +143,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				notifications.GET("/stats", notificationHandler.GetNotificationStats)
 				notifications.GET("/:id", notificationHandler.GetNotificationByID)
 				notifications.PUT("/:id/read", notificationHandler.MarkNotificationAsRead)
+				notifications.PUT("/:id/unread", notificationHandler.MarkNotificationAsUnread)
 				notifications.PUT("/read-all", notificationHandler.MarkAllNotificationsAsRead)
 				notifications.DELETE("/:id", notificationHandler.DeleteNotification)
 				notifications.POST("", notificationHandler.CreateNotification) // Admin/system endpoint

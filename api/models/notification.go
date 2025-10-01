@@ -21,8 +21,10 @@ type Notification struct {
 	RelatedEntityID    *uuid.UUID      `json:"relatedEntityId,omitempty" db:"related_entity_id"`
 	RelatedEntityType  *string         `json:"relatedEntityType,omitempty" db:"related_entity_type"`
 	IsRead             bool            `json:"isRead" db:"is_read"`
+	IsDeleted          bool            `json:"isDeleted" db:"is_deleted"`
 	CreatedAt          time.Time       `json:"timestamp" db:"created_at"`
 	ReadAt             *time.Time      `json:"readAt,omitempty" db:"read_at"`
+	DeletedAt          *time.Time      `json:"deletedAt,omitempty" db:"deleted_at"`
 	ExpiresAt          *time.Time      `json:"expiresAt,omitempty" db:"expires_at"`
 	IsTestData         bool            `json:"isTestData" db:"is_test_data"`
 	RelatedUser        *User           `json:"relatedUser,omitempty"`
@@ -140,6 +142,16 @@ func (n *Notification) IsExpired() bool {
 		return false
 	}
 	return time.Now().After(*n.ExpiresAt)
+}
+
+// IsSoftDeleted returns true if the notification has been soft deleted
+func (n *Notification) IsSoftDeleted() bool {
+	return n.IsDeleted && n.DeletedAt != nil
+}
+
+// CanBeShown returns true if the notification should be visible to users
+func (n *Notification) CanBeShown() bool {
+	return !n.IsDeleted && !n.IsExpired()
 }
 
 // GetDisplayIcon returns an appropriate icon for the notification type
@@ -308,8 +320,10 @@ type FriendNotificationCompat struct {
 	RelatedUserID   *uuid.UUID `json:"related_user_id,omitempty" db:"related_user_id"`
 	FriendRequestID *uuid.UUID `json:"friend_request_id,omitempty" db:"friend_request_id"`
 	IsRead          bool       `json:"is_read" db:"is_read"`
+	IsDeleted       bool       `json:"is_deleted" db:"is_deleted"`
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	ReadAt          *time.Time `json:"read_at,omitempty" db:"read_at"`
+	DeletedAt       *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
 	IsTestData      bool       `json:"is_test_data" db:"is_test_data"`
 	RelatedUser     *User      `json:"related_user,omitempty"`
 }
@@ -330,8 +344,10 @@ func (n *Notification) ToFriendNotificationCompat() *FriendNotificationCompat {
 		RelatedUserID:   n.RelatedUserID,
 		FriendRequestID: friendRequestID,
 		IsRead:          n.IsRead,
+		IsDeleted:       n.IsDeleted,
 		CreatedAt:       n.CreatedAt,
 		ReadAt:          n.ReadAt,
+		DeletedAt:       n.DeletedAt,
 		IsTestData:      n.IsTestData,
 		RelatedUser:     n.RelatedUser,
 	}
