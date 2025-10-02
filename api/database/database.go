@@ -13,8 +13,20 @@ import (
 var DB *sql.DB
 
 func Connect(cfg *config.Config) {
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
+	var dsn string
+
+	if cfg.UseSupabase {
+		// Supabase PostgreSQL connection with SSL required
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require",
+			cfg.SupabaseDBHost, cfg.SupabaseDBPort, cfg.SupabaseDBUser,
+			cfg.SupabaseDBPassword, cfg.SupabaseDBName)
+		log.Println("Connecting to Supabase PostgreSQL database...")
+	} else {
+		// Traditional PostgreSQL connection
+		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+			cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
+		log.Println("Connecting to traditional PostgreSQL database...")
+	}
 
 	var err error
 	DB, err = sql.Open("postgres", dsn)
@@ -26,9 +38,13 @@ func Connect(cfg *config.Config) {
 		log.Fatal("Failed to ping database:", err)
 	}
 
-	log.Println("Successfully connected to database")
+	if cfg.UseSupabase {
+		log.Println("Successfully connected to Supabase database")
+	} else {
+		log.Println("Successfully connected to traditional database")
+	}
 
-	// Run migrations
+	// Run migrations - works for both traditional PostgreSQL and Supabase
 	if err = RunMigrations(DB); err != nil {
 		log.Fatal("Failed to run migrations:", err)
 	}
