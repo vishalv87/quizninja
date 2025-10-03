@@ -182,87 +182,6 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-func (ah *AuthHandler) RefreshToken(c *gin.Context) {
-	var req models.RefreshTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	claims, err := utils.ValidateRefreshToken(req.RefreshToken, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid refresh token",
-		})
-		return
-	}
-
-	storedToken, err := ah.userRepo.GetRefreshToken(req.RefreshToken)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid refresh token",
-		})
-		return
-	}
-
-	if storedToken.UserID != claims.UserID {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid refresh token",
-		})
-		return
-	}
-
-	user, err := ah.userRepo.GetUserByID(claims.UserID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get user",
-		})
-		return
-	}
-
-	newAccessToken, err := utils.GenerateAccessToken(user.ID, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate access token",
-		})
-		return
-	}
-
-	newRefreshToken, err := utils.GenerateRefreshToken(user.ID, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate refresh token",
-		})
-		return
-	}
-
-	if err := ah.userRepo.DeleteRefreshToken(req.RefreshToken); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to delete old refresh token",
-		})
-		return
-	}
-
-	newRefreshTokenModel := &models.RefreshToken{
-		UserID:    user.ID,
-		Token:     newRefreshToken,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 7),
-	}
-
-	if err := ah.userRepo.SaveRefreshToken(newRefreshTokenModel); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save refresh token",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"access_token":  newAccessToken,
-		"refresh_token": newRefreshToken,
-	})
-}
 
 func (ah *AuthHandler) Logout(c *gin.Context) {
 	// Get user ID from auth middleware
@@ -274,41 +193,8 @@ func (ah *AuthHandler) Logout(c *gin.Context) {
 		return
 	}
 
-	var req models.RefreshTokenRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	// Validate that the refresh token belongs to the authenticated user
-	storedToken, err := ah.userRepo.GetRefreshToken(req.RefreshToken)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid refresh token",
-		})
-		return
-	}
-
-	// Ensure the refresh token belongs to the authenticated user
-	if storedToken.UserID != userID {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Token does not belong to authenticated user",
-		})
-		return
-	}
-
 	// Update user's online status to false
 	ah.userRepo.UpdateUserOnlineStatus(userID.(uuid.UUID), false)
-
-	// Delete the refresh token
-	if err := ah.userRepo.DeleteRefreshToken(req.RefreshToken); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to logout",
-		})
-		return
-	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Successfully logged out",

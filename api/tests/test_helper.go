@@ -50,10 +50,10 @@ func SetupTestServer(t *testing.T) *TestConfig {
 func CreateTestUser(t *testing.T, tc *TestConfig) (uuid.UUID, string) {
 	// Create a test user
 	registerReq := models.RegisterRequest{
-		Email:    fmt.Sprintf("test_%s@example.com", uuid.New().String()[:8]),
-		Password: "testpassword123",
-		Name:     "Test User",
-		Age:      intPtr(25),
+		SupabaseUserID: uuid.New().String(),
+		Email:          fmt.Sprintf("test_%s@example.com", uuid.New().String()[:8]),
+		Name:           "Test User",
+		Age:            intPtr(25),
 	}
 
 	reqBody, _ := json.Marshal(registerReq)

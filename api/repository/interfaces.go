@@ -24,11 +24,6 @@ type UserRepositoryInterface interface {
 	// User with preferences operations
 	GetUserWithPreferences(userID uuid.UUID) (*models.User, error)
 
-	// Refresh token operations
-	SaveRefreshToken(refreshToken *models.RefreshToken) error
-	GetRefreshToken(token string) (*models.RefreshToken, error)
-	DeleteRefreshToken(token string) error
-	DeleteUserRefreshTokens(userID uuid.UUID) error
 
 	// User status operations
 	UpdateUserOnlineStatus(userID uuid.UUID, isOnline bool) error

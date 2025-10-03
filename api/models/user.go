@@ -74,13 +74,6 @@ func (a *StringArray) Scan(value any) error {
 	return pq.Array(a).Scan(value)
 }
 
-type RefreshToken struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	UserID    uuid.UUID `json:"user_id" db:"user_id"`
-	Token     string    `json:"token" db:"token"`
-	ExpiresAt time.Time `json:"expires_at" db:"expires_at"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-}
 
 // RegisterRequest for frontend-initiated Supabase auth
 type RegisterRequest struct {
@@ -117,9 +110,6 @@ type AuthResponse struct {
 	Message string `json:"message,omitempty"`
 }
 
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
 
 type UpdateProfileRequest struct {
 	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`

@@ -97,48 +97,9 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	return user, nil
 }
 
-func (ur *UserRepository) SaveRefreshToken(refreshToken *models.RefreshToken) error {
-	query := `
-		INSERT INTO refresh_tokens (user_id, token, expires_at, created_at)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id
-	`
-	now := time.Now()
-	err := ur.db.QueryRow(query, refreshToken.UserID, refreshToken.Token, refreshToken.ExpiresAt, now).Scan(&refreshToken.ID)
-	if err != nil {
-		return err
-	}
-	refreshToken.CreatedAt = now
-	return nil
-}
 
-func (ur *UserRepository) GetRefreshToken(token string) (*models.RefreshToken, error) {
-	refreshToken := &models.RefreshToken{}
-	query := `
-		SELECT id, user_id, token, expires_at, created_at
-		FROM refresh_tokens
-		WHERE token = $1 AND expires_at > NOW()
-	`
-	err := ur.db.QueryRow(query, token).Scan(
-		&refreshToken.ID, &refreshToken.UserID, &refreshToken.Token, &refreshToken.ExpiresAt, &refreshToken.CreatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return refreshToken, nil
-}
 
-func (ur *UserRepository) DeleteRefreshToken(token string) error {
-	query := `DELETE FROM refresh_tokens WHERE token = $1`
-	_, err := ur.db.Exec(query, token)
-	return err
-}
 
-func (ur *UserRepository) DeleteUserRefreshTokens(userID uuid.UUID) error {
-	query := `DELETE FROM refresh_tokens WHERE user_id = $1`
-	_, err := ur.db.Exec(query, userID)
-	return err
-}
 
 // UpdateUser updates an existing user
 func (ur *UserRepository) UpdateUser(user *models.User) error {

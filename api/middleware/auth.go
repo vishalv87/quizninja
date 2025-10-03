@@ -83,19 +83,11 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			}
 		}
 
-		// JWT-only validation (when Supabase auth is disabled)
-		claims, err := utils.ValidateAccessToken(token, cfg.JWTSecret)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid or expired token",
-			})
-			c.Abort()
-			return
-		}
-
-		// SUCCESS: JWT auth worked
-		c.Set("user_id", claims.UserID)
-		c.Set("auth_method", "jwt")
-		c.Next()
+		// No JWT fallback - Supabase auth is required
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Supabase authentication is required",
+		})
+		c.Abort()
+		return
 	}
 }

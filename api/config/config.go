@@ -16,7 +16,6 @@ type Config struct {
 	DBUser         string
 	DBPassword     string
 	DBName         string
-	JWTSecret      string
 	Port           string
 	GinMode        string
 	AllowedOrigins string
@@ -44,7 +43,6 @@ func Load() *Config {
 		DBUser:         getEnv("DB_USER", "postgres"),
 		DBPassword:     getEnv("DB_PASSWORD", ""),
 		DBName:         getEnv("DB_NAME", "quizninja"),
-		JWTSecret:      getEnv("JWT_SECRET", "your_jwt_secret"),
 		Port:           getEnv("PORT", "8080"),
 		GinMode:        getEnv("GIN_MODE", "debug"),
 		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
@@ -113,9 +111,9 @@ func (c *Config) ValidateSupabaseConfig() error {
 // GetAuthStrategy returns the current authentication strategy
 func (c *Config) GetAuthStrategy() string {
 	if c.UseSupabaseAuth {
-		return "supabase-with-jwt-fallback"
+		return "supabase-only"
 	}
-	return "jwt-only"
+	return "supabase-only"
 }
 
 // IsSupabaseEnabled returns true if Supabase features are enabled
@@ -133,9 +131,6 @@ func (c *Config) ValidateConfig() error {
 	var errors []string
 
 	// Basic validation
-	if c.JWTSecret == "" || c.JWTSecret == "your_jwt_secret" {
-		errors = append(errors, "JWT_SECRET must be set to a secure value")
-	}
 
 	if c.DBHost == "" {
 		errors = append(errors, "DB_HOST is required")
