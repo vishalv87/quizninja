@@ -97,6 +97,7 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 	}
 
 	if err := h.repo.Challenges.CreateChallenge(challenge); err != nil {
+		log.Printf("CreateChallenge error: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create challenge")
 		return
 	}
@@ -104,6 +105,7 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 	// Get the created challenge with details
 	challengeDetails, err := h.repo.Challenges.GetChallengeWithDetails(challenge.ID)
 	if err != nil {
+		log.Printf("GetChallengeWithDetails error: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve challenge details")
 		return
 	}

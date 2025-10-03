@@ -14,9 +14,10 @@ import (
 
 func TestChallengesHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Challenges Handler Main User")
+	defer cleanup()
 
 	t.Run("GetChallenges", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/challenges", token, nil)
@@ -227,7 +228,8 @@ func TestChallengesHandler(t *testing.T) {
 
 	t.Run("CreateChallenge", func(t *testing.T) {
 		// Create a second test user to challenge
-		secondUserID, _ := CreateTestUser(t, tc)
+		secondUserID, _, _, cleanup := CreateTestUserWithCleanup(t, tc, "Challenges Handler Second User")
+		defer cleanup()
 
 		// First get a quiz to use for the challenge
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes", token, nil)
@@ -327,7 +329,6 @@ func TestChallengesHandler(t *testing.T) {
 		assert.True(t, w.Code >= 400, "Should return an error for non-existent challenge")
 	})
 
-	_ = userID // Use userID to avoid unused variable warning
 }
 
 // Helper function to check nested data in challenge objects

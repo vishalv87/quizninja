@@ -19,7 +19,7 @@ import (
 // This validates the entire notification journey: Trigger → Database → API → Frontend consumption
 func TestNotificationSystemIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	t.Run("FriendRequestNotificationFlow", func(t *testing.T) {
 		testFriendRequestNotificationFlow(t, tc)
@@ -57,12 +57,12 @@ func TestNotificationSystemIntegration(t *testing.T) {
 // testFriendRequestNotificationFlow tests the complete friend request notification workflow
 func testFriendRequestNotificationFlow(t *testing.T, tc *TestConfig) {
 	// Create two test users
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, tokenB := CreateTestUser(t, tc)
+	userAID, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Friend User A")
+	userBID, tokenB, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Friend User B")
 
 	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
+		cleanupA()
+		cleanupB()
 	}()
 
 	t.Run("FriendRequestSent_CreatesNotification", func(t *testing.T) {
@@ -145,12 +145,12 @@ func testFriendRequestNotificationFlow(t *testing.T, tc *TestConfig) {
 // testChallengeNotificationFlow tests the complete challenge notification workflow
 func testChallengeNotificationFlow(t *testing.T, tc *TestConfig) {
 	// Create two test users and establish friendship
-	challengerID, challengerToken := CreateTestUser(t, tc)
-	challengedID, challengedToken := CreateTestUser(t, tc)
+	challengerID, challengerToken, _, cleanupChallenger := CreateTestUserWithCleanup(t, tc, "Challenger User")
+	challengedID, challengedToken, _, cleanupChallenged := CreateTestUserWithCleanup(t, tc, "Challenged User")
 
 	defer func() {
-		CleanupTestUser(challengerID)
-		CleanupTestUser(challengedID)
+		cleanupChallenger()
+		cleanupChallenged()
 	}()
 
 	// Establish friendship first
@@ -214,8 +214,8 @@ func testChallengeNotificationFlow(t *testing.T, tc *TestConfig) {
 
 // testAchievementNotificationFlow tests the achievement notification workflow
 func testAchievementNotificationFlow(t *testing.T, tc *TestConfig) {
-	userID, token := CreateTestUser(t, tc)
-	defer CleanupTestUser(userID)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Achievement User")
+	defer cleanup()
 
 	t.Run("AchievementUnlocked_CreatesNotification", func(t *testing.T) {
 		// Get initial notification count
@@ -252,8 +252,8 @@ func testAchievementNotificationFlow(t *testing.T, tc *TestConfig) {
 
 // testUnifiedNotificationSystem tests the unified notification system functionality
 func testUnifiedNotificationSystem(t *testing.T, tc *TestConfig) {
-	userID, token := CreateTestUser(t, tc)
-	defer CleanupTestUser(userID)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Unified System User")
+	defer cleanup()
 
 	// Create multiple notifications of different types for testing
 	setupMultipleNotifications(t, tc, userID, token)
@@ -316,8 +316,8 @@ func testUnifiedNotificationSystem(t *testing.T, tc *TestConfig) {
 
 // testNotificationErrorScenarios tests error handling in the notification system
 func testNotificationErrorScenarios(t *testing.T, tc *TestConfig) {
-	userID, token := CreateTestUser(t, tc)
-	defer CleanupTestUser(userID)
+	_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Error Scenario User")
+	defer cleanup()
 
 	t.Run("InvalidNotificationID_ReturnsError", func(t *testing.T) {
 		fakeNotificationID := uuid.New().String()
@@ -349,12 +349,12 @@ func testNotificationErrorScenarios(t *testing.T, tc *TestConfig) {
 
 // testDatabaseTriggerVerification tests that database triggers work correctly
 func testDatabaseTriggerVerification(t *testing.T, tc *TestConfig) {
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, _ := CreateTestUser(t, tc)
+	userAID, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Trigger User A")
+	userBID, _, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Trigger User B")
 
 	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
+		cleanupA()
+		cleanupB()
 	}()
 
 	t.Run("FriendRequestTrigger_CreatesNotification", func(t *testing.T) {
@@ -381,8 +381,8 @@ func testDatabaseTriggerVerification(t *testing.T, tc *TestConfig) {
 
 // testNotificationFiltering tests notification filtering functionality
 func testNotificationFiltering(t *testing.T, tc *TestConfig) {
-	userID, token := CreateTestUser(t, tc)
-	defer CleanupTestUser(userID)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Filtering User")
+	defer cleanup()
 
 	// Create notifications of different types
 	setupMultipleNotifications(t, tc, userID, token)
@@ -411,8 +411,8 @@ func testNotificationFiltering(t *testing.T, tc *TestConfig) {
 
 // testNotificationPagination tests notification pagination functionality
 func testNotificationPagination(t *testing.T, tc *TestConfig) {
-	userID, token := CreateTestUser(t, tc)
-	defer CleanupTestUser(userID)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Pagination User")
+	defer cleanup()
 
 	// Create multiple notifications for pagination testing
 	setupMultipleNotifications(t, tc, userID, token)
@@ -448,7 +448,7 @@ func testNotificationPagination(t *testing.T, tc *TestConfig) {
 // getNotifications retrieves notifications via unified API
 func getNotifications(t *testing.T, tc *TestConfig, token string, filters map[string]string) *models.NotificationResponse {
 	url := "/api/v1/notifications"
-	if filters != nil && len(filters) > 0 {
+	if len(filters) > 0 {
 		url += "?"
 		first := true
 		for key, value := range filters {
@@ -562,8 +562,8 @@ func getFirstAvailableQuizID(t *testing.T, tc *TestConfig, token string) uuid.UU
 // setupMultipleNotifications creates multiple notifications of different types for testing
 func setupMultipleNotifications(t *testing.T, tc *TestConfig, userID uuid.UUID, token string) {
 	// Create another user for friend interactions
-	otherUserID, otherToken := CreateTestUser(t, tc)
-	defer CleanupTestUser(otherUserID)
+	_, otherToken, _, cleanup := CreateTestUserWithCleanup(t, tc, "Setup Helper User")
+	defer cleanup()
 
 	// Create friend request notification
 	createFriendRequest(t, tc, otherToken, userID, "Test notification")

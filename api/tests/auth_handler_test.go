@@ -14,7 +14,7 @@ import (
 
 func TestAuthHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	t.Run("Register", func(t *testing.T) {
 		registerReq := models.RegisterRequest{
@@ -59,7 +59,8 @@ func TestAuthHandler(t *testing.T) {
 	})
 
 	// Create a test user for subsequent tests
-	userID, token := CreateTestUser(t, tc)
+	_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Auth Handler Main User")
+	defer cleanup()
 
 	t.Run("Login", func(t *testing.T) {
 		uniqueEmail := fmt.Sprintf("testlogin_%s@example.com", uuid.New().String()[:8])
@@ -177,8 +178,8 @@ func TestAuthHandler(t *testing.T) {
 
 	t.Run("Logout", func(t *testing.T) {
 		// Create a test user for logout
-		userID, token := CreateTestUser(t, tc)
-		defer CleanupTestUser(userID)
+		_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Auth Handler Logout User")
+		defer cleanup()
 
 		// Logout only requires authentication header, no body needed
 		w := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/logout", token, nil)
@@ -205,7 +206,6 @@ func TestAuthHandler(t *testing.T) {
 		assert.Contains(t, errorMsg, "Authorization header required", "Should indicate missing authorization")
 	})
 
-	_ = userID // Use userID to avoid unused variable warning
 }
 
 // Helper functions for creating pointers to primitive types

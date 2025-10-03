@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"strings"
@@ -32,11 +33,22 @@ func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) erro
 	query := `
 		INSERT INTO challenges (
 			challenger_id, challenged_id, quiz_id, message, expires_at,
-			is_group_challenge, participant_ids, participant_scores
+			is_group_challenge, participant_ids, participant_scores, is_test_data
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, status, created_at, updated_at
 	`
+
+	var participantScores interface{}
+	if challenge.ParticipantScores != nil {
+		participantScoresJSON, err := json.Marshal(challenge.ParticipantScores)
+		if err != nil {
+			return fmt.Errorf("failed to marshal participant scores: %w", err)
+		}
+		participantScores = string(participantScoresJSON)
+	} else {
+		participantScores = nil
+	}
 
 	err := r.db.QueryRow(
 		query,
@@ -47,7 +59,8 @@ func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) erro
 		challenge.ExpiresAt,
 		challenge.IsGroupChallenge,
 		pq.Array(challenge.ParticipantIDs),
-		challenge.ParticipantScores,
+		participantScores,
+		challenge.IsTestData,
 	).Scan(
 		&challenge.ID,
 		&challenge.Status,
@@ -70,13 +83,14 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 		SELECT id, challenger_id, challenged_id, quiz_id, status,
 			   challenger_score, challenged_score, message, expires_at,
 			   is_group_challenge, participant_ids, participant_scores,
-			   created_at, updated_at
+			   created_at, updated_at, is_test_data
 		FROM challenges
 		WHERE id = $1
 	`
 
 	var challenge models.Challenge
 	var participantIDs pq.StringArray
+	var participantScoresJSON sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&challenge.ID,
@@ -90,9 +104,10 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 		&challenge.ExpiresAt,
 		&challenge.IsGroupChallenge,
 		&participantIDs,
-		&challenge.ParticipantScores,
+		&participantScoresJSON,
 		&challenge.CreatedAt,
 		&challenge.UpdatedAt,
+		&challenge.IsTestData,
 	)
 
 	if err != nil {
@@ -109,6 +124,14 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 		}
 	}
 
+	// Parse participant scores JSON
+	if participantScoresJSON.Valid {
+		err := json.Unmarshal([]byte(participantScoresJSON.String), &challenge.ParticipantScores)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal participant scores: %w", err)
+		}
+	}
+
 	return &challenge, nil
 }
 
@@ -120,7 +143,7 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 		SELECT c.id, c.challenger_id, c.challenged_id, c.quiz_id, c.status,
 			   c.challenger_score, c.challenged_score, c.message, c.expires_at,
 			   c.is_group_challenge, c.participant_ids, c.participant_scores,
-			   c.created_at, c.updated_at,
+			   c.created_at, c.updated_at, c.is_test_data,
 			   u1.name, COALESCE(u1.avatar_url, ''),
 			   u2.name, COALESCE(u2.avatar_url, ''),
 			   q.title, q.category_id
@@ -133,6 +156,7 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 
 	var challenge models.ChallengeWithDetails
 	var participantIDs pq.StringArray
+	var participantScoresJSON sql.NullString
 
 	err := r.db.QueryRow(query, id).Scan(
 		&challenge.ID,
@@ -146,9 +170,10 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 		&challenge.ExpiresAt,
 		&challenge.IsGroupChallenge,
 		&participantIDs,
-		&challenge.ParticipantScores,
+		&participantScoresJSON,
 		&challenge.CreatedAt,
 		&challenge.UpdatedAt,
+		&challenge.IsTestData,
 		&challenge.ChallengerName,
 		&challenge.ChallengerAvatar,
 		&challenge.ChallengedName,
@@ -168,6 +193,14 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 	for _, idStr := range participantIDs {
 		if id, err := uuid.Parse(idStr); err == nil {
 			challenge.ParticipantIDs = append(challenge.ParticipantIDs, id)
+		}
+	}
+
+	// Parse participant scores JSON
+	if participantScoresJSON.Valid {
+		err := json.Unmarshal([]byte(participantScoresJSON.String), &challenge.ParticipantScores)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal participant scores: %w", err)
 		}
 	}
 
@@ -390,7 +423,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 		SELECT c.id, c.challenger_id, c.challenged_id, c.quiz_id, c.status,
 			   c.challenger_score, c.challenged_score, c.message, c.expires_at,
 			   c.is_group_challenge, c.participant_ids, c.participant_scores,
-			   c.created_at, c.updated_at,
+			   c.created_at, c.updated_at, c.is_test_data,
 			   u1.name, COALESCE(u1.avatar_url, ''),
 			   u2.name, COALESCE(u2.avatar_url, ''),
 			   q.title, q.category_id
@@ -416,6 +449,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 	for rows.Next() {
 		var challenge models.ChallengeWithDetails
 		var participantIDs pq.StringArray
+		var participantScoresJSON sql.NullString
 
 		err := rows.Scan(
 			&challenge.ID,
@@ -429,9 +463,10 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 			&challenge.ExpiresAt,
 			&challenge.IsGroupChallenge,
 			&participantIDs,
-			&challenge.ParticipantScores,
+			&participantScoresJSON,
 			&challenge.CreatedAt,
 			&challenge.UpdatedAt,
+			&challenge.IsTestData,
 			&challenge.ChallengerName,
 			&challenge.ChallengerAvatar,
 			&challenge.ChallengedName,
@@ -448,6 +483,14 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 		for _, idStr := range participantIDs {
 			if id, err := uuid.Parse(idStr); err == nil {
 				challenge.ParticipantIDs = append(challenge.ParticipantIDs, id)
+			}
+		}
+
+		// Parse participant scores JSON
+		if participantScoresJSON.Valid {
+			err := json.Unmarshal([]byte(participantScoresJSON.String), &challenge.ParticipantScores)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal participant scores: %w", err)
 			}
 		}
 

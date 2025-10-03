@@ -15,28 +15,48 @@ import (
 
 func TestChallengesHandlerComprehensive(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	// Create test users
-	challengerID, challengerToken := CreateTestUser(t, tc)
-	challengedID, challengedToken := CreateTestUser(t, tc)
-	thirdUserID, thirdUserToken := CreateTestUser(t, tc)
+	challengerID, challengerToken, _, cleanupChallenger := CreateTestUserWithCleanup(t, tc, "Challenges Challenger")
+	defer cleanupChallenger()
+	challengedID, challengedToken, _, cleanupChallenged := CreateTestUserWithCleanup(t, tc, "Challenges Challenged")
+	defer cleanupChallenged()
+	thirdUserID, thirdUserToken, _, cleanupThird := CreateTestUserWithCleanup(t, tc, "Challenges Third User")
+	defer cleanupThird()
 
 	// Create a friendship between challenger and challenged user
 	setupFriendship(t, tc, challengerID, challengedID, challengerToken, challengedToken)
 
-	// Get a quiz for testing
-	quizID := getFirstAvailableQuiz(t, tc, challengerToken)
-	if quizID == uuid.Nil {
-		t.Skip("No quizzes available for testing")
+	// Get multiple quizzes for test isolation
+	quizIDs := getMultipleAvailableQuizzes(t, tc, challengerToken, 10)
+	if len(quizIDs) < 10 {
+		t.Skip("Not enough quizzes available for testing")
 		return
 	}
+
+	// Assign different quiz IDs to different test groups
+	createValidQuizID := quizIDs[0]
+	duplicateTestQuizID := quizIDs[1]
+	stateManagementQuizID := quizIDs[2]          // Main challenge for state management
+	// retrievalTestQuizID := quizIDs[3] // No longer used - replaced with specific IDs
+
+	// Additional quiz IDs for state management subtests
+	preventAcceptQuizID := quizIDs[4]           // For "Prevent Non-Challenged User Accept"
+	declineChallengeQuizID := quizIDs[5]        // For "Decline Challenge"
+	updateScoresQuizID := quizIDs[6]            // For "Update Challenge Scores"
+	preventScoreUpdateQuizID := quizIDs[7]      // For "Prevent Non-Participant Score Update"
+
+	// Additional quiz IDs for retrieval section
+	retrievalPendingQuizID := quizIDs[3]        // For pending challenge in retrieval
+	retrievalActiveQuizID := quizIDs[8]         // For active challenge in retrieval
+	retrievalCompletedQuizID := quizIDs[9]      // For completed challenge in retrieval
 
 	t.Run("Challenge Creation Flow", func(t *testing.T) {
 		t.Run("Create Valid Challenge", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
 				ChallengedUserID: challengedID,
-				QuizID:           quizID,
+				QuizID:           createValidQuizID,
 				Message:          stringPtr("Let's see who's smarter! 😄"),
 				IsGroupChallenge: false,
 			}
@@ -56,12 +76,15 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 			challengeMap := challenge.(map[string]interface{})
 			assert.Equal(t, "pending", challengeMap["status"])
 			assert.Equal(t, "Let's see who's smarter! 😄", challengeMap["message"])
+
+			// Cleanup after test
+			defer cleanupChallengesForUsers(challengerID, challengedID)
 		})
 
 		t.Run("Prevent Self Challenge", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
 				ChallengedUserID: challengerID, // Same as challenger
-				QuizID:           quizID,
+				QuizID:           createValidQuizID, // Can reuse since this test will fail validation
 				Message:          stringPtr("Challenge myself"),
 				IsGroupChallenge: false,
 			}
@@ -75,7 +98,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		t.Run("Prevent Challenge Non-Friend", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
 				ChallengedUserID: thirdUserID, // Not a friend
-				QuizID:           quizID,
+				QuizID:           createValidQuizID, // Can reuse since this test will fail validation
 				Message:          stringPtr("Challenge stranger"),
 				IsGroupChallenge: false,
 			}
@@ -87,21 +110,24 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		})
 
 		t.Run("Prevent Duplicate Pending Challenge", func(t *testing.T) {
-			// Create first challenge
+			// Create first challenge with unique quiz ID
 			createReq := models.CreateChallengeRequest{
 				ChallengedUserID: challengedID,
-				QuizID:           quizID,
+				QuizID:           duplicateTestQuizID,
 				Message:          stringPtr("First challenge"),
 				IsGroupChallenge: false,
 			}
 
 			reqBody, _ := json.Marshal(createReq)
 			w1 := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/challenges", challengerToken, reqBody)
-			assert.Equal(t, http.StatusCreated, w1.Code)
+			assert.Equal(t, http.StatusCreated, w1.Code, "Should create first challenge")
 
-			// Try to create duplicate
+			// Try to create duplicate with same parameters
 			w2 := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/challenges", challengerToken, reqBody)
 			assert.Equal(t, http.StatusBadRequest, w2.Code, "Should prevent duplicate pending challenges")
+
+			// Cleanup after test
+			defer cleanupChallengesForUsers(challengerID, challengedID)
 		})
 
 		t.Run("Invalid Quiz ID", func(t *testing.T) {
@@ -120,8 +146,11 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 	})
 
 	t.Run("Challenge State Management", func(t *testing.T) {
-		// Create a fresh challenge for state testing
-		challengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
+		// Create a fresh challenge for state testing with unique quiz ID
+		challengeID := createTestChallenge(t, tc, challengerToken, challengedID, stateManagementQuizID)
+
+		// Cleanup after all state management tests
+		defer cleanupChallengesForUsers(challengerID, challengedID)
 
 		t.Run("Accept Challenge", func(t *testing.T) {
 			url := fmt.Sprintf("/api/v1/challenges/%s/accept", challengeID)
@@ -138,7 +167,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		})
 
 		t.Run("Prevent Non-Challenged User Accept", func(t *testing.T) {
-			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
+			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, preventAcceptQuizID)
 			url := fmt.Sprintf("/api/v1/challenges/%s/accept", newChallengeID)
 			w := MakeAuthenticatedRequest(t, tc, "PUT", url, thirdUserToken, nil)
 
@@ -146,7 +175,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		})
 
 		t.Run("Decline Challenge", func(t *testing.T) {
-			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
+			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, declineChallengeQuizID)
 			url := fmt.Sprintf("/api/v1/challenges/%s/decline", newChallengeID)
 			w := MakeAuthenticatedRequest(t, tc, "PUT", url, challengedToken, nil)
 
@@ -155,7 +184,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 
 		t.Run("Update Challenge Scores", func(t *testing.T) {
 			// Create and accept a challenge
-			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
+			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, updateScoresQuizID)
 			acceptUrl := fmt.Sprintf("/api/v1/challenges/%s/accept", newChallengeID)
 			MakeAuthenticatedRequest(t, tc, "PUT", acceptUrl, challengedToken, nil)
 
@@ -184,7 +213,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		})
 
 		t.Run("Prevent Non-Participant Score Update", func(t *testing.T) {
-			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
+			newChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, preventScoreUpdateQuizID)
 			scoreReq := models.UpdateChallengeScoreRequest{UserScore: 75.0}
 			reqBody, _ := json.Marshal(scoreReq)
 			scoreUrl := fmt.Sprintf("/api/v1/challenges/%s/score", newChallengeID)
@@ -195,10 +224,13 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 	})
 
 	t.Run("Challenge Retrieval and Filtering", func(t *testing.T) {
-		// Create challenges in different states for testing
-		pendingChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
-		activeChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
-		completedChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, quizID)
+		// Create challenges in different states for testing with unique quiz IDs
+		pendingChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, retrievalPendingQuizID)
+		activeChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, retrievalActiveQuizID)
+		completedChallengeID := createTestChallenge(t, tc, challengerToken, challengedID, retrievalCompletedQuizID)
+
+		// Cleanup after all retrieval tests
+		defer cleanupChallengesForUsers(challengerID, challengedID)
 
 		// Accept the active challenge
 		acceptUrl := fmt.Sprintf("/api/v1/challenges/%s/accept", activeChallengeID)
@@ -370,12 +402,6 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		})
 	})
 
-	// Cleanup test users
-	defer func() {
-		CleanupTestUser(challengerID)
-		CleanupTestUser(challengedID)
-		CleanupTestUser(thirdUserID)
-	}()
 }
 
 // Helper function to create a friendship between two users

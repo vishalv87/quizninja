@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -468,6 +469,83 @@ func getFirstAvailableQuiz(t *testing.T, tc *TestConfig, token string) uuid.UUID
 	return quizID
 }
 
+// getMultipleAvailableQuizzes gets multiple quiz IDs for test isolation
+func getMultipleAvailableQuizzes(t *testing.T, tc *TestConfig, token string, count int) []uuid.UUID {
+	if count <= 0 {
+		return []uuid.UUID{}
+	}
+
+	var quizIDs []uuid.UUID
+
+	// Try to get existing test quizzes first
+	rows, err := database.DB.Query(`
+		SELECT id FROM quizzes WHERE is_test_data = true LIMIT $1
+	`, count)
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var quizID uuid.UUID
+			if err := rows.Scan(&quizID); err == nil {
+				quizIDs = append(quizIDs, quizID)
+			}
+		}
+	}
+
+	// If we got enough, return them
+	if len(quizIDs) >= count {
+		return quizIDs[:count]
+	}
+
+	// Try to get any existing active quizzes to fill the gap
+	remaining := count - len(quizIDs)
+	rows, err = database.DB.Query(`
+		SELECT id FROM quizzes WHERE is_active = true LIMIT $1
+	`, remaining)
+
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var quizID uuid.UUID
+			if err := rows.Scan(&quizID); err == nil {
+				quizIDs = append(quizIDs, quizID)
+			}
+		}
+	}
+
+	// If we still don't have enough, create additional test quizzes
+	for len(quizIDs) < count {
+		// Create a test user to create the quiz
+		userID, _ := CreateTestUser(t, tc)
+
+		// Create a comprehensive test quiz
+		quizID := createTestQuizComprehensive(t, userID)
+		quizIDs = append(quizIDs, quizID)
+	}
+
+	return quizIDs
+}
+
+// cleanupChallengesForUsers removes all challenges between specific users
+func cleanupChallengesForUsers(challengerID, challengedID uuid.UUID) {
+	if database.DB == nil {
+		return
+	}
+
+	// Delete challenges where these users are involved (both directions)
+	_, err := database.DB.Exec(`
+		DELETE FROM challenges
+		WHERE (challenger_id = $1 AND challenged_id = $2)
+		   OR (challenger_id = $2 AND challenged_id = $1)
+	`, challengerID, challengedID)
+
+	if err != nil {
+		// Log error but don't fail the test
+		log.Printf("Warning: Failed to cleanup challenges between users %s and %s: %v",
+			challengerID, challengedID, err)
+	}
+}
+
 // setupFriendship creates a friendship between two users via API or direct database
 func setupFriendship(t *testing.T, tc *TestConfig, user1ID, user2ID uuid.UUID, user1Token, user2Token string) {
 	// Try API approach first
@@ -519,8 +597,12 @@ func tryAPIFriendshipSetup(t *testing.T, tc *TestConfig, user1ID, user2ID uuid.U
 	requestID := requestIDInterface.(string)
 
 	// Accept the friend request
-	acceptUrl := fmt.Sprintf("/api/v1/friends/requests/%s/accept", requestID)
-	w2 := MakeAuthenticatedRequest(t, tc, "PUT", acceptUrl, user2Token, nil)
+	acceptRequest := models.RespondToFriendRequestRequest{
+		Status: "accepted",
+	}
+	acceptReqBody, _ := json.Marshal(acceptRequest)
+	acceptUrl := fmt.Sprintf("/api/v1/friends/requests/%s", requestID)
+	w2 := MakeAuthenticatedRequest(t, tc, "PUT", acceptUrl, user2Token, acceptReqBody)
 	if w2.Code != http.StatusOK {
 		t.Logf("Friend request acceptance failed with status: %d, response: %s", w2.Code, w2.Body.String())
 		return false

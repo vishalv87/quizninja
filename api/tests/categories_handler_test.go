@@ -9,9 +9,10 @@ import (
 
 func TestCategoriesHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Test User")
+	defer cleanup()
 
 	t.Run("GetCategories", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
@@ -380,7 +381,6 @@ func TestCategoriesHandler(t *testing.T) {
 		}
 	})
 
-	_ = userID // Use userID to avoid unused variable warning
 }
 
 // Helper function to find a category by ID

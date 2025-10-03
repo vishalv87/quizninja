@@ -13,9 +13,10 @@ import (
 
 func TestAchievementHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Achievement Test User")
+	defer cleanup()
 
 	t.Run("GetAllAchievements", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/achievements", token, nil)
@@ -314,5 +315,4 @@ func TestAchievementHandler(t *testing.T) {
 		}
 	})
 
-	_ = userID // Use userID to avoid unused variable warning
 }

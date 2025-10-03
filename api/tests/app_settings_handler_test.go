@@ -9,8 +9,10 @@ import (
 
 func TestAppSettingsHandler(t *testing.T) {
 	tc := SetupTestServer(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "App Settings Test User")
+	defer cleanup()
 
 	t.Run("GetAppSettings", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/config/app-settings", token, nil)
@@ -318,5 +320,4 @@ func TestAppSettingsHandler(t *testing.T) {
 		}
 	})
 
-	_ = userID // Use userID to avoid unused variable warning
 }

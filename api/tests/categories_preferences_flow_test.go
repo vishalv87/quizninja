@@ -15,7 +15,7 @@ import (
 // This simulates the Settings → Preferences → Interest Categories workflow
 func TestCategoriesPreferencesIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	t.Run("NewUserFlow", func(t *testing.T) {
 		testCategoriesPreferencesFlowNewUser(t, tc)
@@ -120,7 +120,8 @@ func extractInterestIDs(categories []interface{}) []string {
 // testCategoriesPreferencesFlowNewUser tests the complete flow for a new user
 func testCategoriesPreferencesFlowNewUser(t *testing.T, tc *TestConfig) {
 	// Step 1: Create new user (no existing preferences)
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Prefs New User")
+	defer cleanup()
 
 	// Step 2: Fetch categories from database-driven endpoint
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
@@ -236,7 +237,8 @@ func min(a, b int) int {
 // testCategoriesPreferencesFlowExistingUser tests updating preferences for an existing user
 func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 	// Step 1: Create user with existing preferences
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Prefs Existing User")
+	defer cleanup()
 
 	// First create initial preferences
 	initialReq := models.UpdatePreferencesRequest{
@@ -347,7 +349,8 @@ func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 // testCategoriesCrossEndpointConsistency tests data consistency across different endpoints
 func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 	// Step 1: Create user and set initial preferences
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Prefs Consistency User")
+	defer cleanup()
 
 	// Step 2: Fetch categories and extract interests
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
@@ -439,7 +442,8 @@ func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 // testSettingsScreenWorkflow simulates the complete settings screen workflow
 func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 	// Step 1: Create user (simulating app startup)
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Prefs Settings User")
+	defer cleanup()
 
 	// Step 2: Simulate settings screen loading - fetch all required data
 	// This simulates what the Flutter app does when opening settings
@@ -548,7 +552,8 @@ func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 // testDatabaseDrivenCategoriesStructure validates the database-driven categories structure
 func testDatabaseDrivenCategoriesStructure(t *testing.T, tc *TestConfig) {
 	// Step 1: Create user for authenticated requests
-	_, token := CreateTestUser(t, tc)
+	_, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Prefs Structure User")
+	defer cleanup()
 
 	// Step 2: Fetch categories and validate structure
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
