@@ -47,10 +47,8 @@ func TestNewUserOnboardingIntegration(t *testing.T) {
 // testCompleteOnboardingFlow tests the complete happy path onboarding flow
 func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
 	// Step 1: Create test user using the enhanced helper
-	userID, accessToken := CreateTestUserWithName(t, tc, "Test Onboarding User")
-
-	// Cleanup this specific test user
-	defer CleanupTestUser(userID)
+	userID, accessToken, _, cleanup := CreateTestUserWithCleanup(t, tc, "Test Onboarding User")
+	defer cleanup()
 
 	// Verify user is created with basic info
 	assert.NotEmpty(t, accessToken, "Should receive access token")
@@ -557,7 +555,6 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 	// Since we now require real Supabase tokens, create a real test user first
 	testUser, err := tc.AuthManager.CreateUniqueTestUser("RegistrationPrefs")
 	assert.NoError(t, err, "Should create Supabase test user")
-	defer tc.AuthManager.CleanupTestUser(testUser.ID)
 
 	token := testUser.AccessToken
 
@@ -583,8 +580,8 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 	err = json.Unmarshal(w.Body.Bytes(), &registerResponse)
 	assert.NoError(t, err, "Should parse register response")
 
-	// Cleanup this specific test user
-	defer CleanupTestUser(registerResponse.User.ID)
+	// Cleanup both database and Supabase user
+	defer CleanupTestUserWithSupabase(registerResponse.User.ID, testUser.ID, tc.AuthManager)
 
 	// Verify preferences were set during registration
 	if registerResponse.User.Preferences != nil {

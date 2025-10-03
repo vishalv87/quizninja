@@ -122,6 +122,55 @@ func createSupabaseTestUser(t *testing.T, tc *TestConfig, name string) (uuid.UUI
 	return response.User.ID, supabaseUser.AccessToken
 }
 
+// CreateTestUserWithCleanup creates a test user and returns user info with cleanup function
+func CreateTestUserWithCleanup(t *testing.T, tc *TestConfig, name string) (uuid.UUID, string, string, func()) {
+	// Create user in Supabase
+	supabaseUser, err := tc.AuthManager.CreateUniqueTestUser(name)
+	if err != nil {
+		t.Fatalf("Failed to create Supabase test user: %v", err)
+	}
+
+	// Now register the user in our local database using the real Supabase ID
+	registerReq := models.RegisterRequest{
+		SupabaseUserID: supabaseUser.ID,
+		Email:          supabaseUser.Email,
+		Name:           name,
+		Age:            intPtr(25),
+	}
+
+	reqBody, _ := json.Marshal(registerReq)
+	req := httptest.NewRequest("POST", "/api/v1/auth/register", bytes.NewReader(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	tc.Server.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Failed to register Supabase user in local DB: %d %s", w.Code, w.Body.String())
+	}
+
+	var response models.AuthResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	if err != nil {
+		t.Fatalf("Failed to parse register response: %v", err)
+	}
+
+	// Mark the user as test data
+	_, err = database.DB.Exec("UPDATE users SET is_test_data = true WHERE id = $1", response.User.ID)
+	if err != nil {
+		t.Fatalf("Failed to mark user as test data: %v", err)
+	}
+
+	t.Logf("Created Supabase test user: %s with real access token", response.User.Email)
+
+	// Return cleanup function
+	cleanup := func() {
+		CleanupTestUserWithSupabase(response.User.ID, supabaseUser.ID, tc.AuthManager)
+	}
+
+	return response.User.ID, supabaseUser.AccessToken, supabaseUser.ID, cleanup
+}
+
 // MakeAuthenticatedRequest makes an HTTP request with authentication
 func MakeAuthenticatedRequest(t *testing.T, tc *TestConfig, method, path, token string, body []byte) *httptest.ResponseRecorder {
 	var req *http.Request
@@ -511,18 +560,33 @@ func CleanupTestUser(userID uuid.UUID) {
 		query string
 		desc  string
 	}{
+		// User-specific content and interactions
 		{"DELETE FROM user_quiz_favorites WHERE user_id = $1", "favorites"},
 		{"DELETE FROM quiz_sessions WHERE user_id = $1", "quiz sessions"},
 		{"DELETE FROM quiz_attempts WHERE user_id = $1", "quiz attempts"},
 		{"DELETE FROM user_achievements WHERE user_id = $1", "user achievements"},
-		{"DELETE FROM friend_notifications WHERE user_id = $1 OR related_user_id = $1", "friend notifications"},
-		{"DELETE FROM challenges WHERE challenger_id = $1 OR challenged_id = $1", "challenges"},
+		{"DELETE FROM user_category_performance WHERE user_id = $1", "category performance"},
+		{"DELETE FROM user_rank_history WHERE user_id = $1", "rank history"},
+		{"DELETE FROM quiz_ratings WHERE user_id = $1", "quiz ratings"},
+
+		// Social features
 		{"DELETE FROM friendships WHERE user1_id = $1 OR user2_id = $1", "friendships"},
 		{"DELETE FROM friend_requests WHERE requester_id = $1 OR requested_id = $1", "friend requests"},
+		{"DELETE FROM challenges WHERE challenger_id = $1 OR challenged_id = $1", "challenges"},
+
+		// Discussions and content
+		{"DELETE FROM discussion_reply_likes WHERE user_id = $1", "discussion reply likes"},
+		{"DELETE FROM discussion_likes WHERE user_id = $1", "discussion likes"},
 		{"DELETE FROM discussion_replies WHERE user_id = $1", "discussion replies"},
 		{"DELETE FROM discussions WHERE user_id = $1", "discussions"},
+
+		// Notifications
+		{"DELETE FROM notifications WHERE user_id = $1", "notifications"},
+
+		// User data and preferences
 		{"DELETE FROM user_preferences WHERE user_id = $1", "user preferences"},
-		{"DELETE FROM refresh_tokens WHERE user_id = $1", "refresh tokens"},
+
+		// Finally, the user record itself
 		{"DELETE FROM users WHERE id = $1", "user"},
 	}
 
@@ -531,6 +595,19 @@ func CleanupTestUser(userID uuid.UUID) {
 		if err != nil {
 			// Log error but continue cleanup
 			fmt.Printf("Warning: Failed to cleanup %s for user %s: %v\n", cleanup.desc, userID, err)
+		}
+	}
+}
+
+// CleanupTestUserWithSupabase deletes both Supabase auth user and database records
+func CleanupTestUserWithSupabase(userID uuid.UUID, supabaseUserID string, authManager *utils.SupabaseTestAuthManager) {
+	// First cleanup database records
+	CleanupTestUser(userID)
+
+	// Then cleanup Supabase auth user
+	if authManager != nil && supabaseUserID != "" {
+		if err := authManager.CleanupTestUser(supabaseUserID); err != nil {
+			fmt.Printf("Warning: Failed to cleanup Supabase user %s: %v\n", supabaseUserID, err)
 		}
 	}
 }

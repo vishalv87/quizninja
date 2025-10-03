@@ -177,11 +177,13 @@ func (m *SupabaseTestAuthManager) CleanupTestUser(userID string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
 		var responseBody bytes.Buffer
 		responseBody.ReadFrom(resp.Body)
 		return fmt.Errorf("failed to delete test user: HTTP %d: %s", resp.StatusCode, responseBody.String())
 	}
+
+	// HTTP 404 means user already deleted - this is fine for cleanup purposes
 
 	return nil
 }
