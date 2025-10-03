@@ -26,15 +26,27 @@ func NewUserRepository() *UserRepository {
 
 func (ur *UserRepository) CreateUser(user *models.User) error {
 	query := `
-		INSERT INTO users (email, password_hash, name, age, is_test_data)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO users (email, password_hash, name, age, is_test_data, auth_method, supabase_id, last_auth_method)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, created_at, updated_at, level, total_points, current_streak,
-		          best_streak, total_quizzes_completed, average_score, is_online, last_active, is_test_data
+		          best_streak, total_quizzes_completed, average_score, is_online, last_active, is_test_data,
+		          auth_method, supabase_id, last_auth_method, migrated_at
 	`
-	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.Age, user.IsTestData).Scan(
+
+	// Set default values if not provided
+	if user.AuthMethod == "" {
+		user.AuthMethod = "jwt"
+	}
+	if user.LastAuthMethod == "" {
+		user.LastAuthMethod = user.AuthMethod
+	}
+
+	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.Age, user.IsTestData,
+		user.AuthMethod, user.SupabaseID, user.LastAuthMethod).Scan(
 		&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Level, &user.TotalPoints,
 		&user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.IsTestData,
+		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	return err
 }
@@ -44,7 +56,8 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data
+		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -53,6 +66,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -65,7 +79,8 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data
+		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -74,6 +89,7 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -657,4 +673,185 @@ func (ur *UserRepository) getMonthlyProgress(userID uuid.UUID) ([]models.Monthly
 	}
 
 	return monthlyProgress, nil
+}
+
+// Supabase-related user management methods
+
+// GetUserBySupabaseID retrieves a user by their Supabase ID
+func (ur *UserRepository) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
+	user := &models.User{}
+	query := `
+		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		       best_streak, total_quizzes_completed, average_score, is_online,
+		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       auth_method, supabase_id, last_auth_method, migrated_at
+		FROM users
+		WHERE supabase_id = $1
+	`
+	err := ur.db.QueryRow(query, supabaseID).Scan(
+		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
+		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
+		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+// CreateUserWithSupabaseID creates a user with Supabase authentication
+func (ur *UserRepository) CreateUserWithSupabaseID(user *models.User, supabaseID string) error {
+	user.AuthMethod = "supabase"
+	user.LastAuthMethod = "supabase"
+	user.SupabaseID = &supabaseID
+
+	return ur.CreateUser(user)
+}
+
+// LinkUserToSupabase links an existing JWT user to Supabase
+func (ur *UserRepository) LinkUserToSupabase(userID uuid.UUID, supabaseID string) error {
+	query := `
+		UPDATE users
+		SET auth_method = 'supabase',
+		    supabase_id = $2,
+		    last_auth_method = 'supabase',
+		    migrated_at = CURRENT_TIMESTAMP,
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err := ur.db.Exec(query, userID, supabaseID)
+	return err
+}
+
+// UnlinkUserFromSupabase removes Supabase link and reverts to JWT
+func (ur *UserRepository) UnlinkUserFromSupabase(userID uuid.UUID) error {
+	query := `
+		UPDATE users
+		SET auth_method = 'jwt',
+		    supabase_id = NULL,
+		    last_auth_method = 'jwt',
+		    migrated_at = CURRENT_TIMESTAMP,
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err := ur.db.Exec(query, userID)
+	return err
+}
+
+// UpdateUserAuthMethod updates the last authentication method used
+func (ur *UserRepository) UpdateUserAuthMethod(userID uuid.UUID, authMethod string) error {
+	query := `
+		UPDATE users
+		SET last_auth_method = $2,
+		    updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err := ur.db.Exec(query, userID, authMethod)
+	return err
+}
+
+// GetUsersByAuthMethod retrieves users by their authentication method
+func (ur *UserRepository) GetUsersByAuthMethod(authMethod string, limit int) ([]*models.User, error) {
+	query := `
+		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		       best_streak, total_quizzes_completed, average_score, is_online,
+		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       auth_method, supabase_id, last_auth_method, migrated_at
+		FROM users
+		WHERE auth_method = $1
+		ORDER BY created_at DESC
+		LIMIT $2
+	`
+
+	rows, err := ur.db.Query(query, authMethod, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(
+			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+			&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
+			&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
+			&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+			&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+// GetAuthMethodStats returns statistics about authentication methods
+func (ur *UserRepository) GetAuthMethodStats() (map[string]int, error) {
+	query := `
+		SELECT auth_method, COUNT(*) as count
+		FROM users
+		GROUP BY auth_method
+	`
+
+	rows, err := ur.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	stats := make(map[string]int)
+	for rows.Next() {
+		var authMethod string
+		var count int
+		err := rows.Scan(&authMethod, &count)
+		if err != nil {
+			return nil, err
+		}
+		stats[authMethod] = count
+	}
+
+	return stats, nil
+}
+
+// GetMigrationCandidates returns users who could be migrated to Supabase
+func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, error) {
+	query := `
+		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		       best_streak, total_quizzes_completed, average_score, is_online,
+		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       auth_method, supabase_id, last_auth_method, migrated_at
+		FROM users
+		WHERE auth_method = 'jwt' AND supabase_id IS NULL
+		ORDER BY last_active DESC
+		LIMIT $1
+	`
+
+	rows, err := ur.db.Query(query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []*models.User
+	for rows.Next() {
+		user := &models.User{}
+		err := rows.Scan(
+			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+			&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
+			&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
+			&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+			&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }

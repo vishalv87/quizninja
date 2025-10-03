@@ -14,6 +14,19 @@ import (
 func main() {
 	cfg := config.Load()
 
+	// Validate configuration
+	if err := cfg.ValidateConfig(); err != nil {
+		log.Fatal("Configuration validation failed:", err)
+	}
+
+	// Log authentication strategy
+	log.Printf("Authentication strategy: %s", cfg.GetAuthStrategy())
+	if cfg.IsSupabaseAuthEnabled() {
+		log.Printf("Supabase Auth enabled - no JWT fallback (strict mode)")
+	} else {
+		log.Printf("JWT-only authentication enabled")
+	}
+
 	gin.SetMode(cfg.GinMode)
 
 	database.Connect(cfg)

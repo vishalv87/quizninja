@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"time"
 
@@ -35,7 +36,18 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	existingUser, err := ah.userRepo.GetUserByEmail(req.Email)
+	// Check if user already exists by Supabase ID
+	_, err := ah.userRepo.GetUserBySupabaseID(req.SupabaseUserID)
+	if err == nil {
+		// User already exists with this Supabase ID
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "User with this Supabase ID already exists",
+		})
+		return
+	}
+
+	// Check by email as secondary check
+	existingUserByEmail, err := ah.userRepo.GetUserByEmail(req.Email)
 	if err != sql.ErrNoRows {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -43,7 +55,7 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 			})
 			return
 		}
-		if existingUser != nil {
+		if existingUserByEmail != nil {
 			c.JSON(http.StatusConflict, gin.H{
 				"error": "User with this email already exists",
 			})
@@ -51,85 +63,48 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 		}
 	}
 
-	hashedPassword, err := utils.HashPassword(req.Password)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to hash password",
+	// Convert Supabase ID to UUID
+	supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(req.SupabaseUserID)
+	if parseErr != nil {
+		log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid Supabase user ID format",
 		})
 		return
 	}
 
+	// Create local user profile with Supabase data
 	user := &models.User{
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
-		Name:         req.Name,
-		Age:          req.Age,
-		IsTestData:   true,
+		ID:             supabaseUserID,
+		Email:          req.Email,
+		Name:           req.Name,
+		Age:            req.Age,
+		AvatarURL:      req.AvatarURL,
+		IsTestData:     true,
+		AuthMethod:     "supabase",
+		SupabaseID:     &req.SupabaseUserID,
+		LastAuthMethod: "supabase",
 	}
 
 	if err := ah.userRepo.CreateUser(user); err != nil {
+		log.Printf("Failed to create local user profile: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create user",
+			"error": "Failed to create user profile",
 		})
 		return
 	}
 
 	// Create user preferences if provided
 	if req.Preferences != nil {
-		now := time.Now()
-		preferences := &models.UserPreferences{
-			UserID:                  user.ID,
-			SelectedInterests:       models.StringArray(req.Preferences.SelectedInterests),
-			DifficultyPreference:    req.Preferences.DifficultyPreference,
-			NotificationsEnabled:    req.Preferences.NotificationsEnabled,
-			NotificationFrequency:   req.Preferences.NotificationFrequency,
-			OnboardingCompletedAt:   &now, // Mark onboarding as completed
-			IsTestData:              true,
-		}
-
-		if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Failed to create user preferences",
-			})
-			return
-		}
-
-		user.Preferences = preferences
+		ah.createUserPreferences(user, req.Preferences)
 	}
 
-	accessToken, err := utils.GenerateAccessToken(user.ID, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate access token",
-		})
-		return
-	}
-
-	refreshToken, err := utils.GenerateRefreshToken(user.ID, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate refresh token",
-		})
-		return
-	}
-
-	refreshTokenModel := &models.RefreshToken{
-		UserID:    user.ID,
-		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 7),
-	}
-
-	if err := ah.userRepo.SaveRefreshToken(refreshTokenModel); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save refresh token",
-		})
-		return
-	}
+	// Update auth method tracking
+	ah.userRepo.UpdateUserAuthMethod(user.ID, "supabase")
 
 	response := models.AuthResponse{
-		User:         *user,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		User:    *user,
+		Message: "User profile created successfully",
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -144,68 +119,64 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := ah.userRepo.GetUserByEmail(req.Email)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid credentials",
+	// Try to find or create user based on Supabase ID
+	user, err := ah.userRepo.GetUserBySupabaseID(req.SupabaseUserID)
+	if err == sql.ErrNoRows {
+		// User doesn't exist locally - create from Supabase data
+		supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(req.SupabaseUserID)
+		if parseErr != nil {
+			log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid Supabase user ID format",
 			})
 			return
 		}
+
+		user = &models.User{
+			ID:             supabaseUserID,
+			Email:          req.Email,
+			Name:           req.Name,
+			AvatarURL:      req.AvatarURL,
+			IsTestData:     true,
+			AuthMethod:     "supabase",
+			SupabaseID:     &req.SupabaseUserID,
+			LastAuthMethod: "supabase",
+		}
+
+		if createErr := ah.userRepo.CreateUser(user); createErr != nil {
+			log.Printf("Failed to create local user profile for Supabase user: %v", createErr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to create user profile",
+			})
+			return
+		}
+	} else if err != nil {
+		log.Printf("Failed to get user by Supabase ID: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to get user",
+			"error": "Failed to retrieve user",
 		})
 		return
+	} else {
+		// User exists - update profile with latest Supabase data
+		user.Email = req.Email
+		user.Name = req.Name
+		user.AvatarURL = req.AvatarURL
+		user.LastAuthMethod = "supabase"
+
+		if updateErr := ah.userRepo.UpdateUser(user); updateErr != nil {
+			log.Printf("Failed to update user profile: %v", updateErr)
+			// Don't fail the login for update errors, just log
+		}
 	}
 
-	if err := utils.CheckPassword(req.Password, user.PasswordHash); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Invalid credentials",
-		})
-		return
-	}
-
-	// Update user's online status and last active timestamp
-	if err := ah.userRepo.UpdateUserOnlineStatus(user.ID, true); err != nil {
-		// Log but don't fail the login
-	}
-	if err := ah.userRepo.UpdateUserLastActive(user.ID); err != nil {
-		// Log but don't fail the login
-	}
-
-	accessToken, err := utils.GenerateAccessToken(user.ID, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate access token",
-		})
-		return
-	}
-
-	refreshToken, err := utils.GenerateRefreshToken(user.ID, ah.config.JWTSecret)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to generate refresh token",
-		})
-		return
-	}
-
-	refreshTokenModel := &models.RefreshToken{
-		UserID:    user.ID,
-		Token:     refreshToken,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 7),
-	}
-
-	if err := ah.userRepo.SaveRefreshToken(refreshTokenModel); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to save refresh token",
-		})
-		return
-	}
+	// Update user activity and auth method
+	ah.userRepo.UpdateUserOnlineStatus(user.ID, true)
+	ah.userRepo.UpdateUserLastActive(user.ID)
+	ah.userRepo.UpdateUserAuthMethod(user.ID, "supabase")
 
 	response := models.AuthResponse{
-		User:         *user,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		User:    *user,
+		Message: "User login successful",
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -464,4 +435,25 @@ func (ah *AuthHandler) GetUserStats(c *gin.Context) {
 		"data":    *stats,
 		"message": "User statistics retrieved successfully",
 	})
+}
+
+// Helper method to create user preferences
+func (ah *AuthHandler) createUserPreferences(user *models.User, preferencesReq *models.UserPreferencesRequest) {
+	now := time.Now()
+	preferences := &models.UserPreferences{
+		UserID:                  user.ID,
+		SelectedInterests:       models.StringArray(preferencesReq.SelectedInterests),
+		DifficultyPreference:    preferencesReq.DifficultyPreference,
+		NotificationsEnabled:    preferencesReq.NotificationsEnabled,
+		NotificationFrequency:   preferencesReq.NotificationFrequency,
+		OnboardingCompletedAt:   &now, // Mark onboarding as completed
+		IsTestData:              true,
+	}
+
+	if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {
+		log.Printf("Failed to create user preferences: %v", err)
+		return
+	}
+
+	user.Preferences = preferences
 }

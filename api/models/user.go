@@ -28,7 +28,14 @@ type User struct {
 	CreatedAt             time.Time        `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time        `json:"updated_at" db:"updated_at"`
 	IsTestData            bool             `json:"is_test_data" db:"is_test_data"`
-	Preferences           *UserPreferences `json:"preferences,omitempty"`
+
+	// Supabase auth integration fields
+	AuthMethod      string     `json:"auth_method" db:"auth_method"`           // "supabase" or "jwt"
+	SupabaseID      *string    `json:"supabase_id,omitempty" db:"supabase_id"` // Supabase user ID
+	LastAuthMethod  string     `json:"last_auth_method" db:"last_auth_method"` // Track last successful auth
+	MigratedAt      *time.Time `json:"migrated_at,omitempty" db:"migrated_at"` // When user was migrated between auth systems
+
+	Preferences     *UserPreferences `json:"preferences,omitempty"`
 }
 
 type UserPreferences struct {
@@ -75,12 +82,17 @@ type RefreshToken struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 }
 
+// RegisterRequest for frontend-initiated Supabase auth
 type RegisterRequest struct {
-	Email       string                  `json:"email" binding:"required,email"`
-	Password    string                  `json:"password" binding:"required,min=6"`
-	Name        string                  `json:"name" binding:"required"`
-	Age         *int                    `json:"age,omitempty"`
-	Preferences *UserPreferencesRequest `json:"preferences,omitempty"`
+	// Supabase user data (received after frontend auth)
+	SupabaseUserID    string                  `json:"supabase_user_id" binding:"required"`
+	Email             string                  `json:"email" binding:"required,email"`
+	Name              string                  `json:"name" binding:"required"`
+	Age               *int                    `json:"age,omitempty"`
+	Preferences       *UserPreferencesRequest `json:"preferences,omitempty"`
+
+	// Optional: additional user metadata
+	AvatarURL         *string                 `json:"avatar_url,omitempty"`
 }
 
 type UserPreferencesRequest struct {
@@ -90,15 +102,19 @@ type UserPreferencesRequest struct {
 	NotificationFrequency string   `json:"notification_frequency" binding:"omitempty,oneof=Daily Weekly Never"`
 }
 
+// LoginRequest for frontend-initiated Supabase auth (user sync)
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
+	// Supabase user data (received after frontend auth)
+	SupabaseUserID    string  `json:"supabase_user_id" binding:"required"`
+	Email             string  `json:"email" binding:"required,email"`
+	Name              string  `json:"name" binding:"required"`
+	AvatarURL         *string `json:"avatar_url,omitempty"`
 }
 
+// AuthResponse for frontend-initiated auth (returns user profile only)
 type AuthResponse struct {
-	User         User   `json:"user"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
+	User    User   `json:"user"`
+	Message string `json:"message,omitempty"`
 }
 
 type RefreshTokenRequest struct {

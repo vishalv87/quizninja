@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -22,6 +23,7 @@ type Config struct {
 
 	// Supabase configuration
 	UseSupabase        bool
+	UseSupabaseAuth    bool
 	SupabaseURL        string
 	SupabaseAnonKey    string
 	SupabaseDBHost     string
@@ -49,6 +51,7 @@ func Load() *Config {
 
 		// Supabase configuration
 		UseSupabase:        getBoolEnv("USE_SUPABASE", false),
+		UseSupabaseAuth:    getBoolEnv("USE_SUPABASE_AUTH", false),
 		SupabaseURL:        getEnv("SUPABASE_URL", ""),
 		SupabaseAnonKey:    getEnv("SUPABASE_ANON_KEY", ""),
 		SupabaseDBHost:     getEnv("SUPABASE_DB_HOST", ""),
@@ -82,4 +85,87 @@ func getBoolEnv(key string, defaultValue bool) bool {
 		}
 	}
 	return defaultValue
+}
+
+// ValidateSupabaseConfig validates Supabase configuration when enabled
+func (c *Config) ValidateSupabaseConfig() error {
+	if !c.UseSupabaseAuth {
+		return nil // No validation needed when disabled
+	}
+
+	var errors []string
+
+	if c.SupabaseURL == "" {
+		errors = append(errors, "SUPABASE_URL is required when USE_SUPABASE_AUTH=true")
+	}
+
+	if c.SupabaseAnonKey == "" {
+		errors = append(errors, "SUPABASE_ANON_KEY is required when USE_SUPABASE_AUTH=true")
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("supabase configuration errors: %v", errors)
+	}
+
+	return nil
+}
+
+// GetAuthStrategy returns the current authentication strategy
+func (c *Config) GetAuthStrategy() string {
+	if c.UseSupabaseAuth {
+		return "supabase-with-jwt-fallback"
+	}
+	return "jwt-only"
+}
+
+// IsSupabaseEnabled returns true if Supabase features are enabled
+func (c *Config) IsSupabaseEnabled() bool {
+	return c.UseSupabase
+}
+
+// IsSupabaseAuthEnabled returns true if Supabase authentication is enabled
+func (c *Config) IsSupabaseAuthEnabled() bool {
+	return c.UseSupabaseAuth
+}
+
+// ValidateConfig validates the entire configuration
+func (c *Config) ValidateConfig() error {
+	var errors []string
+
+	// Basic validation
+	if c.JWTSecret == "" || c.JWTSecret == "your_jwt_secret" {
+		errors = append(errors, "JWT_SECRET must be set to a secure value")
+	}
+
+	if c.DBHost == "" {
+		errors = append(errors, "DB_HOST is required")
+	}
+
+	if c.DBName == "" {
+		errors = append(errors, "DB_NAME is required")
+	}
+
+	// Supabase validation
+	if err := c.ValidateSupabaseConfig(); err != nil {
+		errors = append(errors, err.Error())
+	}
+
+	// Database configuration validation
+	if c.UseSupabase {
+		if c.SupabaseDBHost == "" {
+			errors = append(errors, "SUPABASE_DB_HOST is required when USE_SUPABASE=true")
+		}
+		if c.SupabaseDBUser == "" {
+			errors = append(errors, "SUPABASE_DB_USER is required when USE_SUPABASE=true")
+		}
+		if c.SupabaseDBPassword == "" {
+			errors = append(errors, "SUPABASE_DB_PASSWORD is required when USE_SUPABASE=true")
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("configuration validation failed: %v", errors)
+	}
+
+	return nil
 }
