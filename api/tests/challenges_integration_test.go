@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"quizninja-api/database"
 	"quizninja-api/models"
 
 	"github.com/google/uuid"
@@ -15,11 +16,14 @@ import (
 
 func TestChallengesIntegrationEndToEnd(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	// Create test users
-	challengerID, challengerToken := CreateTestUser(t, tc)
-	challengedID, challengedToken := CreateTestUser(t, tc)
+	// Create test users with comprehensive cleanup
+	challengerID, challengerToken, challengerSupabaseID, challengerCleanup := CreateTestUserWithCleanup(t, tc, "Integration Test Challenger")
+	defer challengerCleanup()
+
+	challengedID, challengedToken, challengedSupabaseID, challengedCleanup := CreateTestUserWithCleanup(t, tc, "Integration Test Challenged")
+	defer challengedCleanup()
 
 	// Create friendship
 	setupFriendship(t, tc, challengerID, challengedID, challengerToken, challengedToken)
@@ -31,10 +35,17 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 		return
 	}
 
+	// Additional cleanup for any test data created during this specific test
 	defer func() {
-		CleanupTestUser(challengerID)
-		CleanupTestUser(challengedID)
+		// Clean up any challenges created during this test
+		if database.DB != nil {
+			database.DB.Exec("DELETE FROM challenges WHERE (challenger_id = $1 OR challenged_id = $1 OR challenger_id = $2 OR challenged_id = $2) AND is_test_data = true", challengerID, challengedID)
+		}
 	}()
+
+	// Suppress unused variable warnings
+	_ = challengerSupabaseID
+	_ = challengedSupabaseID
 
 	var challengeID uuid.UUID
 

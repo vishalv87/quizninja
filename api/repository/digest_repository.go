@@ -247,10 +247,10 @@ func (dr *DigestRepository) CreateDigest(digest *models.DigestRequest) (*models.
 	query := `
 		INSERT INTO digests (id, date, title, summary, is_dummy, is_test_data)
 		VALUES ($1, $2, $3, $4, $5, true)
-		RETURNING created_at, updated_at
+		RETURNING created_at, updated_at, is_test_data
 	`
 	err := dr.db.QueryRow(query, newDigest.ID, newDigest.Date, newDigest.Title,
-		newDigest.Summary, newDigest.IsDummy).Scan(&newDigest.CreatedAt, &newDigest.UpdatedAt)
+		newDigest.Summary, newDigest.IsDummy).Scan(&newDigest.CreatedAt, &newDigest.UpdatedAt, &newDigest.IsTestData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create digest: %v", err)
 	}
@@ -287,14 +287,14 @@ func (dr *DigestRepository) CreateArticle(article *models.ArticleRequest) (*mode
 		                            read_time_minutes, is_breaking, is_hot, is_dummy,
 		                            is_trending, trending_score, trending_rank, is_test_data)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, true)
-		RETURNING created_at
+		RETURNING created_at, is_test_data
 	`
 	err := dr.db.QueryRow(query, newArticle.ID, newArticle.DigestID, newArticle.Title,
 		newArticle.Content, newArticle.Summary, newArticle.Source, newArticle.Author,
 		newArticle.PublishedAt, newArticle.Category, newArticle.ImageURL, newArticle.ExternalURL,
 		newArticle.ReadTimeMinutes, newArticle.IsBreaking, newArticle.IsHot,
 		newArticle.IsDummy, newArticle.IsTrending, newArticle.TrendingScore,
-		newArticle.TrendingRank).Scan(&newArticle.CreatedAt)
+		newArticle.TrendingRank).Scan(&newArticle.CreatedAt, &newArticle.IsTestData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create article: %v", err)
 	}

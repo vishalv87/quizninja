@@ -10,13 +10,22 @@ import (
 	"quizninja-api/models"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDigestHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	// Create test user with comprehensive cleanup
+	userID, token, supabaseUserID, cleanup := CreateTestUserWithCleanup(t, tc, "Digest Handler Test User")
+	defer cleanup()
+
+	// Clean up any digest data created during this test
+	defer CleanupTestDigests()
+
+	// Suppress unused variable warning
+	_ = supabaseUserID
 
 	t.Run("GetTodaysDigest", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/digest/today", token, nil)
@@ -213,41 +222,65 @@ func TestDigestHandler(t *testing.T) {
 	})
 
 	t.Run("GetArticleByID", func(t *testing.T) {
-		// First get a list of digests to find articles
-		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/digest", token, nil)
-		if w.Code != http.StatusOK {
-			t.Skip("No digests available to test article retrieval")
-			return
+		// Create a test digest first
+		testDate, _ := time.Parse("2006-01-02", "2024-12-02")
+		createDigestReq := models.DigestRequest{
+			Date:    testDate,
+			Title:   "Test Digest for Article",
+			Summary: stringPtr("Test digest for article retrieval"),
+			IsDummy: true,
 		}
 
-		var response models.DigestListResponse
-		err := json.Unmarshal(w.Body.Bytes(), &response)
-		if err != nil || len(response.Digests) == 0 {
-			t.Skip("No valid digests to test")
-			return
+		digestBody, _ := json.Marshal(createDigestReq)
+		digestResponse := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/digest", token, digestBody)
+		assert.Equal(t, http.StatusCreated, digestResponse.Code, "Should create test digest")
+
+		var digestResult models.DigestResponse
+		err := json.Unmarshal(digestResponse.Body.Bytes(), &digestResult)
+		require.NoError(t, err, "Should parse digest creation response")
+
+		// Create a test article in the digest
+		createArticleReq := models.ArticleRequest{
+			DigestID:         digestResult.Digest.ID,
+			Title:           "Test Article",
+			Content:         "This is test article content for testing article retrieval.",
+			Summary:         "Test article summary",
+			Source:          stringPtr("Test Source"),
+			Author:          stringPtr("Test Author"),
+			Category:        "technology",
+			ReadTimeMinutes: intPtr(5),
+			IsBreaking:      false,
+			IsHot:           false,
+			IsDummy:         true,
 		}
 
-		// Try to find a digest with articles
-		for _, digest := range response.Digests {
-			if len(digest.Articles) > 0 {
-				articleID := digest.Articles[0].ID
-				url := fmt.Sprintf("/api/v1/digest/articles/%s", articleID)
-				w := MakeAuthenticatedRequest(t, tc, "GET", url, token, nil)
+		articleBody, _ := json.Marshal(createArticleReq)
+		url := fmt.Sprintf("/api/v1/digest/%s/articles", digestResult.Digest.ID)
+		articleResponse := MakeAuthenticatedRequest(t, tc, "POST", url, token, articleBody)
+		assert.Equal(t, http.StatusCreated, articleResponse.Code, "Should create test article")
 
-				if w.Code == http.StatusOK {
-					var articleResponse models.ArticleResponse
-					err := json.Unmarshal(w.Body.Bytes(), &articleResponse)
-					assert.NoError(t, err, "Should parse article response")
+		var articleResult models.ArticleResponse
+		err = json.Unmarshal(articleResponse.Body.Bytes(), &articleResult)
+		require.NoError(t, err, "Should parse article creation response")
 
-					// Verify article has is_test_data field
-					articleMap := map[string]interface{}{
-						"is_test_data": articleResponse.Article.IsTestData,
-					}
-					VerifyIsTestDataField(t, articleMap, true, "individual article")
-					break // Found one article, that's enough for the test
-				}
-			}
+		// Now test getting the article by ID
+		getUrl := fmt.Sprintf("/api/v1/digest/articles/%s", articleResult.Article.ID)
+		getResponse := MakeAuthenticatedRequest(t, tc, "GET", getUrl, token, nil)
+		assert.Equal(t, http.StatusOK, getResponse.Code, "Should retrieve article by ID")
+
+		var getArticleResult models.ArticleResponse
+		err = json.Unmarshal(getResponse.Body.Bytes(), &getArticleResult)
+		assert.NoError(t, err, "Should parse article retrieval response")
+
+		// Verify article has is_test_data field
+		articleMap := map[string]interface{}{
+			"is_test_data": getArticleResult.Article.IsTestData,
 		}
+		VerifyIsTestDataField(t, articleMap, true, "individual article")
+
+		// Verify article content matches what we created
+		assert.Equal(t, createArticleReq.Title, getArticleResult.Article.Title, "Article title should match")
+		assert.Equal(t, createArticleReq.Content, getArticleResult.Article.Content, "Article content should match")
 	})
 
 	t.Run("GetOrCreateTodaysDigest", func(t *testing.T) {

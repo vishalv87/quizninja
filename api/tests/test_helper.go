@@ -642,34 +642,37 @@ func CleanupTestUser(userID uuid.UUID) {
 		query string
 		desc  string
 	}{
-		// User-specific content and interactions
-		{"DELETE FROM user_quiz_favorites WHERE user_id = $1", "favorites"},
-		{"DELETE FROM quiz_sessions WHERE user_id = $1", "quiz sessions"},
-		{"DELETE FROM quiz_attempts WHERE user_id = $1", "quiz attempts"},
-		{"DELETE FROM user_achievements WHERE user_id = $1", "user achievements"},
-		{"DELETE FROM user_category_performance WHERE user_id = $1", "category performance"},
-		{"DELETE FROM user_rank_history WHERE user_id = $1", "rank history"},
-		{"DELETE FROM quiz_ratings WHERE user_id = $1", "quiz ratings"},
+		// User-specific content and interactions (add is_test_data safety checks)
+		{"DELETE FROM user_quiz_favorites WHERE user_id = $1 AND is_test_data = true", "favorites"},
+		{"DELETE FROM quiz_sessions WHERE user_id = $1 AND is_test_data = true", "quiz sessions"},
+		{"DELETE FROM quiz_attempts WHERE user_id = $1 AND is_test_data = true", "quiz attempts"},
+		{"DELETE FROM user_achievements WHERE user_id = $1 AND is_test_data = true", "user achievements"},
+		{"DELETE FROM user_category_performance WHERE user_id = $1 AND is_test_data = true", "category performance"},
+		{"DELETE FROM user_rank_history WHERE user_id = $1 AND is_test_data = true", "rank history"},
+		{"DELETE FROM quiz_ratings WHERE user_id = $1 AND is_test_data = true", "quiz ratings"},
 
-		// Social features
-		{"DELETE FROM friendships WHERE user1_id = $1 OR user2_id = $1", "friendships"},
-		{"DELETE FROM friend_requests WHERE requester_id = $1 OR requested_id = $1", "friend requests"},
-		{"DELETE FROM challenges WHERE challenger_id = $1 OR challenged_id = $1", "challenges"},
+		// Social features (add is_test_data safety checks)
+		{"DELETE FROM friendships WHERE (user1_id = $1 OR user2_id = $1) AND is_test_data = true", "friendships"},
+		{"DELETE FROM friend_requests WHERE (requester_id = $1 OR requested_id = $1) AND is_test_data = true", "friend requests"},
+		{"DELETE FROM challenges WHERE (challenger_id = $1 OR challenged_id = $1) AND is_test_data = true", "challenges"},
 
-		// Discussions and content
-		{"DELETE FROM discussion_reply_likes WHERE user_id = $1", "discussion reply likes"},
-		{"DELETE FROM discussion_likes WHERE user_id = $1", "discussion likes"},
-		{"DELETE FROM discussion_replies WHERE user_id = $1", "discussion replies"},
-		{"DELETE FROM discussions WHERE user_id = $1", "discussions"},
+		// Discussions and content (add is_test_data safety checks)
+		{"DELETE FROM discussion_reply_likes WHERE user_id = $1 AND is_test_data = true", "discussion reply likes"},
+		{"DELETE FROM discussion_likes WHERE user_id = $1 AND is_test_data = true", "discussion likes"},
+		{"DELETE FROM discussion_replies WHERE user_id = $1 AND is_test_data = true", "discussion replies"},
+		{"DELETE FROM discussions WHERE user_id = $1 AND is_test_data = true", "discussions"},
 
-		// Notifications
-		{"DELETE FROM notifications WHERE user_id = $1", "notifications"},
+		// Notifications and system tables (add is_test_data safety checks)
+		{"DELETE FROM notifications WHERE user_id = $1 AND is_test_data = true", "notifications"},
 
-		// User data and preferences
-		{"DELETE FROM user_preferences WHERE user_id = $1", "user preferences"},
+		// Leaderboard and achievements (add missing tables)
+		{"DELETE FROM leaderboard_snapshots WHERE user_id = $1 AND is_test_data = true", "leaderboard snapshots"},
 
-		// Finally, the user record itself
-		{"DELETE FROM users WHERE id = $1", "user"},
+		// User data and preferences (add is_test_data safety checks)
+		{"DELETE FROM user_preferences WHERE user_id = $1 AND is_test_data = true", "user preferences"},
+
+		// Finally, the user record itself (add is_test_data safety check)
+		{"DELETE FROM users WHERE id = $1 AND is_test_data = true", "user"},
 	}
 
 	for _, cleanup := range cleanupQueries {
@@ -692,6 +695,74 @@ func CleanupTestUserWithSupabase(userID uuid.UUID, supabaseUserID string, authMa
 			fmt.Printf("Warning: Failed to cleanup Supabase user %s: %v\n", supabaseUserID, err)
 		}
 	}
+}
+
+// CleanupTestDigests deletes all test digest-related data
+func CleanupTestDigests() {
+	if database.DB == nil {
+		return
+	}
+
+	// Delete digest-related data in reverse order to respect foreign key constraints
+	cleanupQueries := []struct {
+		query string
+		desc  string
+	}{
+		// Articles must be deleted before digests due to foreign key constraint
+		{"DELETE FROM digest_articles WHERE is_test_data = true", "digest articles"},
+		// Then delete the digests themselves
+		{"DELETE FROM digests WHERE is_test_data = true", "digests"},
+	}
+
+	for _, cleanup := range cleanupQueries {
+		result, err := database.DB.Exec(cleanup.query)
+		if err != nil {
+			fmt.Printf("Warning: Failed to cleanup %s: %v\n", cleanup.desc, err)
+		} else {
+			rowsAffected, _ := result.RowsAffected()
+			if rowsAffected > 0 {
+				fmt.Printf("Cleaned up %d %s\n", rowsAffected, cleanup.desc)
+			}
+		}
+	}
+}
+
+// CleanupAllTestData performs comprehensive cleanup of all test data across all tables
+func CleanupAllTestData() {
+	if database.DB == nil {
+		return
+	}
+
+	fmt.Println("Starting comprehensive test data cleanup...")
+
+	// Clean up digest data first (since it has fewer dependencies)
+	CleanupTestDigests()
+
+	// Clean up other test data that's not user-specific
+	cleanupQueries := []struct {
+		query string
+		desc  string
+	}{
+		// System/lookup tables with test data
+		{"DELETE FROM achievements WHERE is_test_data = true", "achievements"},
+		{"DELETE FROM interests WHERE is_test_data = true", "interests"},
+		{"DELETE FROM difficulty_levels WHERE is_test_data = true", "difficulty levels"},
+		{"DELETE FROM notification_frequencies WHERE is_test_data = true", "notification frequencies"},
+	}
+
+	for _, cleanup := range cleanupQueries {
+		result, err := database.DB.Exec(cleanup.query)
+		if err != nil {
+			fmt.Printf("Warning: Failed to cleanup %s: %v\n", cleanup.desc, err)
+		} else {
+			rowsAffected, _ := result.RowsAffected()
+			if rowsAffected > 0 {
+				fmt.Printf("Cleaned up %d %s\n", rowsAffected, cleanup.desc)
+			}
+		}
+	}
+
+	fmt.Println("Comprehensive test data cleanup completed")
 }
 
 // CleanupTestQuiz deletes a specific test quiz and all related data
