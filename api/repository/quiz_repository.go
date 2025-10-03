@@ -323,8 +323,8 @@ func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Questi
 		question.Options = models.StringArray(options)
 
 		// Set default values for fields not in database
-		question.Points = 1 // Default points per question
-		question.ImageURL = nil // No image URL in current schema
+		question.Points = 1                     // Default points per question
+		question.ImageURL = nil                 // No image URL in current schema
 		question.UpdatedAt = question.CreatedAt // Use created_at as default for updated_at
 
 		questions = append(questions, question)
@@ -350,7 +350,7 @@ func (r *QuizRepository) GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatis
 	)
 
 	// Set default values for fields not retrieved from database
-	stats.ID = stats.QuizID // Use QuizID as ID since it's the primary key
+	stats.ID = stats.QuizID           // Use QuizID as ID since it's the primary key
 	stats.CreatedAt = stats.UpdatedAt // Use updated_at as created_at for now
 	if err != nil {
 		if err == sql.ErrNoRows {

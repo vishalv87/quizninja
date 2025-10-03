@@ -695,11 +695,11 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 	}
 
 	stats := &models.NotificationStatsResponse{
-		TotalNotifications:   totalCount,
-		UnreadNotifications:  unreadCount,
-		NotificationsByType:  notificationsByType,
-		RecentNotifications:  recentNotifications,
-		NotificationCounts:   typeCounts,
+		TotalNotifications:  totalCount,
+		UnreadNotifications: unreadCount,
+		NotificationsByType: notificationsByType,
+		RecentNotifications: recentNotifications,
+		NotificationCounts:  typeCounts,
 	}
 
 	log.Printf("Retrieved notification stats for user %s: total=%d, unread=%d", userID, totalCount, unreadCount)

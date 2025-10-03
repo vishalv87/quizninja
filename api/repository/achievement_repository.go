@@ -253,12 +253,12 @@ func (ar *AchievementRepository) UnlockAchievement(userID uuid.UUID, achievement
 
 	// Return the created user achievement
 	userAchievement := &models.UserAchievement{
-		ID:             userAchievementID,
-		UserID:         userID,
-		AchievementID:  achievement.ID,
-		UnlockedAt:     unlockedAt,
-		PointsAwarded:  achievement.PointsReward,
-		Achievement:    achievement,
+		ID:            userAchievementID,
+		UserID:        userID,
+		AchievementID: achievement.ID,
+		UnlockedAt:    unlockedAt,
+		PointsAwarded: achievement.PointsReward,
+		Achievement:   achievement,
 	}
 
 	return userAchievement, nil

@@ -11,49 +11,49 @@ import (
 )
 
 type User struct {
-	ID                    uuid.UUID        `json:"id" db:"id"`
-	Email                 string           `json:"email" db:"email"`
-	PasswordHash          string           `json:"-" db:"password_hash"`
-	Name                  string           `json:"name" db:"name"`
-	Age                   *int             `json:"age,omitempty" db:"age"`
-	Level                 string           `json:"level" db:"level"`
-	TotalPoints           int              `json:"total_points" db:"total_points"`
-	CurrentStreak         int              `json:"current_streak" db:"current_streak"`
-	BestStreak            int              `json:"best_streak" db:"best_streak"`
-	TotalQuizzesCompleted int              `json:"total_quizzes_completed" db:"total_quizzes_completed"`
-	AverageScore          float64          `json:"average_score" db:"average_score"`
-	IsOnline              bool             `json:"is_online" db:"is_online"`
-	LastActive            time.Time        `json:"last_active" db:"last_active"`
-	AvatarURL             *string          `json:"avatar_url,omitempty" db:"avatar_url"`
-	CreatedAt             time.Time        `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time        `json:"updated_at" db:"updated_at"`
-	IsTestData            bool             `json:"is_test_data" db:"is_test_data"`
+	ID                    uuid.UUID `json:"id" db:"id"`
+	Email                 string    `json:"email" db:"email"`
+	PasswordHash          string    `json:"-" db:"password_hash"`
+	Name                  string    `json:"name" db:"name"`
+	Age                   *int      `json:"age,omitempty" db:"age"`
+	Level                 string    `json:"level" db:"level"`
+	TotalPoints           int       `json:"total_points" db:"total_points"`
+	CurrentStreak         int       `json:"current_streak" db:"current_streak"`
+	BestStreak            int       `json:"best_streak" db:"best_streak"`
+	TotalQuizzesCompleted int       `json:"total_quizzes_completed" db:"total_quizzes_completed"`
+	AverageScore          float64   `json:"average_score" db:"average_score"`
+	IsOnline              bool      `json:"is_online" db:"is_online"`
+	LastActive            time.Time `json:"last_active" db:"last_active"`
+	AvatarURL             *string   `json:"avatar_url,omitempty" db:"avatar_url"`
+	CreatedAt             time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
+	IsTestData            bool      `json:"is_test_data" db:"is_test_data"`
 
 	// Supabase auth integration fields
-	AuthMethod      string     `json:"auth_method" db:"auth_method"`           // "supabase" or "jwt"
-	SupabaseID      *string    `json:"supabase_id,omitempty" db:"supabase_id"` // Supabase user ID
-	LastAuthMethod  string     `json:"last_auth_method" db:"last_auth_method"` // Track last successful auth
-	MigratedAt      *time.Time `json:"migrated_at,omitempty" db:"migrated_at"` // When user was migrated between auth systems
+	AuthMethod     string     `json:"auth_method" db:"auth_method"`           // "supabase" or "jwt"
+	SupabaseID     *string    `json:"supabase_id,omitempty" db:"supabase_id"` // Supabase user ID
+	LastAuthMethod string     `json:"last_auth_method" db:"last_auth_method"` // Track last successful auth
+	MigratedAt     *time.Time `json:"migrated_at,omitempty" db:"migrated_at"` // When user was migrated between auth systems
 
-	Preferences     *UserPreferences `json:"preferences,omitempty"`
+	Preferences *UserPreferences `json:"preferences,omitempty"`
 }
 
 type UserPreferences struct {
-	ID                      uuid.UUID            `json:"id" db:"id"`
-	UserID                  uuid.UUID            `json:"user_id" db:"user_id"`
-	SelectedInterests       StringArray          `json:"selected_interests" db:"selected_interests"`
-	DifficultyPreference    string               `json:"difficulty_preference" db:"difficulty_preference"`
-	NotificationsEnabled    bool                 `json:"notifications_enabled" db:"notifications_enabled"`
-	NotificationFrequency   string               `json:"notification_frequency" db:"notification_frequency"`
-	ProfileVisibility       bool                 `json:"profile_visibility" db:"profile_visibility"`
-	ShowOnlineStatus        bool                 `json:"show_online_status" db:"show_online_status"`
-	AllowFriendRequests     bool                 `json:"allow_friend_requests" db:"allow_friend_requests"`
-	ShareActivityStatus     bool                 `json:"share_activity_status" db:"share_activity_status"`
-	NotificationTypes       map[string]interface{} `json:"notification_types" db:"notification_types"`
-	OnboardingCompletedAt   *time.Time           `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
-	CreatedAt               time.Time            `json:"created_at" db:"created_at"`
-	UpdatedAt               time.Time            `json:"updated_at" db:"updated_at"`
-	IsTestData              bool                 `json:"is_test_data" db:"is_test_data"`
+	ID                    uuid.UUID              `json:"id" db:"id"`
+	UserID                uuid.UUID              `json:"user_id" db:"user_id"`
+	SelectedInterests     StringArray            `json:"selected_interests" db:"selected_interests"`
+	DifficultyPreference  string                 `json:"difficulty_preference" db:"difficulty_preference"`
+	NotificationsEnabled  bool                   `json:"notifications_enabled" db:"notifications_enabled"`
+	NotificationFrequency string                 `json:"notification_frequency" db:"notification_frequency"`
+	ProfileVisibility     bool                   `json:"profile_visibility" db:"profile_visibility"`
+	ShowOnlineStatus      bool                   `json:"show_online_status" db:"show_online_status"`
+	AllowFriendRequests   bool                   `json:"allow_friend_requests" db:"allow_friend_requests"`
+	ShareActivityStatus   bool                   `json:"share_activity_status" db:"share_activity_status"`
+	NotificationTypes     map[string]interface{} `json:"notification_types" db:"notification_types"`
+	OnboardingCompletedAt *time.Time             `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
+	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time              `json:"updated_at" db:"updated_at"`
+	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
 }
 
 // StringArray handles PostgreSQL array type
@@ -74,18 +74,17 @@ func (a *StringArray) Scan(value any) error {
 	return pq.Array(a).Scan(value)
 }
 
-
 // RegisterRequest for frontend-initiated Supabase auth
 type RegisterRequest struct {
 	// Supabase user data (received after frontend auth)
-	SupabaseUserID    string                  `json:"supabase_user_id" binding:"required"`
-	Email             string                  `json:"email" binding:"required,email"`
-	Name              string                  `json:"name" binding:"required"`
-	Age               *int                    `json:"age,omitempty"`
-	Preferences       *UserPreferencesRequest `json:"preferences,omitempty"`
+	SupabaseUserID string                  `json:"supabase_user_id" binding:"required"`
+	Email          string                  `json:"email" binding:"required,email"`
+	Name           string                  `json:"name" binding:"required"`
+	Age            *int                    `json:"age,omitempty"`
+	Preferences    *UserPreferencesRequest `json:"preferences,omitempty"`
 
 	// Optional: additional user metadata
-	AvatarURL         *string                 `json:"avatar_url,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
 }
 
 type UserPreferencesRequest struct {
@@ -98,10 +97,10 @@ type UserPreferencesRequest struct {
 // LoginRequest for frontend-initiated Supabase auth (user sync)
 type LoginRequest struct {
 	// Supabase user data (received after frontend auth)
-	SupabaseUserID    string  `json:"supabase_user_id" binding:"required"`
-	Email             string  `json:"email" binding:"required,email"`
-	Name              string  `json:"name" binding:"required"`
-	AvatarURL         *string `json:"avatar_url,omitempty"`
+	SupabaseUserID string  `json:"supabase_user_id" binding:"required"`
+	Email          string  `json:"email" binding:"required,email"`
+	Name           string  `json:"name" binding:"required"`
+	AvatarURL      *string `json:"avatar_url,omitempty"`
 }
 
 // AuthResponse for frontend-initiated auth (returns user profile only)
@@ -109,7 +108,6 @@ type AuthResponse struct {
 	User    User   `json:"user"`
 	Message string `json:"message,omitempty"`
 }
-
 
 type UpdateProfileRequest struct {
 	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
@@ -360,25 +358,25 @@ type QuizFilters struct {
 }
 
 type QuizAttempt struct {
-	ID                    uuid.UUID                  `json:"id" db:"id"`
-	QuizID                uuid.UUID                  `json:"quiz_id" db:"quiz_id"`
-	UserID                uuid.UUID                  `json:"user_id" db:"user_id"`
-	Answers               []AttemptAnswer            `json:"answers" db:"answers"`
-	Score                 float64                    `json:"score" db:"score"`
-	TotalPoints           int                        `json:"total_points" db:"total_points"`
-	TimeSpent             int                        `json:"time_spent" db:"time_spent"` // in seconds
-	PercentageScore       float64                    `json:"percentage_score" db:"percentage_score"`
-	Passed                bool                       `json:"passed" db:"passed"`
-	Status                string                     `json:"status" db:"status"` // started, completed, abandoned
-	IsCompleted           bool                       `json:"is_completed" db:"is_completed"`
-	StartedAt             time.Time                  `json:"started_at" db:"started_at"`
-	CompletedAt           *time.Time                 `json:"completed_at,omitempty" db:"completed_at"`
-	CreatedAt             time.Time                  `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time                  `json:"updated_at" db:"updated_at"`
-	RetakeCount           int                        `json:"retake_count" db:"retake_count"`
-	OriginalAttemptID     *uuid.UUID                 `json:"original_attempt_id,omitempty" db:"original_attempt_id"`
-	PerformanceComparison map[string]interface{}     `json:"performance_comparison,omitempty" db:"performance_comparison"`
-	IsTestData            bool                       `json:"is_test_data" db:"is_test_data"`
+	ID                    uuid.UUID              `json:"id" db:"id"`
+	QuizID                uuid.UUID              `json:"quiz_id" db:"quiz_id"`
+	UserID                uuid.UUID              `json:"user_id" db:"user_id"`
+	Answers               []AttemptAnswer        `json:"answers" db:"answers"`
+	Score                 float64                `json:"score" db:"score"`
+	TotalPoints           int                    `json:"total_points" db:"total_points"`
+	TimeSpent             int                    `json:"time_spent" db:"time_spent"` // in seconds
+	PercentageScore       float64                `json:"percentage_score" db:"percentage_score"`
+	Passed                bool                   `json:"passed" db:"passed"`
+	Status                string                 `json:"status" db:"status"` // started, completed, abandoned
+	IsCompleted           bool                   `json:"is_completed" db:"is_completed"`
+	StartedAt             time.Time              `json:"started_at" db:"started_at"`
+	CompletedAt           *time.Time             `json:"completed_at,omitempty" db:"completed_at"`
+	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time              `json:"updated_at" db:"updated_at"`
+	RetakeCount           int                    `json:"retake_count" db:"retake_count"`
+	OriginalAttemptID     *uuid.UUID             `json:"original_attempt_id,omitempty" db:"original_attempt_id"`
+	PerformanceComparison map[string]interface{} `json:"performance_comparison,omitempty" db:"performance_comparison"`
+	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
 }
 
 // AttemptAnswer represents a user's answer to a quiz question
@@ -739,28 +737,28 @@ type ChallengeStatsResponse struct {
 
 // LeaderboardEntry represents a user's position in the leaderboard
 type LeaderboardEntry struct {
-	UserID              uuid.UUID         `json:"user_id" db:"user_id"`
-	Name                string            `json:"name" db:"name"`
-	Avatar              *string           `json:"avatar" db:"avatar_url"`
-	Rank                int               `json:"rank"`
-	Points              int               `json:"points" db:"total_points"`
-	QuizzesCompleted    int               `json:"quizzes_completed" db:"total_quizzes_completed"`
-	AverageScore        float64           `json:"average_score" db:"average_score"`
-	CurrentStreak       int               `json:"current_streak" db:"current_streak"`
-	Level               string            `json:"level" db:"level"`
-	IsCurrentUser       bool              `json:"is_current_user"`
-	IsFriend            bool              `json:"is_friend"`
-	LastActive          time.Time         `json:"last_active" db:"last_active"`
-	Achievements        []string          `json:"achievements"`
-	CategoryPoints      map[string]int    `json:"category_points"`
+	UserID           uuid.UUID      `json:"user_id" db:"user_id"`
+	Name             string         `json:"name" db:"name"`
+	Avatar           *string        `json:"avatar" db:"avatar_url"`
+	Rank             int            `json:"rank"`
+	Points           int            `json:"points" db:"total_points"`
+	QuizzesCompleted int            `json:"quizzes_completed" db:"total_quizzes_completed"`
+	AverageScore     float64        `json:"average_score" db:"average_score"`
+	CurrentStreak    int            `json:"current_streak" db:"current_streak"`
+	Level            string         `json:"level" db:"level"`
+	IsCurrentUser    bool           `json:"is_current_user"`
+	IsFriend         bool           `json:"is_friend"`
+	LastActive       time.Time      `json:"last_active" db:"last_active"`
+	Achievements     []string       `json:"achievements"`
+	CategoryPoints   map[string]int `json:"category_points"`
 }
 
 // LeaderboardFilters represents filters for leaderboard queries
 type LeaderboardFilters struct {
-	Period     string `form:"period,default=alltime" binding:"omitempty,oneof=today week month alltime"`
+	Period      string `form:"period,default=alltime" binding:"omitempty,oneof=today week month alltime"`
 	FriendsOnly bool   `form:"friends_only,default=false"`
-	Limit      int    `form:"limit,default=50" binding:"min=1,max=100"`
-	Offset     int    `form:"offset,default=0" binding:"min=0"`
+	Limit       int    `form:"limit,default=50" binding:"min=1,max=100"`
+	Offset      int    `form:"offset,default=0" binding:"min=0"`
 }
 
 // LeaderboardResponse represents the API response for leaderboard
@@ -802,13 +800,13 @@ type Achievement struct {
 
 // UserAchievement represents a user's unlocked achievement
 type UserAchievement struct {
-	ID             uuid.UUID `json:"id" db:"id"`
-	UserID         uuid.UUID `json:"user_id" db:"user_id"`
-	AchievementID  uuid.UUID `json:"achievement_id" db:"achievement_id"`
-	UnlockedAt     time.Time `json:"unlocked_at" db:"unlocked_at"`
-	PointsAwarded  int       `json:"points_awarded" db:"points_awarded"`
-	IsTestData     bool      `json:"is_test_data" db:"is_test_data"`
-	Achievement    *Achievement `json:"achievement,omitempty"`
+	ID            uuid.UUID    `json:"id" db:"id"`
+	UserID        uuid.UUID    `json:"user_id" db:"user_id"`
+	AchievementID uuid.UUID    `json:"achievement_id" db:"achievement_id"`
+	UnlockedAt    time.Time    `json:"unlocked_at" db:"unlocked_at"`
+	PointsAwarded int          `json:"points_awarded" db:"points_awarded"`
+	IsTestData    bool         `json:"is_test_data" db:"is_test_data"`
+	Achievement   *Achievement `json:"achievement,omitempty"`
 }
 
 // Achievement DTOs
@@ -855,11 +853,11 @@ type AchievementProgressResponse struct {
 
 // UserQuizFavorite represents a user's favorite quiz
 type UserQuizFavorite struct {
-	ID          uuid.UUID `json:"id" db:"id"`
-	UserID      uuid.UUID `json:"user_id" db:"user_id"`
-	QuizID      uuid.UUID `json:"quiz_id" db:"quiz_id"`
-	FavoritedAt time.Time `json:"favorited_at" db:"favorited_at"`
-	IsTestData  bool      `json:"is_test_data" db:"is_test_data"`
+	ID          uuid.UUID    `json:"id" db:"id"`
+	UserID      uuid.UUID    `json:"user_id" db:"user_id"`
+	QuizID      uuid.UUID    `json:"quiz_id" db:"quiz_id"`
+	FavoritedAt time.Time    `json:"favorited_at" db:"favorited_at"`
+	IsTestData  bool         `json:"is_test_data" db:"is_test_data"`
 	Quiz        *QuizSummary `json:"quiz,omitempty"`
 }
 
@@ -881,22 +879,22 @@ type AddFavoriteRequest struct {
 
 // QuizSession represents an active or paused quiz session for continuation functionality
 type QuizSession struct {
-	ID                    uuid.UUID              `json:"id" db:"id"`
-	AttemptID             uuid.UUID              `json:"attempt_id" db:"attempt_id"`
-	UserID                uuid.UUID              `json:"user_id" db:"user_id"`
-	QuizID                uuid.UUID              `json:"quiz_id" db:"quiz_id"`
-	CurrentQuestionIndex  int                    `json:"current_question_index" db:"current_question_index"`
-	CurrentAnswers        []AttemptAnswer        `json:"current_answers" db:"current_answers"`
-	SessionState          string                 `json:"session_state" db:"session_state"` // active, paused, completed, abandoned
-	TimeRemaining         *int                   `json:"time_remaining,omitempty" db:"time_remaining"` // seconds
-	TimeSpentSoFar        int                    `json:"time_spent_so_far" db:"time_spent_so_far"` // seconds
-	LastActivityAt        time.Time              `json:"last_activity_at" db:"last_activity_at"`
-	PausedAt              *time.Time             `json:"paused_at,omitempty" db:"paused_at"`
-	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time              `json:"updated_at" db:"updated_at"`
-	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
-	Quiz                  *QuizSummary           `json:"quiz,omitempty"`
-	Attempt               *QuizAttempt           `json:"attempt,omitempty"`
+	ID                   uuid.UUID       `json:"id" db:"id"`
+	AttemptID            uuid.UUID       `json:"attempt_id" db:"attempt_id"`
+	UserID               uuid.UUID       `json:"user_id" db:"user_id"`
+	QuizID               uuid.UUID       `json:"quiz_id" db:"quiz_id"`
+	CurrentQuestionIndex int             `json:"current_question_index" db:"current_question_index"`
+	CurrentAnswers       []AttemptAnswer `json:"current_answers" db:"current_answers"`
+	SessionState         string          `json:"session_state" db:"session_state"`             // active, paused, completed, abandoned
+	TimeRemaining        *int            `json:"time_remaining,omitempty" db:"time_remaining"` // seconds
+	TimeSpentSoFar       int             `json:"time_spent_so_far" db:"time_spent_so_far"`     // seconds
+	LastActivityAt       time.Time       `json:"last_activity_at" db:"last_activity_at"`
+	PausedAt             *time.Time      `json:"paused_at,omitempty" db:"paused_at"`
+	CreatedAt            time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at" db:"updated_at"`
+	IsTestData           bool            `json:"is_test_data" db:"is_test_data"`
+	Quiz                 *QuizSummary    `json:"quiz,omitempty"`
+	Attempt              *QuizAttempt    `json:"attempt,omitempty"`
 }
 
 // IsActive returns true if the session is currently active
@@ -954,13 +952,13 @@ func (qs *QuizSession) HasExpired() bool {
 // QuizSessionWithDetails represents a quiz session with full quiz and attempt details
 type QuizSessionWithDetails struct {
 	QuizSession
-	QuizTitle         string    `json:"quiz_title"`
-	QuizCategory      string    `json:"quiz_category"`
-	QuizDifficulty    string    `json:"quiz_difficulty"`
-	QuizThumbnail     *string   `json:"quiz_thumbnail,omitempty"`
-	TotalQuestions    int       `json:"total_questions"`
-	OriginalTimeLimit int       `json:"original_time_limit"` // in seconds
-	QuizIsTestData    bool      `json:"quiz_is_test_data" db:"quiz_is_test_data"`
+	QuizTitle         string  `json:"quiz_title"`
+	QuizCategory      string  `json:"quiz_category"`
+	QuizDifficulty    string  `json:"quiz_difficulty"`
+	QuizThumbnail     *string `json:"quiz_thumbnail,omitempty"`
+	TotalQuestions    int     `json:"total_questions"`
+	OriginalTimeLimit int     `json:"original_time_limit"` // in seconds
+	QuizIsTestData    bool    `json:"quiz_is_test_data" db:"quiz_is_test_data"`
 }
 
 // Quiz Session DTOs
@@ -995,10 +993,10 @@ type ResumeSessionRequest struct {
 
 // ActiveSessionsResponse represents the response for user's active/paused sessions
 type ActiveSessionsResponse struct {
-	Sessions   []QuizSessionWithDetails `json:"sessions"`
-	Total      int                      `json:"total"`
-	ActiveCount int                     `json:"active_count"`
-	PausedCount int                     `json:"paused_count"`
+	Sessions    []QuizSessionWithDetails `json:"sessions"`
+	Total       int                      `json:"total"`
+	ActiveCount int                      `json:"active_count"`
+	PausedCount int                      `json:"paused_count"`
 }
 
 // SessionFilters represents filters for quiz session queries
@@ -1017,12 +1015,12 @@ type SessionFilters struct {
 
 // SessionActionResponse represents the response for session actions (pause/resume/abandon)
 type SessionActionResponse struct {
-	SessionID      uuid.UUID `json:"session_id"`
-	Action         string    `json:"action"` // paused, resumed, abandoned
-	SessionState   string    `json:"session_state"`
-	Message        string    `json:"message"`
-	TimeRemaining  *int      `json:"time_remaining,omitempty"`
-	Progress       float64   `json:"progress"`
+	SessionID     uuid.UUID `json:"session_id"`
+	Action        string    `json:"action"` // paused, resumed, abandoned
+	SessionState  string    `json:"session_state"`
+	Message       string    `json:"message"`
+	TimeRemaining *int      `json:"time_remaining,omitempty"`
+	Progress      float64   `json:"progress"`
 }
 
 // Onboarding-related models
@@ -1037,7 +1035,7 @@ type OnboardingCompleteRequest struct {
 
 // OnboardingStatusResponse represents the response for onboarding status
 type OnboardingStatusResponse struct {
-	IsCompleted   bool       `json:"is_completed"`
-	CompletedAt   *time.Time `json:"completed_at,omitempty"`
-	Preferences   *UserPreferences `json:"preferences,omitempty"`
+	IsCompleted bool             `json:"is_completed"`
+	CompletedAt *time.Time       `json:"completed_at,omitempty"`
+	Preferences *UserPreferences `json:"preferences,omitempty"`
 }

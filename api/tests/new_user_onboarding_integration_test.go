@@ -17,7 +17,7 @@ import (
 // This integration test validates the complete flow: Register → Login → Profile → Preferences → Complete Onboarding
 func TestNewUserOnboardingIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	t.Run("CompleteOnboardingFlow", func(t *testing.T) {
 		testCompleteOnboardingFlow(t, tc)
@@ -46,72 +46,28 @@ func TestNewUserOnboardingIntegration(t *testing.T) {
 
 // testCompleteOnboardingFlow tests the complete happy path onboarding flow
 func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
-	// Step 1: Register new user
-	uniqueEmail := fmt.Sprintf("onboarding_test_%s@example.com", uuid.New().String()[:8])
-	registerReq := models.RegisterRequest{
-		Email:    uniqueEmail,
-		Password: "testpassword123",
-		Name:     "Test Onboarding User",
-		Age:      intPtr(25),
-	}
-
-	reqBody, _ := json.Marshal(registerReq)
-	w := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/register", "", reqBody)
-	assert.Equal(t, http.StatusCreated, w.Code, "Registration should succeed")
-
-	var registerResponse models.AuthResponse
-	err := json.Unmarshal(w.Body.Bytes(), &registerResponse)
-	assert.NoError(t, err, "Should parse register response")
+	// Step 1: Create test user using the enhanced helper
+	userID, accessToken := CreateTestUserWithName(t, tc, "Test Onboarding User")
 
 	// Cleanup this specific test user
-	defer CleanupTestUser(registerResponse.User.ID)
-
-	accessToken := registerResponse.AccessToken
-	userID := registerResponse.User.ID
+	defer CleanupTestUser(userID)
 
 	// Verify user is created with basic info
 	assert.NotEmpty(t, accessToken, "Should receive access token")
-	assert.Equal(t, uniqueEmail, registerResponse.User.Email, "Email should match")
-	assert.Equal(t, "Test Onboarding User", registerResponse.User.Name, "Name should match")
-	assert.True(t, registerResponse.User.IsTestData, "User should be marked as test data")
+	assert.NotEqual(t, uuid.Nil, userID, "Should have valid user ID")
 
-	// Step 2: Optional separate login (test both registration token and fresh login)
-	// Skip separate login test if registration already provides a working token
+	t.Logf("Created test user %s with real Supabase access token", userID)
+
+	// Step 2: Use the real Supabase access token for authenticated requests
 	loginToken := accessToken
-	if accessToken != "" {
-		// Test that we can use the registration token for subsequent requests
-		w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/profile", accessToken, nil)
-		if w.Code != http.StatusOK {
-			// If registration token doesn't work, try fresh login
-			loginReq := models.LoginRequest{
-				Email:    uniqueEmail,
-				Password: "testpassword123",
-			}
-
-			reqBody, _ = json.Marshal(loginReq)
-			w = MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/auth/login", "", reqBody)
-			assert.Equal(t, http.StatusOK, w.Code, "Login should succeed")
-
-			var loginResponse models.AuthResponse
-			err = json.Unmarshal(w.Body.Bytes(), &loginResponse)
-			assert.NoError(t, err, "Should parse login response")
-
-			// Verify login returns same user data
-			assert.Equal(t, userID, loginResponse.User.ID, "User ID should remain same")
-			assert.Equal(t, uniqueEmail, loginResponse.User.Email, "Email should remain same")
-			assert.NotEmpty(t, loginResponse.AccessToken, "Should receive new access token")
-
-			loginToken = loginResponse.AccessToken
-		}
-	}
 
 	// Step 3: Get profile to verify current user state
-	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/profile", loginToken, nil)
+	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/profile", loginToken, nil)
 	assert.Equal(t, http.StatusOK, w.Code, "Profile retrieval should succeed")
 
 	response := ParseJSONResponse(t, w)
 	assert.Equal(t, userID.String(), response["id"], "Profile should have correct user ID")
-	assert.Equal(t, uniqueEmail, response["email"], "Profile should have correct email")
+	// Note: We can't verify specific email since it's generated uniquely by the helper
 	assert.Equal(t, "Test Onboarding User", response["name"], "Profile should have correct name")
 
 	// Verify profile shows no preferences initially (or empty preferences)
@@ -179,7 +135,7 @@ func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
 		ShareActivityStatus:   boolPtr(true),
 	}
 
-	reqBody, _ = json.Marshal(updatePrefsReq)
+	reqBody, _ := json.Marshal(updatePrefsReq)
 	w = MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", loginToken, reqBody)
 	assert.Equal(t, http.StatusOK, w.Code, "Preferences update should succeed")
 
@@ -209,8 +165,8 @@ func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
 		NotificationFrequency: "Daily",
 	}
 
-	reqBody, _ = json.Marshal(onboardingReq)
-	w = MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/users/onboarding/complete", loginToken, reqBody)
+	reqBody2, _ := json.Marshal(onboardingReq)
+	w = MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/users/onboarding/complete", loginToken, reqBody2)
 	assert.Equal(t, http.StatusOK, w.Code, "Onboarding completion should succeed")
 
 	response = ParseJSONResponse(t, w)
@@ -598,14 +554,19 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 		return
 	}
 
-	uniqueEmail := fmt.Sprintf("reg_prefs_test_%s@example.com", uuid.New().String()[:8])
+	// Since we now require real Supabase tokens, create a real test user first
+	testUser, err := tc.AuthManager.CreateUniqueTestUser("RegistrationPrefs")
+	assert.NoError(t, err, "Should create Supabase test user")
+	defer tc.AuthManager.CleanupTestUser(testUser.ID)
 
-	// Register with initial preferences
+	token := testUser.AccessToken
+
+	// Register with initial preferences using the real Supabase user
 	registerReq := models.RegisterRequest{
-		Email:    uniqueEmail,
-		Password: "testpassword123",
-		Name:     "Test Registration Preferences User",
-		Age:      intPtr(30),
+		SupabaseUserID: testUser.ID,
+		Email:          testUser.Email,
+		Name:           "Test Registration Preferences User",
+		Age:            intPtr(30),
 		Preferences: &models.UserPreferencesRequest{
 			SelectedInterests:     []string{"technology", "science"},
 			DifficultyPreference:  "Easy",
@@ -619,13 +580,11 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, http.StatusCreated, w.Code, "Registration with preferences should succeed")
 
 	var registerResponse models.AuthResponse
-	err := json.Unmarshal(w.Body.Bytes(), &registerResponse)
+	err = json.Unmarshal(w.Body.Bytes(), &registerResponse)
 	assert.NoError(t, err, "Should parse register response")
 
 	// Cleanup this specific test user
 	defer CleanupTestUser(registerResponse.User.ID)
-
-	token := registerResponse.AccessToken
 
 	// Verify preferences were set during registration
 	if registerResponse.User.Preferences != nil {
@@ -758,4 +717,3 @@ func extractInterestIDsFromCategories(categories []interface{}) []string {
 	}
 	return interestIDs
 }
-

@@ -11,23 +11,23 @@ import (
 
 // Notification represents a unified notification that can be of any type
 type Notification struct {
-	ID                 uuid.UUID       `json:"id" db:"id"`
-	UserID             uuid.UUID       `json:"userId" db:"user_id"`
-	Type               string          `json:"type" db:"type"`
-	Title              string          `json:"title" db:"title"`
-	Message            *string         `json:"message,omitempty" db:"message"`
-	Data               NotificationData `json:"data" db:"data"`
-	RelatedUserID      *uuid.UUID      `json:"relatedUserId,omitempty" db:"related_user_id"`
-	RelatedEntityID    *uuid.UUID      `json:"relatedEntityId,omitempty" db:"related_entity_id"`
-	RelatedEntityType  *string         `json:"relatedEntityType,omitempty" db:"related_entity_type"`
-	IsRead             bool            `json:"isRead" db:"is_read"`
-	IsDeleted          bool            `json:"isDeleted" db:"is_deleted"`
-	CreatedAt          time.Time       `json:"timestamp" db:"created_at"`
-	ReadAt             *time.Time      `json:"readAt,omitempty" db:"read_at"`
-	DeletedAt          *time.Time      `json:"deletedAt,omitempty" db:"deleted_at"`
-	ExpiresAt          *time.Time      `json:"expiresAt,omitempty" db:"expires_at"`
-	IsTestData         bool            `json:"isTestData" db:"is_test_data"`
-	RelatedUser        *User           `json:"relatedUser,omitempty"`
+	ID                uuid.UUID        `json:"id" db:"id"`
+	UserID            uuid.UUID        `json:"userId" db:"user_id"`
+	Type              string           `json:"type" db:"type"`
+	Title             string           `json:"title" db:"title"`
+	Message           *string          `json:"message,omitempty" db:"message"`
+	Data              NotificationData `json:"data" db:"data"`
+	RelatedUserID     *uuid.UUID       `json:"relatedUserId,omitempty" db:"related_user_id"`
+	RelatedEntityID   *uuid.UUID       `json:"relatedEntityId,omitempty" db:"related_entity_id"`
+	RelatedEntityType *string          `json:"relatedEntityType,omitempty" db:"related_entity_type"`
+	IsRead            bool             `json:"isRead" db:"is_read"`
+	IsDeleted         bool             `json:"isDeleted" db:"is_deleted"`
+	CreatedAt         time.Time        `json:"timestamp" db:"created_at"`
+	ReadAt            *time.Time       `json:"readAt,omitempty" db:"read_at"`
+	DeletedAt         *time.Time       `json:"deletedAt,omitempty" db:"deleted_at"`
+	ExpiresAt         *time.Time       `json:"expiresAt,omitempty" db:"expires_at"`
+	IsTestData        bool             `json:"isTestData" db:"is_test_data"`
+	RelatedUser       *User            `json:"relatedUser,omitempty"`
 }
 
 // NotificationData represents the JSONB data field as a custom type
@@ -60,28 +60,28 @@ func (nd *NotificationData) Scan(value interface{}) error {
 
 // NotificationType constants
 const (
-	NotificationTypeFriendRequest      = "friend_request"
-	NotificationTypeFriendAccepted     = "friend_accepted"
-	NotificationTypeFriendRejected     = "friend_rejected"
-	NotificationTypeChallengeReceived  = "challenge_received"
-	NotificationTypeChallengeAccepted  = "challenge_accepted"
-	NotificationTypeChallengeDeclined  = "challenge_declined"
-	NotificationTypeChallengeCompleted = "challenge_completed"
+	NotificationTypeFriendRequest       = "friend_request"
+	NotificationTypeFriendAccepted      = "friend_accepted"
+	NotificationTypeFriendRejected      = "friend_rejected"
+	NotificationTypeChallengeReceived   = "challenge_received"
+	NotificationTypeChallengeAccepted   = "challenge_accepted"
+	NotificationTypeChallengeDeclined   = "challenge_declined"
+	NotificationTypeChallengeCompleted  = "challenge_completed"
 	NotificationTypeAchievementUnlocked = "achievement_unlocked"
-	NotificationTypeGeneral            = "general"
-	NotificationTypeSystemAnnouncement = "system_announcement"
+	NotificationTypeGeneral             = "general"
+	NotificationTypeSystemAnnouncement  = "system_announcement"
 )
 
 // NotificationFilters represents filters for notification queries
 type NotificationFilters struct {
-	Type       string     `form:"type" binding:"omitempty,oneof=friend_request friend_accepted friend_rejected challenge_received challenge_accepted challenge_declined challenge_completed achievement_unlocked general system_announcement"`
-	IsRead     *bool      `form:"is_read"`
-	StartDate  *time.Time `form:"start_date" time_format:"2006-01-02"`
-	EndDate    *time.Time `form:"end_date" time_format:"2006-01-02"`
-	Page       int        `form:"page,default=1" binding:"min=1"`
-	PageSize   int        `form:"page_size,default=20" binding:"min=1,max=100"`
-	SortBy     string     `form:"sort_by,default=created_at" binding:"omitempty,oneof=created_at read_at"`
-	SortOrder  string     `form:"sort_order,default=desc" binding:"omitempty,oneof=asc desc"`
+	Type      string     `form:"type" binding:"omitempty,oneof=friend_request friend_accepted friend_rejected challenge_received challenge_accepted challenge_declined challenge_completed achievement_unlocked general system_announcement"`
+	IsRead    *bool      `form:"is_read"`
+	StartDate *time.Time `form:"start_date" time_format:"2006-01-02"`
+	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02"`
+	Page      int        `form:"page,default=1" binding:"min=1"`
+	PageSize  int        `form:"page_size,default=20" binding:"min=1,max=100"`
+	SortBy    string     `form:"sort_by,default=created_at" binding:"omitempty,oneof=created_at read_at"`
+	SortOrder string     `form:"sort_order,default=desc" binding:"omitempty,oneof=asc desc"`
 }
 
 // NotificationResponse represents the API response for notifications
@@ -106,33 +106,33 @@ type MarkAllNotificationsReadRequest struct {
 
 // CreateNotificationRequest represents the request to create a new notification (admin/system use)
 type CreateNotificationRequest struct {
-	UserID            uuid.UUID       `json:"user_id" binding:"required"`
-	Type              string          `json:"type" binding:"required"`
-	Title             string          `json:"title" binding:"required,min=1,max=255"`
-	Message           *string         `json:"message,omitempty"`
+	UserID            uuid.UUID        `json:"user_id" binding:"required"`
+	Type              string           `json:"type" binding:"required"`
+	Title             string           `json:"title" binding:"required,min=1,max=255"`
+	Message           *string          `json:"message,omitempty"`
 	Data              NotificationData `json:"data,omitempty"`
-	RelatedUserID     *uuid.UUID      `json:"related_user_id,omitempty"`
-	RelatedEntityID   *uuid.UUID      `json:"related_entity_id,omitempty"`
-	RelatedEntityType *string         `json:"related_entity_type,omitempty"`
-	ExpiresAt         *time.Time      `json:"expires_at,omitempty"`
+	RelatedUserID     *uuid.UUID       `json:"related_user_id,omitempty"`
+	RelatedEntityID   *uuid.UUID       `json:"related_entity_id,omitempty"`
+	RelatedEntityType *string          `json:"related_entity_type,omitempty"`
+	ExpiresAt         *time.Time       `json:"expires_at,omitempty"`
 }
 
 // NotificationStatsResponse represents notification statistics
 type NotificationStatsResponse struct {
-	TotalNotifications   int                            `json:"total_notifications"`
-	UnreadNotifications  int                            `json:"unread_notifications"`
-	NotificationsByType  map[string]int                 `json:"notifications_by_type"`
-	RecentNotifications  []Notification                 `json:"recent_notifications"`
-	NotificationCounts   NotificationTypeCounts         `json:"notification_counts"`
+	TotalNotifications  int                    `json:"total_notifications"`
+	UnreadNotifications int                    `json:"unread_notifications"`
+	NotificationsByType map[string]int         `json:"notifications_by_type"`
+	RecentNotifications []Notification         `json:"recent_notifications"`
+	NotificationCounts  NotificationTypeCounts `json:"notification_counts"`
 }
 
 // NotificationTypeCounts represents counts by notification type
 type NotificationTypeCounts struct {
-	FriendRequests     int `json:"friend_requests"`
-	FriendResponses    int `json:"friend_responses"`
-	Challenges         int `json:"challenges"`
-	Achievements       int `json:"achievements"`
-	General            int `json:"general"`
+	FriendRequests      int `json:"friend_requests"`
+	FriendResponses     int `json:"friend_responses"`
+	Challenges          int `json:"challenges"`
+	Achievements        int `json:"achievements"`
+	General             int `json:"general"`
 	SystemAnnouncements int `json:"system_announcements"`
 }
 

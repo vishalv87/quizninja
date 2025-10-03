@@ -13,6 +13,7 @@ import (
 	"quizninja-api/database"
 	"quizninja-api/models"
 	"quizninja-api/routes"
+	"quizninja-api/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -21,8 +22,9 @@ import (
 
 // TestConfig holds test configuration
 type TestConfig struct {
-	Server *gin.Engine
-	Config *config.Config
+	Server      *gin.Engine
+	Config      *config.Config
+	AuthManager *utils.SupabaseTestAuthManager
 }
 
 // SetupTestServer initializes the test server with real database connection
@@ -40,19 +42,56 @@ func SetupTestServer(t *testing.T) *TestConfig {
 	server := gin.New()
 	routes.SetupRoutes(server, cfg)
 
+	// Initialize Supabase test auth manager - REQUIRED for integration tests
+	if cfg.SupabaseURL == "" || cfg.SupabaseServiceKey == "" || cfg.SupabaseAnonKey == "" {
+		t.Fatalf(`
+Integration tests require real Supabase configuration. Please set:
+- SUPABASE_URL=https://your-project.supabase.co
+- SUPABASE_SERVICE_KEY=your-service-key
+- SUPABASE_ANON_KEY=your-anon-key
+- USE_SUPABASE_AUTH=true
+
+These tests create real Supabase users and use real authentication tokens.`)
+	}
+
+	authManager := utils.NewSupabaseTestAuthManager(
+		cfg.SupabaseURL,
+		cfg.SupabaseServiceKey,
+		cfg.SupabaseAnonKey,
+	)
+
 	return &TestConfig{
-		Server: server,
-		Config: cfg,
+		Server:      server,
+		Config:      cfg,
+		AuthManager: authManager,
 	}
 }
 
 // CreateTestUser creates a test user and returns user ID and auth token
+// This creates a real Supabase user and returns a real access token
 func CreateTestUser(t *testing.T, tc *TestConfig) (uuid.UUID, string) {
-	// Create a test user
+	return CreateTestUserWithName(t, tc, "Test User")
+}
+
+// CreateTestUserWithName creates a test user with a specific name
+// This creates a real Supabase user and returns a real access token
+func CreateTestUserWithName(t *testing.T, tc *TestConfig, name string) (uuid.UUID, string) {
+	return createSupabaseTestUser(t, tc, name)
+}
+
+// createSupabaseTestUser creates a test user in real Supabase and syncs to local DB
+func createSupabaseTestUser(t *testing.T, tc *TestConfig, name string) (uuid.UUID, string) {
+	// Create user in Supabase
+	supabaseUser, err := tc.AuthManager.CreateUniqueTestUser(name)
+	if err != nil {
+		t.Fatalf("Failed to create Supabase test user: %v", err)
+	}
+
+	// Now register the user in our local database using the real Supabase ID
 	registerReq := models.RegisterRequest{
-		SupabaseUserID: uuid.New().String(),
-		Email:          fmt.Sprintf("test_%s@example.com", uuid.New().String()[:8]),
-		Name:           "Test User",
+		SupabaseUserID: supabaseUser.ID,
+		Email:          supabaseUser.Email,
+		Name:           name,
 		Age:            intPtr(25),
 	}
 
@@ -64,11 +103,11 @@ func CreateTestUser(t *testing.T, tc *TestConfig) (uuid.UUID, string) {
 	tc.Server.ServeHTTP(w, req)
 
 	if w.Code != http.StatusCreated {
-		t.Fatalf("Failed to create test user: %d %s", w.Code, w.Body.String())
+		t.Fatalf("Failed to register Supabase user in local DB: %d %s", w.Code, w.Body.String())
 	}
 
 	var response models.AuthResponse
-	err := json.Unmarshal(w.Body.Bytes(), &response)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
 	if err != nil {
 		t.Fatalf("Failed to parse register response: %v", err)
 	}
@@ -79,7 +118,8 @@ func CreateTestUser(t *testing.T, tc *TestConfig) (uuid.UUID, string) {
 		t.Fatalf("Failed to mark user as test data: %v", err)
 	}
 
-	return response.User.ID, response.AccessToken
+	t.Logf("Created Supabase test user: %s with real access token", response.User.Email)
+	return response.User.ID, supabaseUser.AccessToken
 }
 
 // MakeAuthenticatedRequest makes an HTTP request with authentication
@@ -174,6 +214,14 @@ func Cleanup(t *testing.T) {
 	if database.DB != nil {
 		database.DB.Close()
 	}
+}
+
+// CleanupWithSupabase cleans up test resources including Supabase test users
+func CleanupWithSupabase(t *testing.T, tc *TestConfig) {
+	if tc.AuthManager != nil {
+		tc.AuthManager.CleanupAllTestUsers()
+	}
+	Cleanup(t)
 }
 
 // TestMain can be used in individual test files for setup/teardown

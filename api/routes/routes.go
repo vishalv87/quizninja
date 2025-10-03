@@ -145,7 +145,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				notifications.PUT("/:id/unread", notificationHandler.MarkNotificationAsUnread)
 				notifications.PUT("/read-all", notificationHandler.MarkAllNotificationsAsRead)
 				notifications.DELETE("/:id", notificationHandler.DeleteNotification)
-				notifications.POST("", notificationHandler.CreateNotification) // Admin/system endpoint
+				notifications.POST("", notificationHandler.CreateNotification)                  // Admin/system endpoint
 				notifications.POST("/cleanup", notificationHandler.CleanupExpiredNotifications) // Admin endpoint
 			}
 

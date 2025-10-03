@@ -22,26 +22,26 @@ type Digest struct {
 
 // Article represents an article within a digest
 type Article struct {
-	ID               uuid.UUID  `json:"id" db:"id"`
-	DigestID         uuid.UUID  `json:"digest_id" db:"digest_id"`
-	Title            string     `json:"title" db:"title"`
-	Content          string     `json:"content" db:"content"`
-	Summary          string     `json:"summary" db:"summary"`
-	Source           *string    `json:"source" db:"source"`
-	Author           *string    `json:"author" db:"author"`
-	PublishedAt      *time.Time `json:"published_at" db:"published_at"`
-	Category         string     `json:"category" db:"category"`
-	ImageURL         *string    `json:"image_url" db:"image_url"`
-	ExternalURL      *string    `json:"external_url" db:"external_url"`
-	ReadTimeMinutes  *int       `json:"read_time_minutes" db:"read_time_minutes"`
-	IsBreaking       bool       `json:"is_breaking" db:"is_breaking"`
-	IsHot            bool       `json:"is_hot" db:"is_hot"`
-	IsDummy          bool       `json:"is_dummy" db:"is_dummy"`
-	IsTrending       bool       `json:"is_trending" db:"is_trending"`
-	TrendingScore    float64    `json:"trending_score" db:"trending_score"`
-	TrendingRank     *int       `json:"trending_rank" db:"trending_rank"`
-	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
-	IsTestData       bool       `json:"is_test_data" db:"is_test_data"`
+	ID              uuid.UUID  `json:"id" db:"id"`
+	DigestID        uuid.UUID  `json:"digest_id" db:"digest_id"`
+	Title           string     `json:"title" db:"title"`
+	Content         string     `json:"content" db:"content"`
+	Summary         string     `json:"summary" db:"summary"`
+	Source          *string    `json:"source" db:"source"`
+	Author          *string    `json:"author" db:"author"`
+	PublishedAt     *time.Time `json:"published_at" db:"published_at"`
+	Category        string     `json:"category" db:"category"`
+	ImageURL        *string    `json:"image_url" db:"image_url"`
+	ExternalURL     *string    `json:"external_url" db:"external_url"`
+	ReadTimeMinutes *int       `json:"read_time_minutes" db:"read_time_minutes"`
+	IsBreaking      bool       `json:"is_breaking" db:"is_breaking"`
+	IsHot           bool       `json:"is_hot" db:"is_hot"`
+	IsDummy         bool       `json:"is_dummy" db:"is_dummy"`
+	IsTrending      bool       `json:"is_trending" db:"is_trending"`
+	TrendingScore   float64    `json:"trending_score" db:"trending_score"`
+	TrendingRank    *int       `json:"trending_rank" db:"trending_rank"`
+	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
+	IsTestData      bool       `json:"is_test_data" db:"is_test_data"`
 }
 
 // DigestResponse represents the API response for a single digest
@@ -108,11 +108,11 @@ type ArticleRequest struct {
 // DigestWithStats represents a digest with additional statistics
 type DigestWithStats struct {
 	Digest
-	TotalArticles              int       `json:"total_articles" db:"total_articles"`
-	BreakingArticles           int       `json:"breaking_articles" db:"breaking_articles"`
-	HotArticles                int       `json:"hot_articles" db:"hot_articles"`
-	Categories                 *string   `json:"categories" db:"categories"`
-	LatestArticlePublishedAt   *time.Time `json:"latest_article_published_at" db:"latest_article_published_at"`
+	TotalArticles            int        `json:"total_articles" db:"total_articles"`
+	BreakingArticles         int        `json:"breaking_articles" db:"breaking_articles"`
+	HotArticles              int        `json:"hot_articles" db:"hot_articles"`
+	Categories               *string    `json:"categories" db:"categories"`
+	LatestArticlePublishedAt *time.Time `json:"latest_article_published_at" db:"latest_article_published_at"`
 }
 
 // GetDigestListRequest represents query parameters for getting digest list
@@ -145,13 +145,13 @@ type UpdateDigestRequest struct {
 
 // DigestStats represents statistics about the digest system
 type DigestStats struct {
-	TotalDigests           int      `json:"total_digests"`
-	TotalArticles          int      `json:"total_articles"`
-	TotalCategories        int      `json:"total_categories"`
-	AverageArticlesPerDay  float64  `json:"average_articles_per_day"`
-	MostActiveCategory     string   `json:"most_active_category"`
-	LatestDigestDate       *time.Time `json:"latest_digest_date"`
-	OldestDigestDate       *time.Time `json:"oldest_digest_date"`
+	TotalDigests          int        `json:"total_digests"`
+	TotalArticles         int        `json:"total_articles"`
+	TotalCategories       int        `json:"total_categories"`
+	AverageArticlesPerDay float64    `json:"average_articles_per_day"`
+	MostActiveCategory    string     `json:"most_active_category"`
+	LatestDigestDate      *time.Time `json:"latest_digest_date"`
+	OldestDigestDate      *time.Time `json:"oldest_digest_date"`
 }
 
 // DigestStatsResponse represents the API response for digest statistics

@@ -118,7 +118,6 @@ func (h *DiscussionHandler) GetDiscussions(c *gin.Context) {
 		}
 	}
 
-
 	discussions, total, err := h.repo.Discussion.GetDiscussions(&filters, userID)
 	if err != nil {
 		log.Printf("Error getting discussions: %v", err)
@@ -174,17 +173,17 @@ func (h *DiscussionHandler) GetDiscussion(c *gin.Context) {
 
 	response := models.DiscussionDetailResponse{
 		Discussion: models.Discussion{
-			ID:           discussion.ID,
-			QuizID:       discussion.QuizID,
-			QuestionID:   discussion.QuestionID,
-			UserID:       discussion.UserID,
-			Content:      discussion.Content,
-			LikesCount:   discussion.LikesCount,
-			RepliesCount: discussion.RepliesCount,
-			Type:         discussion.Type,
-			CreatedAt:    discussion.CreatedAt,
-			UpdatedAt:    discussion.UpdatedAt,
-			IsTestData:   discussion.IsTestData,
+			ID:            discussion.ID,
+			QuizID:        discussion.QuizID,
+			QuestionID:    discussion.QuestionID,
+			UserID:        discussion.UserID,
+			Content:       discussion.Content,
+			LikesCount:    discussion.LikesCount,
+			RepliesCount:  discussion.RepliesCount,
+			Type:          discussion.Type,
+			CreatedAt:     discussion.CreatedAt,
+			UpdatedAt:     discussion.UpdatedAt,
+			IsTestData:    discussion.IsTestData,
 			IsLikedByUser: discussion.IsLikedByUser,
 		},
 	}

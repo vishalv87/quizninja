@@ -229,17 +229,17 @@ func TestPreferencesHandler(t *testing.T) {
 
 		// Create test user preferences first
 		preferences := &models.UserPreferences{
-			UserID:               userID,
-			SelectedInterests:    models.StringArray([]string{"technology"}),
-			DifficultyPreference: "Medium",
-			NotificationsEnabled: true,
+			UserID:                userID,
+			SelectedInterests:     models.StringArray([]string{"technology"}),
+			DifficultyPreference:  "Medium",
+			NotificationsEnabled:  true,
 			NotificationFrequency: "daily",
-			ProfileVisibility:    true,
-			ShowOnlineStatus:     true,
-			AllowFriendRequests:  true,
-			ShareActivityStatus:  true,
+			ProfileVisibility:     true,
+			ShowOnlineStatus:      true,
+			AllowFriendRequests:   true,
+			ShareActivityStatus:   true,
 			NotificationTypes: map[string]interface{}{
-				"challenges": true,
+				"challenges":   true,
 				"achievements": true,
 			},
 			IsTestData: true,

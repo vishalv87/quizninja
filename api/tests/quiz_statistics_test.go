@@ -127,8 +127,8 @@ func TestQuizStatisticsIntegration(t *testing.T) {
 						// For testing, we'll simulate selecting the first option
 						// In a real test, you'd want to select the correct answer
 						answers = append(answers, map[string]interface{}{
-							"questionId":      questionID,
-							"selectedOption":  "A", // Assuming first option is A
+							"questionId":     questionID,
+							"selectedOption": "A", // Assuming first option is A
 						})
 
 						// Limit to prevent overly long tests
@@ -235,7 +235,7 @@ func TestQuizStatisticsIntegration(t *testing.T) {
 
 				// Verify numeric fields are actually numbers
 				if field == "total_quizzes_completed" || field == "total_points" ||
-				   field == "current_streak" || field == "best_streak" {
+					field == "current_streak" || field == "best_streak" {
 					_, ok := value.(float64)
 					assert.True(t, ok, "Field %s should be numeric", field)
 				}

@@ -106,14 +106,14 @@ func (as *AchievementService) CheckAchievementsForUser(userID uuid.UUID, trigger
 
 			// Create persistent notification in the database
 			notificationData := map[string]interface{}{
-				"achievement_id":    userAchievement.Achievement.ID,
-				"achievement_key":   userAchievement.Achievement.Key,
-				"achievement_title": userAchievement.Achievement.Title,
+				"achievement_id":          userAchievement.Achievement.ID,
+				"achievement_key":         userAchievement.Achievement.Key,
+				"achievement_title":       userAchievement.Achievement.Title,
 				"achievement_description": userAchievement.Achievement.Description,
-				"points_awarded":    userAchievement.PointsAwarded,
-				"is_rare":          userAchievement.Achievement.IsRare,
-				"icon":             userAchievement.Achievement.Icon,
-				"color":            userAchievement.Achievement.Color,
+				"points_awarded":          userAchievement.PointsAwarded,
+				"is_rare":                 userAchievement.Achievement.IsRare,
+				"icon":                    userAchievement.Achievement.Icon,
+				"color":                   userAchievement.Achievement.Color,
 			}
 
 			notificationReq := &models.CreateNotificationRequest{

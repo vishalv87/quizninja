@@ -8,22 +8,22 @@ import (
 
 // Discussion represents a discussion/comment about a quiz or question
 type Discussion struct {
-	ID            uuid.UUID           `json:"id" db:"id"`
-	QuizID        uuid.UUID           `json:"quiz_id" db:"quiz_id"`
-	QuestionID    *uuid.UUID          `json:"question_id,omitempty" db:"question_id"`
-	UserID        uuid.UUID           `json:"user_id" db:"user_id"`
-	Content       string              `json:"content" db:"content"`
-	LikesCount    int                 `json:"likes_count" db:"likes_count"`
-	RepliesCount  int                 `json:"replies_count" db:"replies_count"`
-	Type          string              `json:"type" db:"type"` // general, question, explanation, help
-	CreatedAt     time.Time           `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time           `json:"updated_at" db:"updated_at"`
-	IsTestData    bool                `json:"is_test_data" db:"is_test_data"`
-	User          *User               `json:"user,omitempty"`
-	Quiz          *QuizSummary        `json:"quiz,omitempty"`
-	Question      *Question           `json:"question,omitempty"`
-	TopReplies    []DiscussionReply   `json:"top_replies,omitempty"`
-	IsLikedByUser bool                `json:"is_liked_by_user"`
+	ID            uuid.UUID         `json:"id" db:"id"`
+	QuizID        uuid.UUID         `json:"quiz_id" db:"quiz_id"`
+	QuestionID    *uuid.UUID        `json:"question_id,omitempty" db:"question_id"`
+	UserID        uuid.UUID         `json:"user_id" db:"user_id"`
+	Content       string            `json:"content" db:"content"`
+	LikesCount    int               `json:"likes_count" db:"likes_count"`
+	RepliesCount  int               `json:"replies_count" db:"replies_count"`
+	Type          string            `json:"type" db:"type"` // general, question, explanation, help
+	CreatedAt     time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at" db:"updated_at"`
+	IsTestData    bool              `json:"is_test_data" db:"is_test_data"`
+	User          *User             `json:"user,omitempty"`
+	Quiz          *QuizSummary      `json:"quiz,omitempty"`
+	Question      *Question         `json:"question,omitempty"`
+	TopReplies    []DiscussionReply `json:"top_replies,omitempty"`
+	IsLikedByUser bool              `json:"is_liked_by_user"`
 }
 
 // DiscussionReply represents a reply to a discussion
@@ -122,19 +122,19 @@ type DiscussionRepliesResponse struct {
 
 // LikeResponse represents the response for like/unlike actions
 type LikeResponse struct {
-	IsLiked    bool `json:"is_liked"`
-	LikesCount int  `json:"likes_count"`
+	IsLiked    bool   `json:"is_liked"`
+	LikesCount int    `json:"likes_count"`
 	Message    string `json:"message"`
 }
 
 // DiscussionWithDetails represents a discussion with full user and quiz details
 type DiscussionWithDetails struct {
 	Discussion
-	UserName      string `json:"user_name"`
-	UserAvatar    string `json:"user_avatar"`
-	QuizTitle     string `json:"quiz_title"`
-	QuizCategory  string `json:"quiz_category"`
-	QuestionText  string `json:"question_text,omitempty"`
+	UserName     string `json:"user_name"`
+	UserAvatar   string `json:"user_avatar"`
+	QuizTitle    string `json:"quiz_title"`
+	QuizCategory string `json:"quiz_category"`
+	QuestionText string `json:"question_text,omitempty"`
 }
 
 // DiscussionReplyWithDetails represents a reply with full user details
@@ -152,8 +152,8 @@ type DiscussionStatsResponse struct {
 	AverageRepliesPerPost float64 `json:"average_replies_per_post"`
 	AverageLikesPerPost   float64 `json:"average_likes_per_post"`
 	MostActiveQuiz        *struct {
-		QuizID           uuid.UUID `json:"quiz_id"`
-		QuizTitle        string    `json:"quiz_title"`
-		DiscussionCount  int       `json:"discussion_count"`
+		QuizID          uuid.UUID `json:"quiz_id"`
+		QuizTitle       string    `json:"quiz_title"`
+		DiscussionCount int       `json:"discussion_count"`
 	} `json:"most_active_quiz,omitempty"`
 }

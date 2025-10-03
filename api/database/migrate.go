@@ -61,8 +61,8 @@ func getMigrationFiles() ([]string, error) {
 
 	// Try multiple possible migration directory paths
 	migrationPaths := []string{
-		"database/migrations",     // from project root
-		"../database/migrations",  // from tests directory
+		"database/migrations",    // from project root
+		"../database/migrations", // from tests directory
 	}
 
 	var migrationDir string

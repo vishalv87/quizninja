@@ -261,24 +261,24 @@ func (dr *DigestRepository) CreateDigest(digest *models.DigestRequest) (*models.
 // CreateArticle creates a new article
 func (dr *DigestRepository) CreateArticle(article *models.ArticleRequest) (*models.Article, error) {
 	newArticle := &models.Article{
-		ID:               uuid.New(),
-		DigestID:         article.DigestID,
-		Title:            article.Title,
-		Content:          article.Content,
-		Summary:          article.Summary,
-		Source:           article.Source,
-		Author:           article.Author,
-		PublishedAt:      article.PublishedAt,
-		Category:         article.Category,
-		ImageURL:         article.ImageURL,
-		ExternalURL:      article.ExternalURL,
-		ReadTimeMinutes:  article.ReadTimeMinutes,
-		IsBreaking:       article.IsBreaking,
-		IsHot:            article.IsHot,
-		IsDummy:          article.IsDummy,
-		IsTrending:       article.IsTrending,
-		TrendingScore:    article.TrendingScore,
-		TrendingRank:     article.TrendingRank,
+		ID:              uuid.New(),
+		DigestID:        article.DigestID,
+		Title:           article.Title,
+		Content:         article.Content,
+		Summary:         article.Summary,
+		Source:          article.Source,
+		Author:          article.Author,
+		PublishedAt:     article.PublishedAt,
+		Category:        article.Category,
+		ImageURL:        article.ImageURL,
+		ExternalURL:     article.ExternalURL,
+		ReadTimeMinutes: article.ReadTimeMinutes,
+		IsBreaking:      article.IsBreaking,
+		IsHot:           article.IsHot,
+		IsDummy:         article.IsDummy,
+		IsTrending:      article.IsTrending,
+		TrendingScore:   article.TrendingScore,
+		TrendingRank:    article.TrendingRank,
 	}
 
 	query := `
@@ -554,5 +554,3 @@ func (dr *DigestRepository) UpdateTrendingRankings() error {
 	}
 	return nil
 }
-
-

@@ -398,8 +398,8 @@ func UpdateSchemaAfterMigration(db *sql.DB) error {
 
 	// Try multiple possible paths for schema.sql
 	possiblePaths := []string{
-		"database/schema.sql",                    // From project root
-		"../database/schema.sql",                 // From tests directory
+		"database/schema.sql",                     // From project root
+		"../database/schema.sql",                  // From tests directory
 		filepath.Join(cwd, "database/schema.sql"), // Absolute path from cwd
 	}
 

@@ -175,7 +175,6 @@ func TestAuthHandler(t *testing.T) {
 		VerifyIsTestDataField(t, statisticsMap, true, "user statistics")
 	})
 
-
 	t.Run("Logout", func(t *testing.T) {
 		// Create a test user for logout
 		userID, token := CreateTestUser(t, tc)
@@ -205,7 +204,6 @@ func TestAuthHandler(t *testing.T) {
 		assert.True(t, exists, "Response should contain error message")
 		assert.Contains(t, errorMsg, "Authorization header required", "Should indicate missing authorization")
 	})
-
 
 	_ = userID // Use userID to avoid unused variable warning
 }

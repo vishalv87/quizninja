@@ -97,10 +97,6 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	return user, nil
 }
 
-
-
-
-
 // UpdateUser updates an existing user
 func (ur *UserRepository) UpdateUser(user *models.User) error {
 	query := `

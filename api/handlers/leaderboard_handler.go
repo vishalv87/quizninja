@@ -231,16 +231,16 @@ func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
 	}
 
 	stats := map[string]interface{}{
-		"period":                period,
-		"total_users":           total,
-		"active_users":          len(leaderboard),
-		"total_points":          totalPoints,
-		"total_quizzes":         totalQuizzes,
-		"average_score":         averageScore,
-		"average_streak":        float64(totalStreaks) / float64(len(leaderboard)),
-		"top_performer":         nil,
-		"most_active":           nil,
-		"longest_streak":        0,
+		"period":         period,
+		"total_users":    total,
+		"active_users":   len(leaderboard),
+		"total_points":   totalPoints,
+		"total_quizzes":  totalQuizzes,
+		"average_score":  averageScore,
+		"average_streak": float64(totalStreaks) / float64(len(leaderboard)),
+		"top_performer":  nil,
+		"most_active":    nil,
+		"longest_streak": 0,
 	}
 
 	// Find top performers
@@ -266,7 +266,7 @@ func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
 		}
 
 		stats["most_active"] = map[string]interface{}{
-			"name":            mostActive.Name,
+			"name":              mostActive.Name,
 			"quizzes_completed": mostActive.QuizzesCompleted,
 		}
 		stats["longest_streak"] = longestStreak

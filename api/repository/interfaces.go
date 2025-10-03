@@ -24,7 +24,6 @@ type UserRepositoryInterface interface {
 	// User with preferences operations
 	GetUserWithPreferences(userID uuid.UUID) (*models.User, error)
 
-
 	// User status operations
 	UpdateUserOnlineStatus(userID uuid.UUID, isOnline bool) error
 	UpdateUserLastActive(userID uuid.UUID) error
@@ -177,9 +176,9 @@ type NotificationRepositoryInterface interface {
 	CreateNotification(notification *models.CreateNotificationRequest) (*models.Notification, error)
 	GetNotifications(userID uuid.UUID, filters *models.NotificationFilters) ([]models.Notification, int, error)
 	GetNotificationByID(notificationID uuid.UUID, userID uuid.UUID) (*models.Notification, error)
-	DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error // Soft delete
+	DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error     // Soft delete
 	HardDeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error // Hard delete (admin)
-	RestoreNotification(notificationID uuid.UUID, userID uuid.UUID) error // Restore soft deleted
+	RestoreNotification(notificationID uuid.UUID, userID uuid.UUID) error    // Restore soft deleted
 
 	// Notification read status operations
 	MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error

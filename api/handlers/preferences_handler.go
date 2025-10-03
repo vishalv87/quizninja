@@ -65,17 +65,17 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 	}
 
 	preferences := &models.UserPreferences{
-		UserID:                  userID,
-		SelectedInterests:       models.StringArray(req.SelectedInterests),
-		DifficultyPreference:    req.DifficultyPreference,
-		NotificationsEnabled:    req.NotificationsEnabled,
-		NotificationFrequency:   req.NotificationFrequency,
-		ProfileVisibility:       getBoolValue(req.ProfileVisibility, true),
-		ShowOnlineStatus:        getBoolValue(req.ShowOnlineStatus, true),
-		AllowFriendRequests:     getBoolValue(req.AllowFriendRequests, true),
-		ShareActivityStatus:     getBoolValue(req.ShareActivityStatus, true),
-		NotificationTypes:       notificationTypes,
-		IsTestData:              true, // Set for test environment
+		UserID:                userID,
+		SelectedInterests:     models.StringArray(req.SelectedInterests),
+		DifficultyPreference:  req.DifficultyPreference,
+		NotificationsEnabled:  req.NotificationsEnabled,
+		NotificationFrequency: req.NotificationFrequency,
+		ProfileVisibility:     getBoolValue(req.ProfileVisibility, true),
+		ShowOnlineStatus:      getBoolValue(req.ShowOnlineStatus, true),
+		AllowFriendRequests:   getBoolValue(req.AllowFriendRequests, true),
+		ShareActivityStatus:   getBoolValue(req.ShareActivityStatus, true),
+		NotificationTypes:     notificationTypes,
+		IsTestData:            true, // Set for test environment
 	}
 
 	err := ph.userRepo.UpdateUserPreferences(preferences)
@@ -95,7 +95,7 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": updatedPreferences,
+		"data":    updatedPreferences,
 		"message": "Preferences updated successfully",
 	})
 }
@@ -212,16 +212,16 @@ func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
 
 	now := time.Now()
 	preferences := &models.UserPreferences{
-		UserID:                  userID,
-		SelectedInterests:       models.StringArray(req.SelectedInterests),
-		DifficultyPreference:    req.DifficultyPreference,
-		NotificationsEnabled:    req.NotificationsEnabled,
-		NotificationFrequency:   req.NotificationFrequency,
-		OnboardingCompletedAt:   &now,
-		ProfileVisibility:       true,  // Default values for new onboarding
-		ShowOnlineStatus:        true,
-		AllowFriendRequests:     true,
-		ShareActivityStatus:     true,
+		UserID:                userID,
+		SelectedInterests:     models.StringArray(req.SelectedInterests),
+		DifficultyPreference:  req.DifficultyPreference,
+		NotificationsEnabled:  req.NotificationsEnabled,
+		NotificationFrequency: req.NotificationFrequency,
+		OnboardingCompletedAt: &now,
+		ProfileVisibility:     true, // Default values for new onboarding
+		ShowOnlineStatus:      true,
+		AllowFriendRequests:   true,
+		ShareActivityStatus:   true,
 	}
 
 	// Check if preferences already exist
@@ -244,7 +244,7 @@ func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": preferences,
+		"data":    preferences,
 		"message": "Onboarding completed successfully",
 	})
 }

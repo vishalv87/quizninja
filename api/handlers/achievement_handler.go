@@ -306,13 +306,13 @@ func (ah *AchievementHandler) GetAchievementStats(c *gin.Context) {
 	}
 
 	stats := gin.H{
-		"total_achievements":              totalAchievements,
-		"unlocked_achievements":           unlockedAchievements,
-		"locked_achievements":             totalAchievements - unlockedAchievements,
-		"completion_percentage":           completionPercentage,
-		"total_points_from_achievements":  totalPointsFromAchievements,
-		"rare_achievements":               rareAchievements,
-		"achievements_by_category":        categoryStats,
+		"total_achievements":             totalAchievements,
+		"unlocked_achievements":          unlockedAchievements,
+		"locked_achievements":            totalAchievements - unlockedAchievements,
+		"completion_percentage":          completionPercentage,
+		"total_points_from_achievements": totalPointsFromAchievements,
+		"rare_achievements":              rareAchievements,
+		"achievements_by_category":       categoryStats,
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -367,11 +367,11 @@ func (ah *AchievementHandler) CheckAchievements(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":             "Achievement check completed",
-		"new_achievements":    newAchievements,
-		"notifications":       notifications,
-		"count":               len(newAchievements),
-		"trigger_type":        triggerType,
+		"message":          "Achievement check completed",
+		"new_achievements": newAchievements,
+		"notifications":    notifications,
+		"count":            len(newAchievements),
+		"trigger_type":     triggerType,
 	})
 }
 

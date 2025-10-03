@@ -47,7 +47,6 @@ type SupabaseAuthResponse struct {
 	TokenType    string       `json:"token_type"`
 }
 
-
 type SupabaseRefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -158,7 +157,6 @@ func ValidateSupabaseTokenHTTP(token, supabaseURL, anonKey string) (*SupabaseUse
 
 	return &user, nil
 }
-
 
 func RefreshSupabaseTokenHTTP(refreshToken, supabaseURL, anonKey string) (*SupabaseAuthResponse, *SupabaseAuthError) {
 	if refreshToken == "" || supabaseURL == "" || anonKey == "" {

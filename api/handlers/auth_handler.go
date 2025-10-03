@@ -182,7 +182,6 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-
 func (ah *AuthHandler) Logout(c *gin.Context) {
 	// Get user ID from auth middleware
 	userID, exists := c.Get("user_id")
@@ -327,13 +326,13 @@ func (ah *AuthHandler) GetUserStats(c *gin.Context) {
 func (ah *AuthHandler) createUserPreferences(user *models.User, preferencesReq *models.UserPreferencesRequest) {
 	now := time.Now()
 	preferences := &models.UserPreferences{
-		UserID:                  user.ID,
-		SelectedInterests:       models.StringArray(preferencesReq.SelectedInterests),
-		DifficultyPreference:    preferencesReq.DifficultyPreference,
-		NotificationsEnabled:    preferencesReq.NotificationsEnabled,
-		NotificationFrequency:   preferencesReq.NotificationFrequency,
-		OnboardingCompletedAt:   &now, // Mark onboarding as completed
-		IsTestData:              true,
+		UserID:                user.ID,
+		SelectedInterests:     models.StringArray(preferencesReq.SelectedInterests),
+		DifficultyPreference:  preferencesReq.DifficultyPreference,
+		NotificationsEnabled:  preferencesReq.NotificationsEnabled,
+		NotificationFrequency: preferencesReq.NotificationFrequency,
+		OnboardingCompletedAt: &now, // Mark onboarding as completed
+		IsTestData:            true,
 	}
 
 	if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {

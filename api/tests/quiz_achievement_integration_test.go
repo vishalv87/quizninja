@@ -589,7 +589,7 @@ func verifyAchievementAPIConsistency(t *testing.T, tc *TestConfig, token string,
 // Utility helper functions
 func containsString(text, substring string) bool {
 	return len(text) > 0 && len(substring) > 0 &&
-		   (text == substring || len(text) >= len(substring))
+		(text == substring || len(text) >= len(substring))
 }
 
 func getStringFromMap(m map[string]interface{}, key string) string {

@@ -78,8 +78,8 @@ func testFriendRequestNotificationFlow(t *testing.T, tc *TestConfig) {
 		var requestNotification models.Notification
 		for _, notification := range notifications.Notifications {
 			if notification.Type == "friend_request" &&
-			   notification.RelatedUserID != nil &&
-			   *notification.RelatedUserID == userAID {
+				notification.RelatedUserID != nil &&
+				*notification.RelatedUserID == userAID {
 				foundNotification = true
 				requestNotification = notification
 				break
@@ -129,8 +129,8 @@ func testFriendRequestNotificationFlow(t *testing.T, tc *TestConfig) {
 		foundAcceptanceNotification := false
 		for _, notification := range notifications.Notifications {
 			if notification.Type == "friend_accepted" &&
-			   notification.RelatedUserID != nil &&
-			   *notification.RelatedUserID == userBID {
+				notification.RelatedUserID != nil &&
+				*notification.RelatedUserID == userBID {
 				foundAcceptanceNotification = true
 				assert.Equal(t, userAID, notification.UserID, "Notification should belong to User A")
 				assert.Equal(t, "Friend Request Accepted", notification.Title, "Should have correct title")
@@ -175,8 +175,8 @@ func testChallengeNotificationFlow(t *testing.T, tc *TestConfig) {
 		var challengeNotification models.Notification
 		for _, notification := range notifications.Notifications {
 			if notification.Type == "challenge_received" &&
-			   notification.RelatedEntityID != nil &&
-			   notification.RelatedEntityID.String() == challengeID {
+				notification.RelatedEntityID != nil &&
+				notification.RelatedEntityID.String() == challengeID {
 				foundChallengeNotification = true
 				challengeNotification = notification
 				break
@@ -200,8 +200,8 @@ func testChallengeNotificationFlow(t *testing.T, tc *TestConfig) {
 		foundAcceptanceNotification := false
 		for _, notification := range challengerNotifications.Notifications {
 			if notification.Type == "challenge_accepted" &&
-			   notification.RelatedEntityID != nil &&
-			   notification.RelatedEntityID.String() == challengeID {
+				notification.RelatedEntityID != nil &&
+				notification.RelatedEntityID.String() == challengeID {
 				foundAcceptanceNotification = true
 				assert.Equal(t, challengerID, notification.UserID, "Notification should belong to challenger")
 				assert.Contains(t, *notification.Message, "accepted", "Should mention acceptance")
@@ -633,4 +633,3 @@ func getNotificationFromDB(t *testing.T, userID uuid.UUID, notificationType stri
 
 	return &notification
 }
-

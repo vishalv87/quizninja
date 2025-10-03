@@ -25,6 +25,7 @@ type Config struct {
 	UseSupabaseAuth    bool
 	SupabaseURL        string
 	SupabaseAnonKey    string
+	SupabaseServiceKey string // For admin operations and testing
 	SupabaseDBHost     string
 	SupabaseDBPort     string
 	SupabaseDBUser     string
@@ -33,8 +34,14 @@ type Config struct {
 }
 
 func Load() *Config {
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+	// Try loading .env from current directory first
+	err := godotenv.Load(".env")
+	if err != nil {
+		// If not found, try parent directory (for tests running from tests/ dir)
+		err = godotenv.Load("../.env")
+		if err != nil {
+			log.Println("No .env file found, using environment variables")
+		}
 	}
 
 	return &Config{
@@ -52,6 +59,7 @@ func Load() *Config {
 		UseSupabaseAuth:    getBoolEnv("USE_SUPABASE_AUTH", false),
 		SupabaseURL:        getEnv("SUPABASE_URL", ""),
 		SupabaseAnonKey:    getEnv("SUPABASE_ANON_KEY", ""),
+		SupabaseServiceKey: getEnv("SUPABASE_SERVICE_KEY", ""),
 		SupabaseDBHost:     getEnv("SUPABASE_DB_HOST", ""),
 		SupabaseDBPort:     getEnv("SUPABASE_DB_PORT", "5432"),
 		SupabaseDBUser:     getEnv("SUPABASE_DB_USER", ""),
