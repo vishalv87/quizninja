@@ -18,7 +18,7 @@ import (
 // This validates the entire user journey: Search → Request → Accept/Reject → Friendship → Notifications
 func TestFriendsWorkflowIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	t.Run("CompleteFriendWorkflow", func(t *testing.T) {
 		testCompleteFriendWorkflow(t, tc)
@@ -52,13 +52,10 @@ func TestFriendsWorkflowIntegration(t *testing.T) {
 // testCompleteFriendWorkflow tests the complete happy path friend workflow
 func testCompleteFriendWorkflow(t *testing.T, tc *TestConfig) {
 	// Step 1: Create two test users
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, tokenB := CreateTestUser(t, tc)
-
-	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
-	}()
+	userAID, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Workflow User A")
+	defer cleanupA()
+	userBID, tokenB, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Workflow User B")
+	defer cleanupB()
 
 	// Step 2: User A searches for User B
 	// First get User B's details to search for
@@ -321,13 +318,10 @@ func testCompleteFriendWorkflow(t *testing.T, tc *TestConfig) {
 // testFriendRequestRejectionFlow tests the friend request rejection workflow
 func testFriendRequestRejectionFlow(t *testing.T, tc *TestConfig) {
 	// Create two test users
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, tokenB := CreateTestUser(t, tc)
-
-	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
-	}()
+	userAID, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Rejection User A")
+	defer cleanupA()
+	userBID, tokenB, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Rejection User B")
+	defer cleanupB()
 
 	// Send friend request
 	requestID := createFriendRequest(t, tc, tokenA, userBID, "Let's be friends!")
@@ -386,13 +380,10 @@ func testFriendRequestRejectionFlow(t *testing.T, tc *TestConfig) {
 // testFriendRemovalFlow tests removing an existing friendship
 func testFriendRemovalFlow(t *testing.T, tc *TestConfig) {
 	// Create two test users and establish friendship
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, tokenB := CreateTestUser(t, tc)
-
-	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
-	}()
+	userAID, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Removal User A")
+	defer cleanupA()
+	userBID, tokenB, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Removal User B")
+	defer cleanupB()
 
 	// Establish friendship
 	requestID := createFriendRequest(t, tc, tokenA, userBID, "Let's be friends!")
@@ -430,13 +421,10 @@ func testFriendRemovalFlow(t *testing.T, tc *TestConfig) {
 // testDuplicateRequestPrevention tests prevention of duplicate friend requests
 func testDuplicateRequestPrevention(t *testing.T, tc *TestConfig) {
 	// Create two test users
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, _ := CreateTestUser(t, tc)
-
-	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
-	}()
+	_, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Duplicate User A")
+	defer cleanupA()
+	userBID, _, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Duplicate User B")
+	defer cleanupB()
 
 	// Send first friend request
 	createFriendRequest(t, tc, tokenA, userBID, "First request")
@@ -484,13 +472,10 @@ func testDuplicateRequestPrevention(t *testing.T, tc *TestConfig) {
 // testNotificationSystemIntegration tests the notification system thoroughly
 func testNotificationSystemIntegration(t *testing.T, tc *TestConfig) {
 	// Create two test users
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, tokenB := CreateTestUser(t, tc)
-
-	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
-	}()
+	_, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Notification User A")
+	defer cleanupA()
+	userBID, tokenB, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Notification User B")
+	defer cleanupB()
 
 	// Send friend request and accept to generate notifications
 	requestID := createFriendRequest(t, tc, tokenA, userBID, "Notification test")
@@ -519,13 +504,10 @@ func testNotificationSystemIntegration(t *testing.T, tc *TestConfig) {
 // testDatabaseTriggersValidation tests database triggers directly
 func testDatabaseTriggersValidation(t *testing.T, tc *TestConfig) {
 	// Create two test users
-	userAID, tokenA := CreateTestUser(t, tc)
-	userBID, tokenB := CreateTestUser(t, tc)
-
-	defer func() {
-		CleanupTestUser(userAID)
-		CleanupTestUser(userBID)
-	}()
+	userAID, tokenA, _, cleanupA := CreateTestUserWithCleanup(t, tc, "Trigger User A")
+	defer cleanupA()
+	userBID, tokenB, _, cleanupB := CreateTestUserWithCleanup(t, tc, "Trigger User B")
+	defer cleanupB()
 
 	// Test friendship creation trigger
 	requestID := createFriendRequest(t, tc, tokenA, userBID, "Trigger test")
@@ -555,9 +537,8 @@ func testDatabaseTriggersValidation(t *testing.T, tc *TestConfig) {
 // testEdgeCasesAndValidation tests various edge cases and validation scenarios
 func testEdgeCasesAndValidation(t *testing.T, tc *TestConfig) {
 	// Create test user
-	userAID, tokenA := CreateTestUser(t, tc)
-
-	defer CleanupTestUser(userAID)
+	userAID, tokenA, _, cleanup := CreateTestUserWithCleanup(t, tc, "Edge Case User")
+	defer cleanup()
 
 	// Test sending friend request to self
 	selfRequest := models.SendFriendRequestRequest{
@@ -669,7 +650,7 @@ func verifyNotificationExists(t *testing.T, userID uuid.UUID, notificationType s
 		return false
 	}
 
-	query := "SELECT COUNT(*) FROM friend_notifications WHERE user_id = $1 AND type = $2"
+	query := "SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND type = $2"
 	var count int
 	err := database.DB.QueryRow(query, userID, notificationType).Scan(&count)
 	if err != nil {

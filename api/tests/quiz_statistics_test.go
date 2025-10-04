@@ -10,7 +10,7 @@ import (
 
 func TestQuizStatisticsIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	userID, token := CreateTestUser(t, tc)
 

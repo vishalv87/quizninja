@@ -13,9 +13,10 @@ import (
 
 func TestPreferencesHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Preferences Test User")
+	defer cleanup()
 
 	t.Run("GetPreferences", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)

@@ -212,6 +212,13 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 
 	userID := getUserIDFromContext(c)
 
+	// Check if this is a test user to properly set IsTestData fields
+	isTestUser, err := h.repo.User.IsTestUser(userID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
 	// Check for existing active attempt
 	existingAttempt, err := h.repo.Quiz.GetActiveQuizAttempt(userID, quizID)
 	if err != nil {
@@ -325,7 +332,7 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		RetakeCount:           retakeCount,
 		OriginalAttemptID:     originalAttemptID,
 		PerformanceComparison: performanceComparison,
-		IsTestData:            true,
+		IsTestData:            isTestUser,
 	}
 
 	err = h.repo.Quiz.CreateQuizAttempt(attempt)
@@ -349,7 +356,7 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		LastActivityAt:       time.Now(),
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
-		IsTestData:           true,
+		IsTestData:           isTestUser,
 	}
 
 	err = h.repo.QuizSession.CreateSession(session)

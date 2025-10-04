@@ -171,7 +171,7 @@ func createPausedSessionForTest(t *testing.T, tc *TestConfig) (string, uuid.UUID
 
 func TestQuizSessionPauseFlow(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	// Setup: Create active session
 	token, _, quizID, attemptID := createActiveSessionForTest(t, tc)
@@ -243,7 +243,7 @@ func TestQuizSessionPauseFlow(t *testing.T) {
 
 func TestQuizSessionResumeFlow(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	// Setup: Create paused session
 	token, _, quizID, attemptID, sessionID := createPausedSessionForTest(t, tc)
@@ -290,7 +290,7 @@ func TestQuizSessionResumeFlow(t *testing.T) {
 
 func TestQuizSessionSaveProgressFlow(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	// Setup: Create active session
 	token, _, quizID, attemptID := createActiveSessionForTest(t, tc)
@@ -380,7 +380,7 @@ func TestQuizSessionSaveProgressFlow(t *testing.T) {
 
 func TestQuizSessionAbandonFlow(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	// Setup: Create active session
 	token, _, quizID, attemptID := createActiveSessionForTest(t, tc)
@@ -422,7 +422,7 @@ func TestQuizSessionAbandonFlow(t *testing.T) {
 
 func TestQuizSessionErrorScenarios(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	userID, token := CreateTestUser(t, tc)
 
@@ -513,7 +513,7 @@ func TestQuizSessionErrorScenarios(t *testing.T) {
 
 func TestQuizSessionPauseToResumeCompleteFlow(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	// Setup: Create active session
 	token, _, quizID, attemptID := createActiveSessionForTest(t, tc)

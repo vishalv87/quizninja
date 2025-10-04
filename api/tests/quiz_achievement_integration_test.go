@@ -18,10 +18,10 @@ import (
 // This validates the entire flow: Quiz Completion → Achievement Check → Database Updates → Notifications
 func TestQuizAchievementIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
-	defer CleanupTestUser(userID)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Quiz Achievement Test User")
+	defer cleanup()
 
 	t.Run("QuizCompletionTriggersAchievements", func(t *testing.T) {
 		testQuizToAchievementFlow(t, tc, userID, token)

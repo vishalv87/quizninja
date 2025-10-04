@@ -14,9 +14,14 @@ import (
 
 func TestFavoritesHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	// Create test user with comprehensive cleanup
+	userID, token, supabaseUserID, cleanup := CreateTestUserWithCleanup(t, tc, "Favorites Handler Test User")
+	defer cleanup()
+
+	// Suppress unused variable warning
+	_ = supabaseUserID
 
 	t.Run("GetUserFavorites", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/favorites", token, nil)

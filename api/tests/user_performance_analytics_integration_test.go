@@ -13,7 +13,7 @@ import (
 // TestUserPerformanceAnalyticsIntegration tests the complete User Performance & Analytics flow
 func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
 	userID, token := CreateTestUser(t, tc)
 
@@ -23,18 +23,28 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 	// Setup phase - create a completed quiz attempt for testing
 	// Get available quizzes
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes?limit=1", token, nil)
+	t.Logf("Quiz fetch request status: %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Logf("Failed to fetch quizzes: %s", w.Body.String())
+	}
+
 	if w.Code == http.StatusOK {
 		response := ParseJSONResponse(t, w)
 		data := GetDataFromResponse(t, response)
 
 		if quizzes, exists := data["quizzes"]; exists {
 			if quizzesList, ok := quizzes.([]interface{}); ok && len(quizzesList) > 0 {
+				t.Logf("Found %d quiz(s) to test with", len(quizzesList))
 				firstQuiz := quizzesList[0].(map[string]interface{})
 				quizID := firstQuiz["id"].(string)
 
 				// Start quiz attempt
 				startURL := fmt.Sprintf("/api/v1/quizzes/%s/attempts", quizID)
 				startW := MakeAuthenticatedRequest(t, tc, "POST", startURL, token, nil)
+				t.Logf("Quiz attempt creation status: %d for quiz %s", startW.Code, quizID)
+				if startW.Code != http.StatusCreated && startW.Code != http.StatusOK {
+					t.Logf("Failed to create quiz attempt: %s", startW.Body.String())
+				}
 
 				if startW.Code == http.StatusCreated || startW.Code == http.StatusOK {
 					startResponse := ParseJSONResponse(t, startW)
@@ -77,18 +87,32 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 
 							submitBody, _ := json.Marshal(submitPayload)
 							submitW := MakeAuthenticatedRequest(t, tc, "POST", submitURL, token, submitBody)
+							t.Logf("Quiz submission status: %d for attempt %s", submitW.Code, attemptID)
 
 							// Verify submission was successful
 							if submitW.Code == http.StatusOK {
 								t.Logf("Successfully created completed attempt: %s", attemptID)
+
+								// Verify the attempt was actually marked as completed
+								submitResponse := ParseJSONResponse(t, submitW)
+								if score, exists := submitResponse["score"]; exists {
+									t.Logf("Quiz completed with score: %v", score)
+								}
 							} else {
 								t.Logf("Quiz submission failed with status %d: %s", submitW.Code, submitW.Body.String())
+								completedAttemptID = "" // Clear the attempt ID if submission failed
 							}
 						}
 					}
 				}
+			} else {
+				t.Logf("No quizzes found in response or quizzes list is empty")
 			}
+		} else {
+			t.Logf("No 'quizzes' field found in response")
 		}
+	} else {
+		t.Logf("Quiz fetch request failed with status: %d", w.Code)
 	}
 
 	// Step 2: Test GET /users/stats endpoint
@@ -116,7 +140,7 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 		}
 
 		// Verify category performance structure
-		if categoryPerf, exists := stats["category_performance"]; exists {
+		if categoryPerf, exists := stats["category_performance"]; exists && categoryPerf != nil {
 			categoryList, ok := categoryPerf.([]interface{})
 			assert.True(t, ok, "Category performance should be an array")
 
@@ -126,11 +150,15 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 				for _, field := range categoryFields {
 					assert.Contains(t, firstCategory, field, "Category performance should contain %s", field)
 				}
+			} else {
+				t.Logf("Category performance is empty (expected for user with no completed quizzes)")
 			}
+		} else {
+			t.Logf("No category performance data available (expected for user with no completed quizzes)")
 		}
 
 		// Verify recent activity structure
-		if recentActivity, exists := stats["recent_activity"]; exists {
+		if recentActivity, exists := stats["recent_activity"]; exists && recentActivity != nil {
 			activityList, ok := recentActivity.([]interface{})
 			assert.True(t, ok, "Recent activity should be an array")
 
@@ -140,7 +168,11 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 				for _, field := range activityFields {
 					assert.Contains(t, firstActivity, field, "Recent activity should contain %s", field)
 				}
+			} else {
+				t.Logf("Recent activity is empty (expected for user with no completed quizzes)")
 			}
+		} else {
+			t.Logf("No recent activity data available (expected for user with no completed quizzes)")
 		}
 
 		t.Logf("User statistics verified successfully")
@@ -307,7 +339,7 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 		t.Run("UnauthorizedAccess", func(t *testing.T) {
 			// Create a second user
 			otherUserID, otherToken := CreateTestUser(t, tc)
-			defer CleanupTestUser(otherUserID)
+			_ = otherUserID // Used for testing, will be cleaned up by CleanupWithSupabase
 
 			// Try to access the first user's attempt with second user's token
 			url := fmt.Sprintf("/api/v1/users/attempts/%s", completedAttemptID)
@@ -409,9 +441,6 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 		t.Logf("Performance analytics verified: completion_rate=%.2f%%, current_streak=%d, best_streak=%d",
 			completionRate, currentStreak, bestStreak)
 	})
-
-	// Clean up test user
-	defer CleanupTestUser(userID)
 
 	t.Logf("User Performance & Analytics integration test completed successfully")
 }

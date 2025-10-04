@@ -10,9 +10,10 @@ import (
 
 func TestLeaderboardHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Leaderboard Test User")
+	defer cleanup()
 
 	t.Run("GetGlobalLeaderboard", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/leaderboard", token, nil)

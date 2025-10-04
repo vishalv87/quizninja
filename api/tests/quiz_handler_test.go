@@ -11,9 +11,10 @@ import (
 
 func TestQuizHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Quiz Handler Test User")
+	defer cleanup()
 
 	t.Run("GetQuizzes", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes", token, nil)

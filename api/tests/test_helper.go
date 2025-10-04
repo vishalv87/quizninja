@@ -266,11 +266,17 @@ func Cleanup(t *testing.T) {
 	}
 }
 
-// CleanupWithSupabase cleans up test resources including Supabase test users
+// CleanupWithSupabase cleans up test resources including Supabase test users and database test data
 func CleanupWithSupabase(t *testing.T, tc *TestConfig) {
+	// Clean up all test data from database tables first
+	CleanupAllTestData()
+
+	// Clean up Supabase auth users
 	if tc.AuthManager != nil {
 		tc.AuthManager.CleanupAllTestUsers()
 	}
+
+	// Close database connections
 	Cleanup(t)
 }
 
@@ -735,7 +741,32 @@ func CleanupAllTestData() {
 
 	fmt.Println("Starting comprehensive test data cleanup...")
 
-	// Clean up digest data first (since it has fewer dependencies)
+	// First clean up all test users and their associated data
+	var testUserIDs []uuid.UUID
+	rows, err := database.DB.Query("SELECT id FROM users WHERE is_test_data = true")
+	if err != nil {
+		fmt.Printf("Warning: Failed to query test users: %v\n", err)
+	} else {
+		defer rows.Close()
+		for rows.Next() {
+			var userID uuid.UUID
+			if err := rows.Scan(&userID); err != nil {
+				fmt.Printf("Warning: Failed to scan user ID: %v\n", err)
+				continue
+			}
+			testUserIDs = append(testUserIDs, userID)
+		}
+
+		// Clean up each test user and their data
+		for _, userID := range testUserIDs {
+			CleanupTestUser(userID)
+		}
+		if len(testUserIDs) > 0 {
+			fmt.Printf("Cleaned up %d test users and their associated data\n", len(testUserIDs))
+		}
+	}
+
+	// Clean up digest data (since it has fewer dependencies)
 	CleanupTestDigests()
 
 	// Clean up other test data that's not user-specific
@@ -748,6 +779,13 @@ func CleanupAllTestData() {
 		{"DELETE FROM interests WHERE is_test_data = true", "interests"},
 		{"DELETE FROM difficulty_levels WHERE is_test_data = true", "difficulty levels"},
 		{"DELETE FROM notification_frequencies WHERE is_test_data = true", "notification frequencies"},
+
+		// Quiz-related cleanup for any orphaned test data
+		{"DELETE FROM quiz_sessions WHERE is_test_data = true", "orphaned quiz sessions"},
+		{"DELETE FROM quiz_attempts WHERE is_test_data = true", "orphaned quiz attempts"},
+		{"DELETE FROM quiz_statistics WHERE is_test_data = true", "quiz statistics"},
+		{"DELETE FROM questions WHERE is_test_data = true", "questions"},
+		{"DELETE FROM quizzes WHERE is_test_data = true", "quizzes"},
 	}
 
 	for _, cleanup := range cleanupQueries {

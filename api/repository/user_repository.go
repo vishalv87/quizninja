@@ -812,3 +812,19 @@ func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, err
 
 	return users, nil
 }
+
+// IsTestUser checks if a user is marked as test data
+func (ur *UserRepository) IsTestUser(userID uuid.UUID) (bool, error) {
+	query := `SELECT is_test_data FROM users WHERE id = $1`
+
+	var isTestData bool
+	err := ur.db.QueryRow(query, userID).Scan(&isTestData)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, fmt.Errorf("user not found")
+		}
+		return false, fmt.Errorf("failed to check test user status: %w", err)
+	}
+
+	return isTestData, nil
+}

@@ -14,9 +14,10 @@ import (
 
 func TestFriendsHandler(t *testing.T) {
 	tc := SetupTestServer(t)
-	defer Cleanup(t)
+	defer CleanupWithSupabase(t, tc)
 
-	userID, token := CreateTestUser(t, tc)
+	userID, token, _, cleanup1 := CreateTestUserWithCleanup(t, tc, "Test User")
+	defer cleanup1()
 
 	t.Run("GetFriends", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/friends", token, nil)
@@ -149,7 +150,8 @@ func TestFriendsHandler(t *testing.T) {
 	// Test creating friend requests (this will test the full flow if we have multiple users)
 	t.Run("SendFriendRequest", func(t *testing.T) {
 		// Create a second test user to send a request to
-		secondUserID, _ := CreateTestUser(t, tc)
+		secondUserID, _, _, cleanup2 := CreateTestUserWithCleanup(t, tc, "Second Test User")
+		defer cleanup2()
 
 		sendReq := models.SendFriendRequestRequest{
 			RequestedUserID: secondUserID,
