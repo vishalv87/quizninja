@@ -28,6 +28,17 @@ func NewAuthHandler(config *config.Config) *AuthHandler {
 }
 
 func (ah *AuthHandler) Register(c *gin.Context) {
+	// Check for idempotency key
+	idempotencyKey := c.GetHeader("X-Idempotency-Key")
+	if idempotencyKey != "" {
+		store := utils.GetIdempotencyStore()
+		if cached, exists := store.Get(idempotencyKey); exists {
+			log.Printf("Returning cached response for idempotency key: %s", idempotencyKey)
+			c.JSON(cached.StatusCode, cached.ResponseBody)
+			return
+		}
+	}
+
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -105,6 +116,13 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 	response := models.AuthResponse{
 		User:    *user,
 		Message: "User profile created successfully",
+	}
+
+	// Cache the response for idempotency
+	if idempotencyKey != "" {
+		store := utils.GetIdempotencyStore()
+		store.Set(idempotencyKey, http.StatusCreated, response)
+		log.Printf("Cached registration response for idempotency key: %s", idempotencyKey)
 	}
 
 	c.JSON(http.StatusCreated, response)

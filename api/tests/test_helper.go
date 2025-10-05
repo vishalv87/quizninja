@@ -189,6 +189,11 @@ func CreateTestUserWithCleanup(t *testing.T, tc *TestConfig, name string) (uuid.
 
 // MakeAuthenticatedRequest makes an HTTP request with authentication
 func MakeAuthenticatedRequest(t *testing.T, tc *TestConfig, method, path, token string, body []byte) *httptest.ResponseRecorder {
+	return MakeRequestWithHeaders(t, tc, method, path, token, body, nil)
+}
+
+// MakeRequestWithHeaders makes an HTTP request with custom headers
+func MakeRequestWithHeaders(t *testing.T, tc *TestConfig, method, path, token string, body []byte, customHeaders map[string]string) *httptest.ResponseRecorder {
 	var req *http.Request
 	if body != nil {
 		req = httptest.NewRequest(method, path, bytes.NewReader(body))
@@ -199,6 +204,11 @@ func MakeAuthenticatedRequest(t *testing.T, tc *TestConfig, method, path, token 
 
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	// Add custom headers
+	for key, value := range customHeaders {
+		req.Header.Set(key, value)
 	}
 
 	w := httptest.NewRecorder()
