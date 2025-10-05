@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -22,7 +23,6 @@ type Config struct {
 
 	// Supabase configuration
 	UseSupabase        bool
-	UseSupabaseAuth    bool
 	SupabaseURL        string
 	SupabaseAnonKey    string
 	SupabaseServiceKey string // For admin operations and testing
@@ -31,17 +31,37 @@ type Config struct {
 	SupabaseDBUser     string
 	SupabaseDBPassword string
 	SupabaseDBName     string
+
+	// Test configuration
+	UseMockAuth bool // Use mock auth manager for tests instead of real Supabase
 }
 
 func Load() *Config {
-	// Try loading .env from current directory first
-	err := godotenv.Load(".env")
-	if err != nil {
-		// If not found, try parent directory (for tests running from tests/ dir)
-		err = godotenv.Load("../.env")
+	// Detect if we're running tests
+	isTestEnv := isTestEnvironment()
+
+	if isTestEnv {
+		// Load test configuration - no fallback
+		err := godotenv.Load(".env.test")
 		if err != nil {
-			log.Println("No .env file found, using environment variables")
+			// Try from parent directory (for tests running from tests/ dir)
+			err = godotenv.Load("../.env.test")
+			if err != nil {
+				log.Println("Warning: No .env.test file found, using environment variables for tests")
+			}
 		}
+		log.Println("Loaded test environment configuration (.env.test)")
+	} else {
+		// Load production/development configuration
+		err := godotenv.Load(".env")
+		if err != nil {
+			// If not found, try parent directory
+			err = godotenv.Load("../.env")
+			if err != nil {
+				log.Println("No .env file found, using environment variables")
+			}
+		}
+		log.Println("Loaded development/production environment configuration (.env)")
 	}
 
 	return &Config{
@@ -56,7 +76,6 @@ func Load() *Config {
 
 		// Supabase configuration
 		UseSupabase:        getBoolEnv("USE_SUPABASE", false),
-		UseSupabaseAuth:    getBoolEnv("USE_SUPABASE_AUTH", false),
 		SupabaseURL:        getEnv("SUPABASE_URL", ""),
 		SupabaseAnonKey:    getEnv("SUPABASE_ANON_KEY", ""),
 		SupabaseServiceKey: getEnv("SUPABASE_SERVICE_KEY", ""),
@@ -65,7 +84,37 @@ func Load() *Config {
 		SupabaseDBUser:     getEnv("SUPABASE_DB_USER", ""),
 		SupabaseDBPassword: getEnv("SUPABASE_DB_PASSWORD", ""),
 		SupabaseDBName:     getEnv("SUPABASE_DB_NAME", ""),
+
+		// Test configuration
+		UseMockAuth: getBoolEnv("USE_MOCK_AUTH", false),
 	}
+}
+
+// isTestEnvironment detects if we're running in test mode
+func isTestEnvironment() bool {
+	// Check if we're running with go test
+	if flag.Lookup("test.v") != nil {
+		return true
+	}
+
+	// Check if the executable name contains ".test"
+	if strings.Contains(os.Args[0], ".test") {
+		return true
+	}
+
+	// Check GO_ENV environment variable
+	if os.Getenv("GO_ENV") == "test" {
+		return true
+	}
+
+	// Check if any test-related flags are set
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "-test.") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func getEnv(key, defaultValue string) string {
@@ -93,20 +142,21 @@ func getBoolEnv(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
-// ValidateSupabaseConfig validates Supabase configuration when enabled
+// ValidateSupabaseConfig validates Supabase configuration for authentication
 func (c *Config) ValidateSupabaseConfig() error {
-	if !c.UseSupabaseAuth {
-		return nil // No validation needed when disabled
+	// Skip validation if using mock auth for testing
+	if c.UseMockAuth {
+		return nil
 	}
 
 	var errors []string
 
 	if c.SupabaseURL == "" {
-		errors = append(errors, "SUPABASE_URL is required when USE_SUPABASE_AUTH=true")
+		errors = append(errors, "SUPABASE_URL is required for authentication (unless USE_MOCK_AUTH=true)")
 	}
 
 	if c.SupabaseAnonKey == "" {
-		errors = append(errors, "SUPABASE_ANON_KEY is required when USE_SUPABASE_AUTH=true")
+		errors = append(errors, "SUPABASE_ANON_KEY is required for authentication (unless USE_MOCK_AUTH=true)")
 	}
 
 	if len(errors) > 0 {
@@ -118,8 +168,8 @@ func (c *Config) ValidateSupabaseConfig() error {
 
 // GetAuthStrategy returns the current authentication strategy
 func (c *Config) GetAuthStrategy() string {
-	if c.UseSupabaseAuth {
-		return "supabase-only"
+	if c.UseMockAuth {
+		return "mock-auth"
 	}
 	return "supabase-only"
 }
@@ -129,9 +179,9 @@ func (c *Config) IsSupabaseEnabled() bool {
 	return c.UseSupabase
 }
 
-// IsSupabaseAuthEnabled returns true if Supabase authentication is enabled
-func (c *Config) IsSupabaseAuthEnabled() bool {
-	return c.UseSupabaseAuth
+// IsMockAuthEnabled returns true if mock authentication is enabled for testing
+func (c *Config) IsMockAuthEnabled() bool {
+	return c.UseMockAuth
 }
 
 // ValidateConfig validates the entire configuration

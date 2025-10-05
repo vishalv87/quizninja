@@ -212,10 +212,18 @@ func (m *SupabaseTestAuthManager) CreateUniqueTestUser(namePrefix string) (*Supa
 
 // ValidateTestToken validates that a test token is still valid
 func (m *SupabaseTestAuthManager) ValidateTestToken(token string) (*SupabaseUser, error) {
-	return ValidateSupabaseTokenHTTP(token, m.supabaseURL, m.anonKey)
+	user, supabaseErr := ValidateSupabaseTokenHTTP(token, m.supabaseURL, m.anonKey)
+	if supabaseErr != nil {
+		return nil, supabaseErr // SupabaseAuthError implements error interface
+	}
+	return user, nil
 }
 
 // RefreshTestToken refreshes a test user's token
 func (m *SupabaseTestAuthManager) RefreshTestToken(refreshToken string) (*SupabaseAuthResponse, error) {
-	return RefreshSupabaseTokenHTTP(refreshToken, m.supabaseURL, m.anonKey)
+	authResp, supabaseErr := RefreshSupabaseTokenHTTP(refreshToken, m.supabaseURL, m.anonKey)
+	if supabaseErr != nil {
+		return nil, supabaseErr // SupabaseAuthError implements error interface
+	}
+	return authResp, nil
 }

@@ -34,45 +34,30 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		token := tokenParts[1]
 
-		// PRIMARY: Try Supabase Auth first (if enabled)
-		if cfg.UseSupabaseAuth {
-			user, err := utils.ValidateSupabaseTokenHTTP(token, cfg.SupabaseURL, cfg.SupabaseAnonKey)
-			if err == nil {
-				// SUCCESS: Supabase auth worked - now lookup database user ID
-				supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(user.ID)
-				if parseErr != nil {
-					log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
-					c.JSON(http.StatusUnauthorized, gin.H{
-						"error": "Invalid Supabase user ID format",
-					})
-					c.Abort()
-					return
-				}
+		var user *utils.SupabaseUser
+		var err error
 
-				// Look up the database user by Supabase ID
-				userRepo := repository.NewUserRepository()
-				dbUser, err := userRepo.GetUserBySupabaseID(supabaseUserID.String())
-				if err != nil {
-					log.Printf("Failed to find database user by Supabase ID %s: %v", supabaseUserID, err)
-					c.JSON(http.StatusUnauthorized, gin.H{
-						"error": "User not found in database",
-					})
-					c.Abort()
-					return
-				}
-
-				// Set the database user ID (not Supabase ID) in context
-				c.Set("user_id", dbUser.ID)
-				c.Set("auth_method", "supabase")
-				c.Set("supabase_user", user)
-				c.Next()
+		// Check if we should use mock auth for testing
+		if cfg.IsMockAuthEnabled() {
+			// Use mock token validation
+			user, err = utils.ValidateMockJWT(token, utils.DefaultMockJWTConfig)
+			if err != nil {
+				log.Printf("Mock auth failed: %v", err)
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": "Authentication failed - invalid or expired mock token",
+				})
+				c.Abort()
 				return
-			} else {
-				// When Supabase auth is enabled, don't fallback to JWT - return error
-				if !utils.IsSupabaseErrorRetryable(err) {
-					log.Printf("Supabase auth failed (non-retryable): %v", err)
+			}
+		} else {
+			// Use real Supabase validation
+			var supabaseErr *utils.SupabaseAuthError
+			user, supabaseErr = utils.ValidateSupabaseTokenHTTP(token, cfg.SupabaseURL, cfg.SupabaseAnonKey)
+			if supabaseErr != nil {
+				if !utils.IsSupabaseErrorRetryable(supabaseErr) {
+					log.Printf("Supabase auth failed (non-retryable): %v", supabaseErr)
 				} else {
-					log.Printf("Supabase auth failed (retryable): %v", err)
+					log.Printf("Supabase auth failed (retryable): %v", supabaseErr)
 				}
 
 				c.JSON(http.StatusUnauthorized, gin.H{
@@ -83,11 +68,37 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			}
 		}
 
-		// No JWT fallback - Supabase auth is required
-		c.JSON(http.StatusUnauthorized, gin.H{
-			"error": "Supabase authentication is required",
-		})
-		c.Abort()
-		return
+		// SUCCESS: Auth worked - now lookup database user ID
+		supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(user.ID)
+		if parseErr != nil {
+			log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid Supabase user ID format",
+			})
+			c.Abort()
+			return
+		}
+
+		// Look up the database user by Supabase ID
+		userRepo := repository.NewUserRepository()
+		dbUser, err := userRepo.GetUserBySupabaseID(supabaseUserID.String())
+		if err != nil {
+			log.Printf("Failed to find database user by Supabase ID %s: %v", supabaseUserID, err)
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "User not found in database",
+			})
+			c.Abort()
+			return
+		}
+
+		// Set the database user ID (not Supabase ID) in context
+		c.Set("user_id", dbUser.ID)
+		if cfg.IsMockAuthEnabled() {
+			c.Set("auth_method", "mock")
+		} else {
+			c.Set("auth_method", "supabase")
+		}
+		c.Set("supabase_user", user)
+		c.Next()
 	}
 }

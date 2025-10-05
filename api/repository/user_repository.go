@@ -132,7 +132,7 @@ func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferen
 	`
 	// Handle JSONB field properly - marshal to JSON bytes
 	var notificationTypesData map[string]interface{}
-	if preferences.NotificationTypes != nil && len(preferences.NotificationTypes) > 0 {
+	if len(preferences.NotificationTypes) > 0 {
 		notificationTypesData = preferences.NotificationTypes
 	} else {
 		notificationTypesData = map[string]interface{}{
@@ -229,7 +229,7 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 	`
 	// Handle JSONB field properly - marshal to JSON bytes
 	var notificationTypesData map[string]interface{}
-	if preferences.NotificationTypes != nil && len(preferences.NotificationTypes) > 0 {
+	if len(preferences.NotificationTypes) > 0 {
 		notificationTypesData = preferences.NotificationTypes
 	} else {
 		// Use default notification types if nil or empty

@@ -25,7 +25,7 @@ import (
 type TestConfig struct {
 	Server      *gin.Engine
 	Config      *config.Config
-	AuthManager *utils.SupabaseTestAuthManager
+	AuthManager utils.TestAuthManager // Use interface to support both real and mock
 }
 
 // SetupTestServer initializes the test server with real database connection
@@ -43,23 +43,38 @@ func SetupTestServer(t *testing.T) *TestConfig {
 	server := gin.New()
 	routes.SetupRoutes(server, cfg)
 
-	// Initialize Supabase test auth manager - REQUIRED for integration tests
-	if cfg.SupabaseURL == "" || cfg.SupabaseServiceKey == "" || cfg.SupabaseAnonKey == "" {
-		t.Fatalf(`
-Integration tests require real Supabase configuration. Please set:
+	// Initialize auth manager based on configuration
+	var authManager utils.TestAuthManager
+
+	if cfg.IsMockAuthEnabled() {
+		// Use mock auth manager for testing
+		authManager = utils.NewMockSupabaseTestAuthManager()
+		t.Logf("Using mock authentication for tests")
+	} else {
+		// Use real Supabase auth manager - REQUIRED for integration tests
+		if cfg.SupabaseURL == "" || cfg.SupabaseServiceKey == "" || cfg.SupabaseAnonKey == "" {
+			t.Fatalf(`
+Integration tests require real Supabase configuration or mock auth. Please set either:
+
+For Real Supabase:
 - SUPABASE_URL=https://your-project.supabase.co
 - SUPABASE_SERVICE_KEY=your-service-key
 - SUPABASE_ANON_KEY=your-anon-key
-- USE_SUPABASE_AUTH=true
 
-These tests create real Supabase users and use real authentication tokens.`)
+For Mock Auth (recommended for development):
+- USE_MOCK_AUTH=true
+- USE_SUPABASE=false (to use local database)
+
+Mock auth creates fake tokens locally without requiring Supabase connection.`)
+		}
+
+		authManager = utils.NewSupabaseTestAuthManager(
+			cfg.SupabaseURL,
+			cfg.SupabaseServiceKey,
+			cfg.SupabaseAnonKey,
+		)
+		t.Logf("Using real Supabase authentication for tests")
 	}
-
-	authManager := utils.NewSupabaseTestAuthManager(
-		cfg.SupabaseURL,
-		cfg.SupabaseServiceKey,
-		cfg.SupabaseAnonKey,
-	)
 
 	return &TestConfig{
 		Server:      server,
@@ -691,14 +706,14 @@ func CleanupTestUser(userID uuid.UUID) {
 }
 
 // CleanupTestUserWithSupabase deletes both Supabase auth user and database records
-func CleanupTestUserWithSupabase(userID uuid.UUID, supabaseUserID string, authManager *utils.SupabaseTestAuthManager) {
+func CleanupTestUserWithSupabase(userID uuid.UUID, supabaseUserID string, authManager utils.TestAuthManager) {
 	// First cleanup database records
 	CleanupTestUser(userID)
 
-	// Then cleanup Supabase auth user
+	// Then cleanup auth user (works for both real and mock)
 	if authManager != nil && supabaseUserID != "" {
 		if err := authManager.CleanupTestUser(supabaseUserID); err != nil {
-			fmt.Printf("Warning: Failed to cleanup Supabase user %s: %v\n", supabaseUserID, err)
+			fmt.Printf("Warning: Failed to cleanup auth user %s: %v\n", supabaseUserID, err)
 		}
 	}
 }

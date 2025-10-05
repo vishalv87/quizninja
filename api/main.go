@@ -21,11 +21,6 @@ func main() {
 
 	// Log authentication strategy
 	log.Printf("Authentication strategy: %s", cfg.GetAuthStrategy())
-	if cfg.IsSupabaseAuthEnabled() {
-		log.Printf("Supabase Auth enabled - no JWT fallback (strict mode)")
-	} else {
-		log.Printf("JWT-only authentication enabled")
-	}
 
 	gin.SetMode(cfg.GinMode)
 
