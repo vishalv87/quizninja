@@ -108,7 +108,6 @@ func createSupabaseTestUser(t *testing.T, tc *TestConfig, name string) (uuid.UUI
 		SupabaseUserID: supabaseUser.ID,
 		Email:          supabaseUser.Email,
 		Name:           name,
-		Age:            intPtr(25),
 	}
 
 	reqBody, _ := json.Marshal(registerReq)
@@ -151,7 +150,6 @@ func CreateTestUserWithCleanup(t *testing.T, tc *TestConfig, name string) (uuid.
 		SupabaseUserID: supabaseUser.ID,
 		Email:          supabaseUser.Email,
 		Name:           name,
-		Age:            intPtr(25),
 	}
 
 	reqBody, _ := json.Marshal(registerReq)

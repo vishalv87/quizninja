@@ -89,7 +89,6 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 		ID:             supabaseUserID,
 		Email:          req.Email,
 		Name:           req.Name,
-		Age:            req.Age,
 		AvatarURL:      req.AvatarURL,
 		IsTestData:     true,
 		AuthMethod:     "supabase",
@@ -289,9 +288,6 @@ func (ah *AuthHandler) UpdateProfile(c *gin.Context) {
 	}
 	if req.Email != nil {
 		currentUser.Email = *req.Email
-	}
-	if req.Age != nil {
-		currentUser.Age = req.Age
 	}
 	if req.AvatarURL != nil {
 		currentUser.AvatarURL = req.AvatarURL

@@ -15,7 +15,6 @@ type User struct {
 	Email                 string    `json:"email" db:"email"`
 	PasswordHash          string    `json:"-" db:"password_hash"`
 	Name                  string    `json:"name" db:"name"`
-	Age                   *int      `json:"age,omitempty" db:"age"`
 	Level                 string    `json:"level" db:"level"`
 	TotalPoints           int       `json:"total_points" db:"total_points"`
 	CurrentStreak         int       `json:"current_streak" db:"current_streak"`
@@ -80,7 +79,6 @@ type RegisterRequest struct {
 	SupabaseUserID string                  `json:"supabase_user_id" binding:"required"`
 	Email          string                  `json:"email" binding:"required,email"`
 	Name           string                  `json:"name" binding:"required"`
-	Age            *int                    `json:"age,omitempty"`
 	Preferences    *UserPreferencesRequest `json:"preferences,omitempty"`
 
 	// Optional: additional user metadata
@@ -112,7 +110,6 @@ type AuthResponse struct {
 type UpdateProfileRequest struct {
 	Name      *string `json:"name,omitempty" binding:"omitempty,min=1,max=100"`
 	Email     *string `json:"email,omitempty" binding:"omitempty,email"`
-	Age       *int    `json:"age,omitempty" binding:"omitempty,min=13,max=120"`
 	AvatarURL *string `json:"avatar_url,omitempty"`
 }
 

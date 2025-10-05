@@ -26,8 +26,8 @@ func NewUserRepository() *UserRepository {
 
 func (ur *UserRepository) CreateUser(user *models.User) error {
 	query := `
-		INSERT INTO users (email, password_hash, name, age, is_test_data, auth_method, supabase_id, last_auth_method)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO users (email, password_hash, name, is_test_data, auth_method, supabase_id, last_auth_method)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, created_at, updated_at, level, total_points, current_streak,
 		          best_streak, total_quizzes_completed, average_score, is_online, last_active, is_test_data,
 		          auth_method, supabase_id, last_auth_method, migrated_at
@@ -41,7 +41,7 @@ func (ur *UserRepository) CreateUser(user *models.User) error {
 		user.LastAuthMethod = user.AuthMethod
 	}
 
-	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.Age, user.IsTestData,
+	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.IsTestData,
 		user.AuthMethod, user.SupabaseID, user.LastAuthMethod).Scan(
 		&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Level, &user.TotalPoints,
 		&user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
@@ -54,7 +54,7 @@ func (ur *UserRepository) CreateUser(user *models.User) error {
 func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
 		       last_active, avatar_url, created_at, updated_at, is_test_data,
 		       auth_method, supabase_id, last_auth_method, migrated_at
@@ -62,7 +62,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 		WHERE email = $1
 	`
 	err := ur.db.QueryRow(query, email).Scan(
-		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
@@ -77,7 +77,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
 		       last_active, avatar_url, created_at, updated_at, is_test_data,
 		       auth_method, supabase_id, last_auth_method, migrated_at
@@ -85,7 +85,7 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 		WHERE id = $1
 	`
 	err := ur.db.QueryRow(query, id).Scan(
-		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
@@ -101,12 +101,12 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 func (ur *UserRepository) UpdateUser(user *models.User) error {
 	query := `
 		UPDATE users SET
-			email = $2, name = $3, age = $4, level = $5, total_points = $6,
-			current_streak = $7, best_streak = $8, total_quizzes_completed = $9,
-			average_score = $10, is_online = $11, last_active = $12, avatar_url = $13
+			email = $2, name = $3, level = $4, total_points = $5,
+			current_streak = $6, best_streak = $7, total_quizzes_completed = $8,
+			average_score = $9, is_online = $10, last_active = $11, avatar_url = $12
 		WHERE id = $1
 	`
-	_, err := ur.db.Exec(query, user.ID, user.Email, user.Name, user.Age, user.Level,
+	_, err := ur.db.Exec(query, user.ID, user.Email, user.Name, user.Level,
 		user.TotalPoints, user.CurrentStreak, user.BestStreak, user.TotalQuizzesCompleted,
 		user.AverageScore, user.IsOnline, user.LastActive, user.AvatarURL)
 	return err
@@ -638,7 +638,7 @@ func (ur *UserRepository) getMonthlyProgress(userID uuid.UUID) ([]models.Monthly
 func (ur *UserRepository) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 	user := &models.User{}
 	query := `
-		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
 		       last_active, avatar_url, created_at, updated_at, is_test_data,
 		       auth_method, supabase_id, last_auth_method, migrated_at
@@ -646,7 +646,7 @@ func (ur *UserRepository) GetUserBySupabaseID(supabaseID string) (*models.User, 
 		WHERE supabase_id = $1
 	`
 	err := ur.db.QueryRow(query, supabaseID).Scan(
-		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
@@ -712,7 +712,7 @@ func (ur *UserRepository) UpdateUserAuthMethod(userID uuid.UUID, authMethod stri
 // GetUsersByAuthMethod retrieves users by their authentication method
 func (ur *UserRepository) GetUsersByAuthMethod(authMethod string, limit int) ([]*models.User, error) {
 	query := `
-		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
 		       last_active, avatar_url, created_at, updated_at, is_test_data,
 		       auth_method, supabase_id, last_auth_method, migrated_at
@@ -732,7 +732,7 @@ func (ur *UserRepository) GetUsersByAuthMethod(authMethod string, limit int) ([]
 	for rows.Next() {
 		user := &models.User{}
 		err := rows.Scan(
-			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 			&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 			&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 			&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
@@ -778,7 +778,7 @@ func (ur *UserRepository) GetAuthMethodStats() (map[string]int, error) {
 // GetMigrationCandidates returns users who could be migrated to Supabase
 func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, error) {
 	query := `
-		SELECT id, email, password_hash, name, age, level, total_points, current_streak,
+		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
 		       last_active, avatar_url, created_at, updated_at, is_test_data,
 		       auth_method, supabase_id, last_auth_method, migrated_at
@@ -798,7 +798,7 @@ func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, err
 	for rows.Next() {
 		user := &models.User{}
 		err := rows.Scan(
-			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Age, &user.Level,
+			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 			&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 			&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
 			&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,

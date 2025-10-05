@@ -21,7 +21,6 @@ func TestAuthHandler(t *testing.T) {
 			SupabaseUserID: uuid.New().String(),
 			Email:          fmt.Sprintf("testregister_%s@example.com", uuid.New().String()[:8]),
 			Name:           "Test Register User",
-			Age:            intPtr(25),
 		}
 
 		reqBody, _ := json.Marshal(registerReq)
@@ -75,7 +74,6 @@ func TestAuthHandler(t *testing.T) {
 			SupabaseUserID: loginReq.SupabaseUserID,
 			Email:          loginReq.Email,
 			Name:           "Test Login User",
-			Age:            intPtr(25),
 		}
 
 		reqBody, _ := json.Marshal(registerReq)
@@ -137,7 +135,6 @@ func TestAuthHandler(t *testing.T) {
 	t.Run("UpdateProfile", func(t *testing.T) {
 		updateReq := models.UpdateProfileRequest{
 			Name: stringPtr("Updated Test User"),
-			Age:  intPtr(30),
 		}
 
 		reqBody, _ := json.Marshal(updateReq)
@@ -213,7 +210,6 @@ func TestAuthHandler(t *testing.T) {
 			SupabaseUserID: uuid.New().String(),
 			Email:          fmt.Sprintf("testidempotency_%s@example.com", uuid.New().String()[:8]),
 			Name:           "Test Idempotency User",
-			Age:            intPtr(28),
 		}
 
 		reqBody, _ := json.Marshal(registerReq)
@@ -244,7 +240,6 @@ func TestAuthHandler(t *testing.T) {
 			SupabaseUserID: uuid.New().String(),
 			Email:          fmt.Sprintf("testidempdup_%s@example.com", uuid.New().String()[:8]),
 			Name:           "Test Idempotency Duplicate User",
-			Age:            intPtr(30),
 		}
 
 		reqBody, _ := json.Marshal(registerReq)
@@ -285,14 +280,12 @@ func TestAuthHandler(t *testing.T) {
 			SupabaseUserID: uuid.New().String(),
 			Email:          baseEmail + "_1@example.com",
 			Name:           "Test Idempotency User 1",
-			Age:            intPtr(25),
 		}
 
 		registerReq2 := models.RegisterRequest{
 			SupabaseUserID: uuid.New().String(),
 			Email:          baseEmail + "_2@example.com",
 			Name:           "Test Idempotency User 2",
-			Age:            intPtr(26),
 		}
 
 		// First request with key1
@@ -332,7 +325,6 @@ func TestAuthHandler(t *testing.T) {
 			SupabaseUserID: uuid.New().String(),
 			Email:          fmt.Sprintf("testnoidempkey_%s@example.com", uuid.New().String()[:8]),
 			Name:           "Test No Idempotency Key User",
-			Age:            intPtr(27),
 		}
 
 		reqBody, _ := json.Marshal(registerReq)

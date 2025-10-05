@@ -563,7 +563,6 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 		SupabaseUserID: testUser.ID,
 		Email:          testUser.Email,
 		Name:           "Test Registration Preferences User",
-		Age:            intPtr(30),
 		Preferences: &models.UserPreferencesRequest{
 			SelectedInterests:     []string{"technology", "science"},
 			DifficultyPreference:  "Easy",
