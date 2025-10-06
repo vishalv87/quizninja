@@ -105,9 +105,23 @@ func (r *QuizRepository) GetQuizzes(filters *models.QuizFilters) ([]models.Quiz,
 	argIndex := 1
 
 	if filters.Category != "" {
-		whereClause += fmt.Sprintf(" AND category_id = $%d", argIndex)
-		args = append(args, filters.Category)
-		argIndex++
+		// Support multiple categories separated by comma
+		categories := strings.Split(filters.Category, ",")
+		for i := range categories {
+			categories[i] = strings.TrimSpace(categories[i])
+		}
+
+		if len(categories) == 1 {
+			// Single category
+			whereClause += fmt.Sprintf(" AND category_id = $%d", argIndex)
+			args = append(args, categories[0])
+			argIndex++
+		} else {
+			// Multiple categories - use IN clause
+			whereClause += fmt.Sprintf(" AND category_id = ANY($%d)", argIndex)
+			args = append(args, pq.Array(categories))
+			argIndex++
+		}
 	}
 
 	if filters.Difficulty != "" {

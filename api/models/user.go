@@ -345,7 +345,7 @@ type QuizDetailResponse struct {
 }
 
 type QuizFilters struct {
-	Category   string `form:"category"`
+	Category   string `form:"category"`   // Comma-separated category IDs for multiple category filtering
 	Difficulty string `form:"difficulty" binding:"omitempty,oneof=Easy Medium Hard"`
 	Featured   *bool  `form:"featured"`
 	Tags       string `form:"tags"`
