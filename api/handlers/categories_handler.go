@@ -37,3 +37,20 @@ func (ch *CategoriesHandler) GetCategories(c *gin.Context) {
 		},
 	})
 }
+
+func (ch *CategoriesHandler) GetInterests(c *gin.Context) {
+	interests, err := ch.categoriesRepo.GetAllInterests()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch interests",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": interests,
+		"meta": gin.H{
+			"total": len(interests),
+		},
+	})
+}

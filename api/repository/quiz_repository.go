@@ -105,7 +105,7 @@ func (r *QuizRepository) GetQuizzes(filters *models.QuizFilters) ([]models.Quiz,
 	argIndex := 1
 
 	if filters.Category != "" {
-		whereClause += fmt.Sprintf(" AND category = $%d", argIndex)
+		whereClause += fmt.Sprintf(" AND category_id = $%d", argIndex)
 		args = append(args, filters.Category)
 		argIndex++
 	}

@@ -18,6 +18,52 @@ func NewCategoriesRepository() *CategoriesRepository {
 	}
 }
 
+// GetAllInterests returns a simple flat list of all interests
+func (cr *CategoriesRepository) GetAllInterests() ([]models.Interest, error) {
+	query := `
+		SELECT id, name, description,
+		       CONCAT('/icons/', COALESCE(icon_name, 'default'), '.png') as icon_url,
+		       created_at, updated_at, is_test_data
+		FROM interests
+		ORDER BY name ASC
+	`
+
+	rows, err := cr.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var interests []models.Interest
+	for rows.Next() {
+		var interest models.Interest
+		err := rows.Scan(
+			&interest.ID,
+			&interest.Name,
+			&interest.Description,
+			&interest.IconURL,
+			&interest.CreatedAt,
+			&interest.UpdatedAt,
+			&interest.IsTestData,
+		)
+		if err != nil {
+			continue
+		}
+
+		// Set computed fields
+		interest.DisplayName = toDisplayName(interest.Name)
+		interest.IsActive = true
+
+		interests = append(interests, interest)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return interests, nil
+}
+
 func (cr *CategoriesRepository) GetAllCategories() ([]models.Category, error) {
 	// Query to get all interests from the database
 	// Note: is_test_data field is only used for test isolation, not production filtering

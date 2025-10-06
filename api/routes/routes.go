@@ -50,6 +50,12 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 			quizzes.GET("/categories", categoriesHandler.GetCategories)
 		}
 
+		// Interests endpoint for simple flat list
+		interests := api.Group("/interests")
+		{
+			interests.GET("", categoriesHandler.GetInterests)
+		}
+
 		config := api.Group("/config")
 		{
 			config.GET("/app-settings", appSettingsHandler.GetAppSettings)
