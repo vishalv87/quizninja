@@ -45,30 +45,30 @@ func assertCategoryStructure(t *testing.T, category map[string]interface{}) {
 	assert.Contains(t, category, "name", "Category should have 'name' field")
 	assert.Contains(t, category, "display_name", "Category should have 'display_name' field")
 	assert.Contains(t, category, "description", "Category should have 'description' field")
-	assert.Contains(t, category, "interests", "Category should have 'interests' field")
+	assert.Contains(t, category, "categories", "Category should have 'categories' field")
 
-	// Verify interests array
-	interests, ok := category["interests"].([]interface{})
-	assert.True(t, ok, "Interests should be an array")
-	assert.Greater(t, len(interests), 0, "Category should have at least one interest")
+	// Verify categories array
+	categories, ok := category["categories"].([]interface{})
+	assert.True(t, ok, "Categories should be an array")
+	assert.Greater(t, len(categories), 0, "Category should have at least one category")
 
-	// Verify each interest has required fields
-	for _, interest := range interests {
-		interestMap, ok := interest.(map[string]interface{})
-		assert.True(t, ok, "Each interest should be an object")
+	// Verify each category has required fields
+	for _, category := range categories {
+		categoryMap, ok := category.(map[string]interface{})
+		assert.True(t, ok, "Each category should be an object")
 
-		assert.Contains(t, interestMap, "id", "Interest should have 'id' field")
-		assert.Contains(t, interestMap, "name", "Interest should have 'name' field")
-		assert.Contains(t, interestMap, "display_name", "Interest should have 'display_name' field")
-		assert.Contains(t, interestMap, "description", "Interest should have 'description' field")
-		assert.Contains(t, interestMap, "is_test_data", "Interest should have 'is_test_data' field")
+		assert.Contains(t, categoryMap, "id", "Category should have 'id' field")
+		assert.Contains(t, categoryMap, "name", "Category should have 'name' field")
+		assert.Contains(t, categoryMap, "display_name", "Category should have 'display_name' field")
+		assert.Contains(t, categoryMap, "description", "Category should have 'description' field")
+		assert.Contains(t, categoryMap, "is_test_data", "Category should have 'is_test_data' field")
 	}
 }
 
 func assertPreferencesStructure(t *testing.T, preferences map[string]interface{}) {
 	// Verify required preference fields
 	expectedFields := []string{
-		"user_id", "selected_interests", "difficulty_preference",
+		"user_id", "selected_categories", "difficulty_preference",
 		"notifications_enabled", "notification_frequency",
 		"profile_visibility", "show_online_status",
 		"allow_friend_requests", "share_activity_status",
@@ -79,42 +79,42 @@ func assertPreferencesStructure(t *testing.T, preferences map[string]interface{}
 		assert.Contains(t, preferences, field, "Preferences should have '%s' field", field)
 	}
 
-	// Verify selected_interests is an array
-	selectedInterests, ok := preferences["selected_interests"].([]interface{})
-	assert.True(t, ok, "Selected interests should be an array")
+	// Verify selected_categories is an array
+	selectedCategories, ok := preferences["selected_categories"].([]interface{})
+	assert.True(t, ok, "Selected categories should be an array")
 
-	// If interests are selected, verify they are strings
-	for _, interest := range selectedInterests {
-		_, ok := interest.(string)
-		assert.True(t, ok, "Each selected interest should be a string")
+	// If categories are selected, verify they are strings
+	for _, category := range selectedCategories {
+		_, ok := category.(string)
+		assert.True(t, ok, "Each selected category should be a string")
 	}
 }
 
-func extractInterestIDs(categories []interface{}) []string {
-	var interestIDs []string
+func extractCategoryIDs(categories []interface{}) []string {
+	var categoryIDs []string
 	for _, category := range categories {
 		categoryMap, ok := category.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		interests, ok := categoryMap["interests"].([]interface{})
+		categories, ok := categoryMap["categories"].([]interface{})
 		if !ok {
 			continue
 		}
 
-		for _, interest := range interests {
-			interestMap, ok := interest.(map[string]interface{})
+		for _, category := range categories {
+			categoryMap, ok := category.(map[string]interface{})
 			if !ok {
 				continue
 			}
 
-			if id, ok := interestMap["id"].(string); ok {
-				interestIDs = append(interestIDs, id)
+			if id, ok := categoryMap["id"].(string); ok {
+				categoryIDs = append(categoryIDs, id)
 			}
 		}
 	}
-	return interestIDs
+	return categoryIDs
 }
 
 // testCategoriesPreferencesFlowNewUser tests the complete flow for a new user
@@ -165,15 +165,15 @@ func testCategoriesPreferencesFlowNewUser(t *testing.T, tc *TestConfig) {
 	w = MakeRequest(t, tc, "GET", "/api/v1/preferences/notification-frequencies")
 	assert.Equal(t, http.StatusOK, w.Code, "Notification frequencies endpoint should return 200 OK")
 
-	// Step 5: Create initial preferences with selected interests from categories
-	availableInterests := extractInterestIDs(categoriesList)
-	assert.Greater(t, len(availableInterests), 0, "Should have available interests")
+	// Step 5: Create initial preferences with selected categories from categories
+	availableCategories := extractCategoryIDs(categoriesList)
+	assert.Greater(t, len(availableCategories), 0, "Should have available categories")
 
-	// Select first 3 interests for testing
-	selectedInterests := availableInterests[:min(3, len(availableInterests))]
+	// Select first 3 categories for testing
+	selectedCategories := availableCategories[:min(3, len(availableCategories))]
 
 	updateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     selectedInterests,
+		SelectedCategories:    selectedCategories,
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -193,8 +193,8 @@ func testCategoriesPreferencesFlowNewUser(t *testing.T, tc *TestConfig) {
 	assertPreferencesStructure(t, data)
 
 	// Verify specific values
-	savedInterests := data["selected_interests"].([]interface{})
-	assert.Equal(t, len(selectedInterests), len(savedInterests), "Should save all selected interests")
+	savedCategories := data["selected_categories"].([]interface{})
+	assert.Equal(t, len(selectedCategories), len(savedCategories), "Should save all selected categories")
 
 	assert.Equal(t, "Medium", data["difficulty_preference"], "Should save difficulty preference")
 	assert.Equal(t, true, data["notifications_enabled"], "Should save notifications enabled")
@@ -209,8 +209,8 @@ func testCategoriesPreferencesFlowNewUser(t *testing.T, tc *TestConfig) {
 	assertPreferencesStructure(t, data)
 
 	// Verify consistency
-	retrievedInterests := data["selected_interests"].([]interface{})
-	assert.Equal(t, len(selectedInterests), len(retrievedInterests), "Retrieved interests should match saved")
+	retrievedCategories := data["selected_categories"].([]interface{})
+	assert.Equal(t, len(selectedCategories), len(retrievedCategories), "Retrieved categories should match saved")
 
 	// Step 8: Verify profile includes new preferences
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/profile", token, nil)
@@ -242,7 +242,7 @@ func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 
 	// First create initial preferences
 	initialReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     []string{"technology", "science"},
+		SelectedCategories:    []string{"technology", "science"},
 		DifficultyPreference:  "Easy",
 		NotificationsEnabled:  false,
 		NotificationFrequency: "Weekly",
@@ -287,12 +287,12 @@ func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 	categoriesList, ok := categories.([]interface{})
 	assert.True(t, ok, "Categories should be an array")
 
-	// Step 4: Update preferences with new interests from categories
-	availableInterests := extractInterestIDs(categoriesList)
-	newSelectedInterests := availableInterests[:min(4, len(availableInterests))]
+	// Step 4: Update preferences with new categories from categories
+	availableCategories := extractCategoryIDs(categoriesList)
+	newSelectedCategories := availableCategories[:min(4, len(availableCategories))]
 
 	updateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     newSelectedInterests,
+		SelectedCategories:    newSelectedCategories,
 		DifficultyPreference:  "Hard",        // Changed
 		NotificationsEnabled:  true,          // Changed
 		NotificationFrequency: "Daily",       // Changed
@@ -323,9 +323,9 @@ func testCategoriesPreferencesFlowExistingUser(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, true, data["allow_friend_requests"], "Friend requests should be updated")
 	assert.Equal(t, true, data["share_activity_status"], "Activity status should be updated")
 
-	// Verify interests were updated
-	updatedInterests := data["selected_interests"].([]interface{})
-	assert.Equal(t, len(newSelectedInterests), len(updatedInterests), "Should have updated interests count")
+	// Verify categories were updated
+	updatedCategories := data["selected_categories"].([]interface{})
+	assert.Equal(t, len(newSelectedCategories), len(updatedCategories), "Should have updated categories count")
 
 	// Step 7: Verify updated_at timestamp changed
 	newUpdatedAt := data["updated_at"].(string)
@@ -352,7 +352,7 @@ func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 	userID, token, _, cleanup := CreateTestUserWithCleanup(t, tc, "Categories Prefs Consistency User")
 	defer cleanup()
 
-	// Step 2: Fetch categories and extract interests
+	// Step 2: Fetch categories and extract categories
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 	assert.Equal(t, http.StatusOK, w.Code, "Categories endpoint should return 200 OK")
 
@@ -362,13 +362,13 @@ func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 
 	categoriesList, ok := categories.([]interface{})
 	assert.True(t, ok, "Categories field should be an array")
-	availableInterests := extractInterestIDs(categoriesList)
-	assert.Greater(t, len(availableInterests), 0, "Should have available interests")
+	availableCategories := extractCategoryIDs(categoriesList)
+	assert.Greater(t, len(availableCategories), 0, "Should have available categories")
 
-	// Step 3: Save preferences with interests from categories
-	selectedInterests := availableInterests[:min(2, len(availableInterests))]
+	// Step 3: Save preferences with categories from categories
+	selectedCategories := availableCategories[:min(2, len(availableCategories))]
 	updateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     selectedInterests,
+		SelectedCategories:    selectedCategories,
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -392,10 +392,10 @@ func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 
 	newCategoriesList, ok := newCategories.([]interface{})
 	assert.True(t, ok, "Categories should still be an array")
-	newAvailableInterests := extractInterestIDs(newCategoriesList)
+	newAvailableCategories := extractCategoryIDs(newCategoriesList)
 
 	// Verify categories data consistency
-	assert.Equal(t, len(availableInterests), len(newAvailableInterests), "Categories count should remain consistent")
+	assert.Equal(t, len(availableCategories), len(newAvailableCategories), "Categories count should remain consistent")
 
 	// Step 5: Verify preferences endpoint returns saved data
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
@@ -405,18 +405,18 @@ func testCategoriesCrossEndpointConsistency(t *testing.T, tc *TestConfig) {
 	preferencesData := GetDataFromResponse(t, response)
 	assertPreferencesStructure(t, preferencesData)
 
-	// Verify saved interests are subset of available interests
-	savedInterests := preferencesData["selected_interests"].([]interface{})
-	for _, savedInterest := range savedInterests {
-		interestID := savedInterest.(string)
+	// Verify saved categories are subset of available categories
+	savedCategories := preferencesData["selected_categories"].([]interface{})
+	for _, savedCategory := range savedCategories {
+		categoryID := savedCategory.(string)
 		found := false
-		for _, availableInterest := range newAvailableInterests {
-			if availableInterest == interestID {
+		for _, availableCategory := range newAvailableCategories {
+			if availableCategory == categoryID {
 				found = true
 				break
 			}
 		}
-		assert.True(t, found, "Saved interest %s should exist in available interests", interestID)
+		assert.True(t, found, "Saved category %s should exist in available categories", categoryID)
 	}
 
 	// Step 6: Verify profile endpoint includes consistent data
@@ -472,13 +472,13 @@ func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 	_ = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
 	// For new user, this might return 404 or empty preferences
 
-	// Step 3: User selects interests and other preferences (simulating form interaction)
-	availableInterests := extractInterestIDs(categoriesList)
-	selectedInterests := availableInterests[:min(3, len(availableInterests))]
+	// Step 3: User selects categories and other preferences (simulating form interaction)
+	availableCategories := extractCategoryIDs(categoriesList)
+	selectedCategories := availableCategories[:min(3, len(availableCategories))]
 
 	// Simulate user filling the settings form
 	initialPreferences := models.UpdatePreferencesRequest{
-		SelectedInterests:     selectedInterests,
+		SelectedCategories:    selectedCategories,
 		DifficultyPreference:  "Easy",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -510,13 +510,13 @@ func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, "Daily", reloadedData["notification_frequency"], "Frequency should persist")
 	assert.Equal(t, true, reloadedData["profile_visibility"], "Profile visibility should persist")
 
-	reloadedInterests := reloadedData["selected_interests"].([]interface{})
-	assert.Equal(t, len(selectedInterests), len(reloadedInterests), "Interest count should persist")
+	reloadedCategories := reloadedData["selected_categories"].([]interface{})
+	assert.Equal(t, len(selectedCategories), len(reloadedCategories), "Category count should persist")
 
 	// Step 6: Simulate user making changes to existing settings
-	updatedInterests := availableInterests[:min(4, len(availableInterests))] // Add one more interest
+	updatedCategories := availableCategories[:min(4, len(availableCategories))] // Add one more category
 	updateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     updatedInterests,
+		SelectedCategories:    updatedCategories,
 		DifficultyPreference:  "Hard",         // Changed
 		NotificationsEnabled:  false,          // Changed
 		NotificationFrequency: "Weekly",       // Changed
@@ -543,8 +543,8 @@ func testSettingsScreenWorkflow(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, "Weekly", finalData["notification_frequency"], "Updated frequency should persist")
 	assert.Equal(t, false, finalData["profile_visibility"], "Updated privacy should persist")
 
-	finalInterests := finalData["selected_interests"].([]interface{})
-	assert.Equal(t, len(updatedInterests), len(finalInterests), "Updated interest count should persist")
+	finalCategories := finalData["selected_categories"].([]interface{})
+	assert.Equal(t, len(updatedCategories), len(finalCategories), "Updated category count should persist")
 
 	t.Logf("Complete settings workflow validated successfully for user: %s", userID)
 }
@@ -568,12 +568,12 @@ func testDatabaseDrivenCategoriesStructure(t *testing.T, tc *TestConfig) {
 	assert.Greater(t, len(categoriesList), 0, "Should have at least one category")
 
 	// Step 3: Validate each category structure
-	expectedCategoryFields := []string{"id", "name", "display_name", "description", "interests"}
-	expectedInterestFields := []string{"id", "name", "display_name", "description", "is_test_data"}
+	expectedCategoryFields := []string{"id", "name", "display_name", "description", "categories"}
+	expectedCategoryFields2 := []string{"id", "name", "display_name", "description", "is_test_data"}
 
 	categoryIds := make(map[string]bool)
-	interestIds := make(map[string]bool)
-	totalInterests := 0
+	categoryIds2 := make(map[string]bool)
+	totalCategories := 0
 
 	for _, category := range categoriesList {
 		categoryMap, ok := category.(map[string]interface{})
@@ -593,41 +593,41 @@ func testDatabaseDrivenCategoriesStructure(t *testing.T, tc *TestConfig) {
 		assert.NotEmpty(t, categoryMap["name"], "Category name should not be empty")
 		assert.NotEmpty(t, categoryMap["display_name"], "Category display_name should not be empty")
 
-		// Validate interests array
-		interests, ok := categoryMap["interests"].([]interface{})
-		assert.True(t, ok, "Category interests should be an array")
-		assert.Greater(t, len(interests), 0, "Each category should have at least one interest")
+		// Validate categories array
+		categories, ok := categoryMap["categories"].([]interface{})
+		assert.True(t, ok, "Category categories should be an array")
+		assert.Greater(t, len(categories), 0, "Each category should have at least one category")
 
-		// Validate each interest
-		for _, interest := range interests {
-			interestMap, ok := interest.(map[string]interface{})
-			assert.True(t, ok, "Each interest should be an object")
+		// Validate each category
+		for _, category := range categories {
+			categoryMap, ok := category.(map[string]interface{})
+			assert.True(t, ok, "Each category should be an object")
 
-			// Validate required interest fields
-			for _, field := range expectedInterestFields {
-				assert.Contains(t, interestMap, field, "Interest should have '%s' field", field)
+			// Validate required category fields
+			for _, field := range expectedCategoryFields2 {
+				assert.Contains(t, categoryMap, field, "Category should have '%s' field", field)
 			}
 
-			// Validate interest ID uniqueness across all categories
-			interestID := interestMap["id"].(string)
-			assert.False(t, interestIds[interestID], "Interest ID '%s' should be unique across all categories", interestID)
-			interestIds[interestID] = true
+			// Validate category ID uniqueness across all categories
+			categoryID := categoryMap["id"].(string)
+			assert.False(t, categoryIds2[categoryID], "Category ID '%s' should be unique across all categories", categoryID)
+			categoryIds2[categoryID] = true
 
-			// Validate interest has non-empty names
-			assert.NotEmpty(t, interestMap["name"], "Interest name should not be empty")
-			assert.NotEmpty(t, interestMap["display_name"], "Interest display_name should not be empty")
+			// Validate category has non-empty names
+			assert.NotEmpty(t, categoryMap["name"], "Category name should not be empty")
+			assert.NotEmpty(t, categoryMap["display_name"], "Category display_name should not be empty")
 
 			// Validate is_test_data is boolean
-			_, ok = interestMap["is_test_data"].(bool)
-			assert.True(t, ok, "Interest is_test_data should be a boolean")
+			_, ok = categoryMap["is_test_data"].(bool)
+			assert.True(t, ok, "Category is_test_data should be a boolean")
 
-			totalInterests++
+			totalCategories++
 		}
 	}
 
 	// Step 4: Validate overall structure expectations
 	assert.GreaterOrEqual(t, len(categoryIds), 3, "Should have at least 3 categories")
-	assert.GreaterOrEqual(t, totalInterests, 10, "Should have at least 10 total interests across all categories")
+	assert.GreaterOrEqual(t, totalCategories, 10, "Should have at least 10 total categories across all categories")
 
 	// Verify we have expected categories based on seed data
 	expectedCategoryNames := []string{"general", "science", "sports", "entertainment"}
@@ -648,14 +648,14 @@ func testDatabaseDrivenCategoriesStructure(t *testing.T, tc *TestConfig) {
 	assert.GreaterOrEqual(t, foundExpectedCategories, 3, "Should find at least 3 expected categories from seed data")
 
 	// Step 5: Validate categories can be used for preferences
-	// Extract all interest IDs
-	allInterestIDs := extractInterestIDs(categoriesList)
-	assert.Equal(t, totalInterests, len(allInterestIDs), "Extracted interest IDs should match total count")
+	// Extract all category IDs
+	allCategoryIDs := extractCategoryIDs(categoriesList)
+	assert.Equal(t, totalCategories, len(allCategoryIDs), "Extracted category IDs should match total count")
 
-	// Try to use a few interests in preferences to ensure they're valid
-	testInterests := allInterestIDs[:min(2, len(allInterestIDs))]
+	// Try to use a few categories in preferences to ensure they're valid
+	testCategories := allCategoryIDs[:min(2, len(allCategoryIDs))]
 	updateReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     testInterests,
+		SelectedCategories:    testCategories,
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -667,20 +667,20 @@ func testDatabaseDrivenCategoriesStructure(t *testing.T, tc *TestConfig) {
 
 	reqBody, _ := json.Marshal(updateReq)
 	w = MakeAuthenticatedRequest(t, tc, "PUT", "/api/v1/users/preferences", token, reqBody)
-	assert.Equal(t, http.StatusOK, w.Code, "Should be able to save preferences with category interests")
+	assert.Equal(t, http.StatusOK, w.Code, "Should be able to save preferences with category categories")
 
-	// Step 6: Verify saved preferences match available interests
+	// Step 6: Verify saved preferences match available categories
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
 	assert.Equal(t, http.StatusOK, w.Code, "Should be able to retrieve saved preferences")
 
 	response = ParseJSONResponse(t, w)
 	preferencesData := GetDataFromResponse(t, response)
-	savedInterests := preferencesData["selected_interests"].([]interface{})
+	savedCategories := preferencesData["selected_categories"].([]interface{})
 
-	for _, savedInterest := range savedInterests {
-		interestID := savedInterest.(string)
-		assert.True(t, interestIds[interestID], "Saved interest '%s' should exist in available categories", interestID)
+	for _, savedCategory := range savedCategories {
+		categoryID := savedCategory.(string)
+		assert.True(t, categoryIds2[categoryID], "Saved category '%s' should exist in available categories", categoryID)
 	}
 
-	t.Logf("Database-driven categories structure validation completed. Found %d categories with %d total interests", len(categoryIds), totalInterests)
+	t.Logf("Database-driven categories structure validation completed. Found %d categories with %d total categories", len(categoryIds), totalCategories)
 }

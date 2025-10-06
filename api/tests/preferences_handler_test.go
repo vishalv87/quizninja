@@ -32,7 +32,7 @@ func TestPreferencesHandler(t *testing.T) {
 
 	t.Run("UpdatePreferences", func(t *testing.T) {
 		updateReq := models.UpdatePreferencesRequest{
-			SelectedInterests:     []string{"technology", "science"},
+			SelectedCategories:    []string{"technology", "science"},
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "daily",
@@ -134,7 +134,7 @@ func TestPreferencesHandler(t *testing.T) {
 
 	t.Run("CompleteOnboarding", func(t *testing.T) {
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{"technology", "science", "sports"},
+			SelectedCategories:    []string{"technology", "science", "sports"},
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "weekly",
@@ -167,7 +167,7 @@ func TestPreferencesHandler(t *testing.T) {
 
 		// Create initial preferences
 		initialReq := models.UpdatePreferencesRequest{
-			SelectedInterests:     []string{"technology"},
+			SelectedCategories:    []string{"technology"},
 			DifficultyPreference:  "Easy",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "daily",
@@ -184,7 +184,7 @@ func TestPreferencesHandler(t *testing.T) {
 			// Update preferences multiple times to test UPSERT behavior
 			for i := 1; i <= 3; i++ {
 				updateReq := models.UpdatePreferencesRequest{
-					SelectedInterests:     []string{"science", "sports"},
+					SelectedCategories:    []string{"science", "sports"},
 					DifficultyPreference:  "Hard",
 					NotificationsEnabled:  false,
 					NotificationFrequency: "weekly",
@@ -231,7 +231,7 @@ func TestPreferencesHandler(t *testing.T) {
 		// Create test user preferences first
 		preferences := &models.UserPreferences{
 			UserID:                userID,
-			SelectedInterests:     models.StringArray([]string{"technology"}),
+			SelectedCategories:    models.StringArray([]string{"technology"}),
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "daily",
@@ -260,7 +260,7 @@ func TestPreferencesHandler(t *testing.T) {
 		}
 
 		t.Logf("Successfully retrieved preferences: %+v", retrievedPrefs)
-		t.Logf("Selected interests: %v", retrievedPrefs.SelectedInterests)
+		t.Logf("Selected categories: %v", retrievedPrefs.SelectedCategories)
 		t.Logf("Notification types: %+v", retrievedPrefs.NotificationTypes)
 	})
 

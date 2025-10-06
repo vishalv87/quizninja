@@ -55,17 +55,17 @@ func TestCategoriesHandler(t *testing.T) {
 					description, hasDescription := categoryMap["description"]
 					assert.True(t, hasDescription, "Category should have 'description' field")
 
-					interests, hasInterests := categoryMap["interests"]
-					assert.True(t, hasInterests, "Category should have 'interests' field")
+					categories, hasCategories := categoryMap["categories"]
+					assert.True(t, hasCategories, "Category should have 'categories' field")
 
-					// Verify interests structure
-					if interestsList, ok := interests.([]interface{}); ok {
-						assert.Greater(t, len(interestsList), 0, "Category should have at least one interest")
+					// Verify categories structure
+					if categoriesList, ok := categories.([]interface{}); ok {
+						assert.Greater(t, len(categoriesList), 0, "Category should have at least one category")
 
-						// Check first interest for proper structure and is_test_data
-						if len(interestsList) > 0 {
-							if firstInterest, ok := interestsList[0].(map[string]interface{}); ok {
-								VerifyIsTestDataField(t, firstInterest, true, "category interest")
+						// Check first category for proper structure and is_test_data
+						if len(categoriesList) > 0 {
+							if firstCategory, ok := categoriesList[0].(map[string]interface{}); ok {
+								VerifyIsTestDataField(t, firstCategory, true, "category category")
 							}
 						}
 					}
@@ -104,7 +104,7 @@ func TestCategoriesHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("VerifyNewlyAddedInterests", func(t *testing.T) {
+	t.Run("VerifyNewlyAddedCategories", func(t *testing.T) {
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 
 		assert.Equal(t, http.StatusOK, w.Code, "Categories endpoint should return 200 OK")
@@ -118,8 +118,8 @@ func TestCategoriesHandler(t *testing.T) {
 			categoriesList, ok := categories.([]interface{})
 			assert.True(t, ok, "Categories field should be an array")
 
-			// Track newly added interests from migration 027
-			newInterests := map[string]bool{
+			// Track newly added categories from migration 027
+			newCategories := map[string]bool{
 				"biology":    false,
 				"chemistry":  false,
 				"physics":    false,
@@ -129,18 +129,18 @@ func TestCategoriesHandler(t *testing.T) {
 
 			for _, category := range categoriesList {
 				if categoryMap, ok := category.(map[string]interface{}); ok {
-					if interests, hasInterests := categoryMap["interests"]; hasInterests {
-						if interestsList, ok := interests.([]interface{}); ok {
-							for _, interest := range interestsList {
-								if interestMap, ok := interest.(map[string]interface{}); ok {
-									// Verify is_test_data is true for all interests
-									VerifyIsTestDataField(t, interestMap, true, "interest")
+					if categories, hasCategories := categoryMap["categories"]; hasCategories {
+						if categoriesList, ok := categories.([]interface{}); ok {
+							for _, category := range categoriesList {
+								if categoryMap, ok := category.(map[string]interface{}); ok {
+									// Verify is_test_data is true for all categories
+									VerifyIsTestDataField(t, categoryMap, true, "category")
 
-									// Check if this is one of our newly added interests
-									if interestID, hasID := interestMap["id"]; hasID {
-										if idStr, ok := interestID.(string); ok {
-											if _, isNew := newInterests[idStr]; isNew {
-												newInterests[idStr] = true
+									// Check if this is one of our newly added categories
+									if categoryID, hasID := categoryMap["id"]; hasID {
+										if idStr, ok := categoryID.(string); ok {
+											if _, isNew := newCategories[idStr]; isNew {
+												newCategories[idStr] = true
 											}
 										}
 									}
@@ -151,25 +151,25 @@ func TestCategoriesHandler(t *testing.T) {
 				}
 			}
 
-			// Verify all new interests were found
-			for interestName, found := range newInterests {
-				assert.True(t, found, "Should find newly added interest: %s", interestName)
+			// Verify all new categories were found
+			for categoryName, found := range newCategories {
+				assert.True(t, found, "Should find newly added category: %s", categoryName)
 			}
 
-			// Verify specific category mappings for new interests
+			// Verify specific category mappings for new categories
 			scienceCategory := findCategoryByID(categoriesList, "science")
 			if scienceCategory != nil {
-				interests := getCategoryInterests(scienceCategory)
-				assert.Contains(t, interests, "biology", "Science category should contain biology")
-				assert.Contains(t, interests, "chemistry", "Science category should contain chemistry")
-				assert.Contains(t, interests, "physics", "Science category should contain physics")
+				categories := getCategoryCategories(scienceCategory)
+				assert.Contains(t, categories, "biology", "Science category should contain biology")
+				assert.Contains(t, categories, "chemistry", "Science category should contain chemistry")
+				assert.Contains(t, categories, "physics", "Science category should contain physics")
 			}
 
 			sportsCategory := findCategoryByID(categoriesList, "sports")
 			if sportsCategory != nil {
-				interests := getCategoryInterests(sportsCategory)
-				assert.Contains(t, interests, "football", "Sports category should contain football")
-				assert.Contains(t, interests, "basketball", "Sports category should contain basketball")
+				categories := getCategoryCategories(sportsCategory)
+				assert.Contains(t, categories, "football", "Sports category should contain football")
+				assert.Contains(t, categories, "basketball", "Sports category should contain basketball")
 			}
 		}
 	})
@@ -397,21 +397,21 @@ func findCategoryByID(categories []interface{}, categoryID string) map[string]in
 	return nil
 }
 
-// Helper function to get interest IDs from a category
-func getCategoryInterests(category map[string]interface{}) []string {
-	var interests []string
-	if interestsField, hasInterests := category["interests"]; hasInterests {
-		if interestsList, ok := interestsField.([]interface{}); ok {
-			for _, interest := range interestsList {
-				if interestMap, ok := interest.(map[string]interface{}); ok {
-					if id, hasID := interestMap["id"]; hasID {
+// Helper function to get category IDs from a category
+func getCategoryCategories(category map[string]interface{}) []string {
+	var categories []string
+	if categoriesField, hasCategories := category["categories"]; hasCategories {
+		if categoriesList, ok := categoriesField.([]interface{}); ok {
+			for _, category := range categoriesList {
+				if categoryMap, ok := category.(map[string]interface{}); ok {
+					if id, hasID := categoryMap["id"]; hasID {
 						if idStr, ok := id.(string); ok {
-							interests = append(interests, idStr)
+							categories = append(categories, idStr)
 						}
 					}
 				}
 			}
 		}
 	}
-	return interests
+	return categories
 }

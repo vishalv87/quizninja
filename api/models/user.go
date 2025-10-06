@@ -40,7 +40,7 @@ type User struct {
 type UserPreferences struct {
 	ID                    uuid.UUID              `json:"id" db:"id"`
 	UserID                uuid.UUID              `json:"user_id" db:"user_id"`
-	SelectedInterests     StringArray            `json:"selected_interests" db:"selected_interests"`
+	SelectedCategories    StringArray            `json:"selected_categories" db:"selected_categories"`
 	DifficultyPreference  string                 `json:"difficulty_preference" db:"difficulty_preference"`
 	NotificationsEnabled  bool                   `json:"notifications_enabled" db:"notifications_enabled"`
 	NotificationFrequency string                 `json:"notification_frequency" db:"notification_frequency"`
@@ -86,7 +86,7 @@ type RegisterRequest struct {
 }
 
 type UserPreferencesRequest struct {
-	SelectedInterests     []string `json:"selected_interests"`
+	SelectedCategories    []string `json:"selected_categories"`
 	DifficultyPreference  string   `json:"difficulty_preference" binding:"omitempty,oneof=Easy Medium Hard"`
 	NotificationsEnabled  bool     `json:"notifications_enabled"`
 	NotificationFrequency string   `json:"notification_frequency" binding:"omitempty,oneof=Daily Weekly Never"`
@@ -113,8 +113,8 @@ type UpdateProfileRequest struct {
 	AvatarURL *string `json:"avatar_url,omitempty"`
 }
 
-// Interest represents quiz topic interests
-type Interest struct {
+// Category represents quiz topic categories
+type Category struct {
 	ID          string    `json:"id" db:"id"`
 	Name        string    `json:"name" db:"name"`
 	DisplayName string    `json:"display_name" db:"display_name"`
@@ -160,20 +160,20 @@ type AppSettings struct {
 	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// Category represents quiz categories for API response
-type Category struct {
+// CategoryGroup represents quiz category groups for API response
+type CategoryGroup struct {
 	ID          string     `json:"id"`
 	Name        string     `json:"name"`
 	DisplayName string     `json:"display_name"`
 	Description string     `json:"description"`
 	IconURL     string     `json:"icon_url"`
 	IsActive    bool       `json:"is_active"`
-	Interests   []Interest `json:"interests,omitempty"`
+	Categories  []Category `json:"categories,omitempty"`
 }
 
 // API Request/Response types
 type UpdatePreferencesRequest struct {
-	SelectedInterests     []string               `json:"selected_interests" binding:"dive,required"`
+	SelectedCategories    []string               `json:"selected_categories" binding:"dive,required"`
 	DifficultyPreference  string                 `json:"difficulty_preference" binding:"required,oneof=Easy Medium Hard"`
 	NotificationsEnabled  bool                   `json:"notifications_enabled"`
 	NotificationFrequency string                 `json:"notification_frequency" binding:"required,oneof=Daily Weekly Never"`
@@ -1024,7 +1024,7 @@ type SessionActionResponse struct {
 
 // OnboardingCompleteRequest represents the request to complete onboarding
 type OnboardingCompleteRequest struct {
-	SelectedInterests     []string `json:"selected_interests" binding:"required,dive,required"`
+	SelectedCategories    []string `json:"selected_categories" binding:"required,dive,required"`
 	DifficultyPreference  string   `json:"difficulty_preference" binding:"required,oneof=Easy Medium Hard"`
 	NotificationsEnabled  bool     `json:"notifications_enabled"`
 	NotificationFrequency string   `json:"notification_frequency" binding:"required,oneof=Daily Weekly Never"`

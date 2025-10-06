@@ -66,7 +66,7 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 
 	preferences := &models.UserPreferences{
 		UserID:                userID,
-		SelectedInterests:     models.StringArray(req.SelectedInterests),
+		SelectedCategories:    models.StringArray(req.SelectedCategories),
 		DifficultyPreference:  req.DifficultyPreference,
 		NotificationsEnabled:  req.NotificationsEnabled,
 		NotificationFrequency: req.NotificationFrequency,
@@ -130,9 +130,9 @@ func (ph *PreferencesHandler) GetPreferences(c *gin.Context) {
 	})
 }
 
-// GetCategories retrieves all available interests/categories
+// GetCategories retrieves all available categories
 func (ph *PreferencesHandler) GetCategories(c *gin.Context) {
-	interests, err := ph.preferencesRepo.GetInterests()
+	categories, err := ph.preferencesRepo.GetCategories()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to fetch categories",
@@ -141,9 +141,9 @@ func (ph *PreferencesHandler) GetCategories(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"data": interests,
+		"data": categories,
 		"meta": gin.H{
-			"total": len(interests),
+			"total": len(categories),
 		},
 	})
 }
@@ -213,7 +213,7 @@ func (ph *PreferencesHandler) CompleteOnboarding(c *gin.Context) {
 	now := time.Now()
 	preferences := &models.UserPreferences{
 		UserID:                userID,
-		SelectedInterests:     models.StringArray(req.SelectedInterests),
+		SelectedCategories:    models.StringArray(req.SelectedCategories),
 		DifficultyPreference:  req.DifficultyPreference,
 		NotificationsEnabled:  req.NotificationsEnabled,
 		NotificationFrequency: req.NotificationFrequency,

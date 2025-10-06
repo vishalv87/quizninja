@@ -91,39 +91,39 @@ func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
 	assert.True(t, ok, "Categories should be an array")
 	assert.Greater(t, len(categoriesList), 0, "Should have at least one category")
 
-	// Extract available interests
-	var availableInterests []string
+	// Extract available categories
+	var availableCategories []string
 	for _, category := range categoriesList {
 		categoryMap, ok := category.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		interests, ok := categoryMap["interests"].([]interface{})
+		categories, ok := categoryMap["categories"].([]interface{})
 		if !ok {
 			continue
 		}
 
-		for _, interest := range interests {
-			interestMap, ok := interest.(map[string]interface{})
+		for _, category := range categories {
+			categoryMap, ok := category.(map[string]interface{})
 			if !ok {
 				continue
 			}
 
-			if id, ok := interestMap["id"].(string); ok {
-				availableInterests = append(availableInterests, id)
+			if id, ok := categoryMap["id"].(string); ok {
+				availableCategories = append(availableCategories, id)
 			}
 		}
 	}
 
-	assert.Greater(t, len(availableInterests), 0, "Should have available interests")
+	assert.Greater(t, len(availableCategories), 0, "Should have available categories")
 
-	// Select first 3 interests for testing
-	selectedInterests := availableInterests[:min(3, len(availableInterests))]
+	// Select first 3 categories for testing
+	selectedCategories := availableCategories[:min(3, len(availableCategories))]
 
 	// Update user preferences
 	updatePrefsReq := models.UpdatePreferencesRequest{
-		SelectedInterests:     selectedInterests,
+		SelectedCategories:    selectedCategories,
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -147,8 +147,8 @@ func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
 	assert.Equal(t, "Daily", data["notification_frequency"], "Frequency should be saved")
 	assert.Equal(t, true, data["profile_visibility"], "Profile visibility should be saved")
 
-	savedInterests := data["selected_interests"].([]interface{})
-	assert.Equal(t, len(selectedInterests), len(savedInterests), "Should save all selected interests")
+	savedCategories := data["selected_categories"].([]interface{})
+	assert.Equal(t, len(selectedCategories), len(savedCategories), "Should save all selected categories")
 
 	// Verify onboarding is not yet completed
 	if completedAt, exists := data["onboarding_completed_at"]; exists {
@@ -157,7 +157,7 @@ func testCompleteOnboardingFlow(t *testing.T, tc *TestConfig) {
 
 	// Step 5: Complete onboarding
 	onboardingReq := models.OnboardingCompleteRequest{
-		SelectedInterests:     selectedInterests,
+		SelectedCategories:    selectedCategories,
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -225,11 +225,11 @@ func testOnboardingFlowVariations(t *testing.T, tc *TestConfig) {
 
 		response := ParseJSONResponse(t, w)
 		categories := response["data"].([]interface{})
-		availableInterests := extractInterestIDsFromCategories(categories)
+		availableCategories := extractCategoryIDsFromCategories(categories)
 
-		// Minimal onboarding (just 1 interest)
+		// Minimal onboarding (just 1 category)
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{availableInterests[0]},
+			SelectedCategories:    []string{availableCategories[0]},
 			DifficultyPreference:  "Easy",
 			NotificationsEnabled:  false,
 			NotificationFrequency: "Never",
@@ -254,19 +254,19 @@ func testOnboardingFlowVariations(t *testing.T, tc *TestConfig) {
 		// Test onboarding with many preferences
 		userID, token := CreateTestUser(t, tc)
 
-		// Get all available interests
+		// Get all available categories
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		response := ParseJSONResponse(t, w)
 		categories := response["data"].([]interface{})
-		availableInterests := extractInterestIDsFromCategories(categories)
+		availableCategories := extractCategoryIDsFromCategories(categories)
 
-		// Use all available interests (up to a reasonable limit)
-		selectedInterests := availableInterests[:min(len(availableInterests), 10)]
+		// Use all available categories (up to a reasonable limit)
+		selectedCategories := availableCategories[:min(len(availableCategories), 10)]
 
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     selectedInterests,
+			SelectedCategories:    selectedCategories,
 			DifficultyPreference:  "Hard",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Daily",
@@ -276,14 +276,14 @@ func testOnboardingFlowVariations(t *testing.T, tc *TestConfig) {
 		w = MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/users/onboarding/complete", token, reqBody)
 		assert.Equal(t, http.StatusOK, w.Code, "Maximal onboarding should succeed")
 
-		// Verify all interests were saved
+		// Verify all categories were saved
 		w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/users/preferences", token, nil)
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		response = ParseJSONResponse(t, w)
 		data := GetDataFromResponse(t, response)
-		savedInterests := data["selected_interests"].([]interface{})
-		assert.Equal(t, len(selectedInterests), len(savedInterests), "All interests should be saved")
+		savedCategories := data["selected_categories"].([]interface{})
+		assert.Equal(t, len(selectedCategories), len(savedCategories), "All categories should be saved")
 
 		t.Logf("Maximal preferences onboarding completed for user: %s", userID)
 	})
@@ -295,14 +295,14 @@ func testOnboardingFlowVariations(t *testing.T, tc *TestConfig) {
 			t.Run(fmt.Sprintf("Difficulty_%s", difficulty), func(t *testing.T) {
 				userID, token := CreateTestUser(t, tc)
 
-				// Get available interests
+				// Get available categories
 				w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 				response := ParseJSONResponse(t, w)
 				categories := response["data"].([]interface{})
-				availableInterests := extractInterestIDsFromCategories(categories)
+				availableCategories := extractCategoryIDsFromCategories(categories)
 
 				onboardingReq := models.OnboardingCompleteRequest{
-					SelectedInterests:     []string{availableInterests[0]},
+					SelectedCategories:    []string{availableCategories[0]},
 					DifficultyPreference:  difficulty,
 					NotificationsEnabled:  true,
 					NotificationFrequency: "Weekly",
@@ -326,12 +326,12 @@ func testOnboardingFlowVariations(t *testing.T, tc *TestConfig) {
 
 // testOnboardingValidation tests error cases and validation
 func testOnboardingValidation(t *testing.T, tc *TestConfig) {
-	t.Run("InvalidInterests", func(t *testing.T) {
+	t.Run("InvalidCategories", func(t *testing.T) {
 		_, token := CreateTestUser(t, tc)
 
-		// Try to complete onboarding with invalid interest IDs
+		// Try to complete onboarding with invalid category IDs
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{"invalid_interest_1", "invalid_interest_2"},
+			SelectedCategories:    []string{"invalid_category_1", "invalid_category_2"},
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Daily",
@@ -339,23 +339,23 @@ func testOnboardingValidation(t *testing.T, tc *TestConfig) {
 
 		reqBody, _ := json.Marshal(onboardingReq)
 		w := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/users/onboarding/complete", token, reqBody)
-		// Note: This may succeed with invalid interests depending on validation logic
-		// The test verifies the API handles invalid interests gracefully
-		assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusBadRequest, "Should handle invalid interests gracefully")
+		// Note: This may succeed with invalid categories depending on validation logic
+		// The test verifies the API handles invalid categories gracefully
+		assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusBadRequest, "Should handle invalid categories gracefully")
 	})
 
 	t.Run("InvalidDifficulty", func(t *testing.T) {
 		_, token := CreateTestUser(t, tc)
 
-		// Get valid interests
+		// Get valid categories
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 		response := ParseJSONResponse(t, w)
 		categories := response["data"].([]interface{})
-		availableInterests := extractInterestIDsFromCategories(categories)
+		availableCategories := extractCategoryIDsFromCategories(categories)
 
 		// Try invalid difficulty
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{availableInterests[0]},
+			SelectedCategories:    []string{availableCategories[0]},
 			DifficultyPreference:  "Invalid",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Daily",
@@ -369,15 +369,15 @@ func testOnboardingValidation(t *testing.T, tc *TestConfig) {
 	t.Run("InvalidNotificationFrequency", func(t *testing.T) {
 		_, token := CreateTestUser(t, tc)
 
-		// Get valid interests
+		// Get valid categories
 		w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 		response := ParseJSONResponse(t, w)
 		categories := response["data"].([]interface{})
-		availableInterests := extractInterestIDsFromCategories(categories)
+		availableCategories := extractCategoryIDsFromCategories(categories)
 
 		// Try invalid notification frequency
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{availableInterests[0]},
+			SelectedCategories:    []string{availableCategories[0]},
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Invalid",
@@ -388,12 +388,12 @@ func testOnboardingValidation(t *testing.T, tc *TestConfig) {
 		assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid notification frequency should be rejected")
 	})
 
-	t.Run("EmptyInterests", func(t *testing.T) {
+	t.Run("EmptyCategories", func(t *testing.T) {
 		_, token := CreateTestUser(t, tc)
 
-		// Try with empty interests array
+		// Try with empty categories array
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{},
+			SelectedCategories:    []string{},
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Daily",
@@ -401,18 +401,18 @@ func testOnboardingValidation(t *testing.T, tc *TestConfig) {
 
 		reqBody, _ := json.Marshal(onboardingReq)
 		w := MakeAuthenticatedRequest(t, tc, "POST", "/api/v1/users/onboarding/complete", token, reqBody)
-		// The API might allow empty interests - check what actually happens
+		// The API might allow empty categories - check what actually happens
 		if w.Code == http.StatusOK {
-			t.Log("API allows empty interests - this is acceptable behavior")
+			t.Log("API allows empty categories - this is acceptable behavior")
 		} else {
-			assert.Equal(t, http.StatusBadRequest, w.Code, "Empty interests should be rejected or handled gracefully")
+			assert.Equal(t, http.StatusBadRequest, w.Code, "Empty categories should be rejected or handled gracefully")
 		}
 	})
 
 	t.Run("UnauthenticatedRequest", func(t *testing.T) {
 		// Try to complete onboarding without authentication
 		onboardingReq := models.OnboardingCompleteRequest{
-			SelectedInterests:     []string{"technology"},
+			SelectedCategories:    []string{"technology"},
 			DifficultyPreference:  "Medium",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Daily",
@@ -432,10 +432,10 @@ func testOnboardingCompletion(t *testing.T, tc *TestConfig) {
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 	response := ParseJSONResponse(t, w)
 	categories := response["data"].([]interface{})
-	availableInterests := extractInterestIDsFromCategories(categories)
+	availableCategories := extractCategoryIDsFromCategories(categories)
 
 	onboardingReq := models.OnboardingCompleteRequest{
-		SelectedInterests:     []string{availableInterests[0]},
+		SelectedCategories:    []string{availableCategories[0]},
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -488,7 +488,7 @@ func testOnboardingCompletion(t *testing.T, tc *TestConfig) {
 	t.Run("PreferencesModification", func(t *testing.T) {
 		// Test that user can still modify preferences after onboarding
 		updateReq := models.UpdatePreferencesRequest{
-			SelectedInterests:     []string{availableInterests[0], availableInterests[1]},
+			SelectedCategories:    []string{availableCategories[0], availableCategories[1]},
 			DifficultyPreference:  "Hard",
 			NotificationsEnabled:  false,
 			NotificationFrequency: "Weekly",
@@ -564,7 +564,7 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 		Email:          testUser.Email,
 		Name:           "Test Registration Preferences User",
 		Preferences: &models.UserPreferencesRequest{
-			SelectedInterests:     []string{"technology", "science"},
+			SelectedCategories:    []string{"technology", "science"},
 			DifficultyPreference:  "Easy",
 			NotificationsEnabled:  true,
 			NotificationFrequency: "Weekly",
@@ -608,7 +608,7 @@ func testOnboardingWithRegistrationPreferences(t *testing.T, tc *TestConfig) {
 
 	// If not auto-completed, complete onboarding manually
 	onboardingReq := models.OnboardingCompleteRequest{
-		SelectedInterests:     []string{"technology", "science"},
+		SelectedCategories:    []string{"technology", "science"},
 		DifficultyPreference:  "Easy",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Weekly",
@@ -638,10 +638,10 @@ func testOnboardingStatusConsistency(t *testing.T, tc *TestConfig) {
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/quizzes/categories", token, nil)
 	response = ParseJSONResponse(t, w)
 	categories := response["data"].([]interface{})
-	availableInterests := extractInterestIDsFromCategories(categories)
+	availableCategories := extractCategoryIDsFromCategories(categories)
 
 	onboardingReq := models.OnboardingCompleteRequest{
-		SelectedInterests:     []string{availableInterests[0]},
+		SelectedCategories:    []string{availableCategories[0]},
 		DifficultyPreference:  "Medium",
 		NotificationsEnabled:  true,
 		NotificationFrequency: "Daily",
@@ -686,30 +686,30 @@ func testOnboardingStatusConsistency(t *testing.T, tc *TestConfig) {
 	t.Logf("Onboarding status consistency verified for user: %s", userID)
 }
 
-// Helper function to extract interest IDs from categories response
-func extractInterestIDsFromCategories(categories []interface{}) []string {
-	var interestIDs []string
+// Helper function to extract category IDs from categories response
+func extractCategoryIDsFromCategories(categories []interface{}) []string {
+	var categoryIDs []string
 	for _, category := range categories {
 		categoryMap, ok := category.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		interests, ok := categoryMap["interests"].([]interface{})
+		categories, ok := categoryMap["categories"].([]interface{})
 		if !ok {
 			continue
 		}
 
-		for _, interest := range interests {
-			interestMap, ok := interest.(map[string]interface{})
+		for _, category := range categories {
+			categoryMap, ok := category.(map[string]interface{})
 			if !ok {
 				continue
 			}
 
-			if id, ok := interestMap["id"].(string); ok {
-				interestIDs = append(interestIDs, id)
+			if id, ok := categoryMap["id"].(string); ok {
+				categoryIDs = append(categoryIDs, id)
 			}
 		}
 	}
-	return interestIDs
+	return categoryIDs
 }

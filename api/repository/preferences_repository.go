@@ -18,51 +18,51 @@ func NewPreferencesRepository() *PreferencesRepository {
 	}
 }
 
-// GetInterests retrieves all interests (categories)
-func (pr *PreferencesRepository) GetInterests() ([]models.Interest, error) {
+// GetCategories retrieves all categories
+func (pr *PreferencesRepository) GetCategories() ([]models.Category, error) {
 	query := `
 		SELECT id, name, name as display_name, description,
 		       CONCAT('/icons/', icon_name, '.png') as icon_url,
 		       true as is_active, created_at, created_at as updated_at, is_test_data
-		FROM interests
+		FROM categories
 		ORDER BY name ASC
 	`
 
 	rows, err := pr.db.Query(query)
 	if err != nil {
-		log.Printf("GetInterests: Failed to query interests: %v", err)
+		log.Printf("GetCategories: Failed to query categories: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	var interests []models.Interest
+	var categories []models.Category
 	for rows.Next() {
-		var interest models.Interest
+		var category models.Category
 		err := rows.Scan(
-			&interest.ID,
-			&interest.Name,
-			&interest.DisplayName,
-			&interest.Description,
-			&interest.IconURL,
-			&interest.IsActive,
-			&interest.CreatedAt,
-			&interest.UpdatedAt,
-			&interest.IsTestData,
+			&category.ID,
+			&category.Name,
+			&category.DisplayName,
+			&category.Description,
+			&category.IconURL,
+			&category.IsActive,
+			&category.CreatedAt,
+			&category.UpdatedAt,
+			&category.IsTestData,
 		)
 		if err != nil {
-			log.Printf("GetInterests: Failed to scan interest: %v", err)
+			log.Printf("GetCategories: Failed to scan category: %v", err)
 			continue
 		}
-		interests = append(interests, interest)
+		categories = append(categories, category)
 	}
 
 	if err = rows.Err(); err != nil {
-		log.Printf("GetInterests: Row iteration error: %v", err)
+		log.Printf("GetCategories: Row iteration error: %v", err)
 		return nil, err
 	}
 
-	log.Printf("GetInterests: Successfully retrieved %d interests", len(interests))
-	return interests, nil
+	log.Printf("GetCategories: Successfully retrieved %d categories", len(categories))
+	return categories, nil
 }
 
 // GetDifficultyLevels retrieves all difficulty levels

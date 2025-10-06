@@ -18,27 +18,27 @@ func TestMigration027Verification(t *testing.T) {
 	db := database.DB
 	_ = tc // Suppress unused variable warning
 
-	t.Run("VerifyNewInterestsFromMigration027", func(t *testing.T) {
-		// Check that the newly added interests exist with is_test_data = true
-		newInterests := []string{"biology", "chemistry", "physics", "football", "basketball"}
+	t.Run("VerifyNewCategoriesFromMigration027", func(t *testing.T) {
+		// Check that the newly added categories exist with is_test_data = true
+		newCategories := []string{"biology", "chemistry", "physics", "football", "basketball"}
 
-		for _, interestID := range newInterests {
+		for _, categoryID := range newCategories {
 			var exists bool
 			var isTestData bool
 			var name, description string
 
-			query := `SELECT EXISTS(SELECT 1 FROM interests WHERE id = $1),
-			                 COALESCE((SELECT is_test_data FROM interests WHERE id = $1), false),
-			                 COALESCE((SELECT name FROM interests WHERE id = $1), ''),
-			                 COALESCE((SELECT description FROM interests WHERE id = $1), '')`
+			query := `SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1),
+			                 COALESCE((SELECT is_test_data FROM categories WHERE id = $1), false),
+			                 COALESCE((SELECT name FROM categories WHERE id = $1), ''),
+			                 COALESCE((SELECT description FROM categories WHERE id = $1), '')`
 
-			err := db.QueryRow(query, interestID).Scan(&exists, &isTestData, &name, &description)
-			assert.NoError(t, err, "Should query interest %s without error", interestID)
+			err := db.QueryRow(query, categoryID).Scan(&exists, &isTestData, &name, &description)
+			assert.NoError(t, err, "Should query category %s without error", categoryID)
 
-			assert.True(t, exists, "Interest %s should exist in database", interestID)
-			assert.True(t, isTestData, "Interest %s should have is_test_data = true", interestID)
-			assert.NotEmpty(t, name, "Interest %s should have a name", interestID)
-			assert.NotEmpty(t, description, "Interest %s should have a description", interestID)
+			assert.True(t, exists, "Category %s should exist in database", categoryID)
+			assert.True(t, isTestData, "Category %s should have is_test_data = true", categoryID)
+			assert.NotEmpty(t, name, "Category %s should have a name", categoryID)
+			assert.NotEmpty(t, description, "Category %s should have a description", categoryID)
 		}
 	})
 
@@ -78,58 +78,58 @@ func TestMigration027Verification(t *testing.T) {
 		assert.Equal(t, "20", value, "max_questions_per_quiz should be updated to 20")
 	})
 
-	t.Run("VerifyInterestCategoryMappings", func(t *testing.T) {
+	t.Run("VerifyCategoryCategoryMappings", func(t *testing.T) {
 		// Verify that our category mapping logic will work with the database data
 		expectedMappings := map[string][]string{
 			"science": {"science", "biology", "chemistry", "physics", "technology"},
 			"sports":  {"sports", "football", "basketball"},
 		}
 
-		for categoryName, expectedInterests := range expectedMappings {
-			for _, interestID := range expectedInterests {
+		for categoryName, expectedCategories := range expectedMappings {
+			for _, categoryID := range expectedCategories {
 				var exists bool
-				query := `SELECT EXISTS(SELECT 1 FROM interests WHERE id = $1 AND is_test_data = false OR is_test_data = true)`
-				err := db.QueryRow(query, interestID).Scan(&exists)
-				assert.NoError(t, err, "Should query interest %s without error", interestID)
+				query := `SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1 AND is_test_data = false OR is_test_data = true)`
+				err := db.QueryRow(query, categoryID).Scan(&exists)
+				assert.NoError(t, err, "Should query category %s without error", categoryID)
 
-				assert.True(t, exists, "Interest %s should exist for category %s", interestID, categoryName)
+				assert.True(t, exists, "Category %s should exist for category %s", categoryID, categoryName)
 			}
 		}
 	})
 
-	t.Run("VerifyInterestFieldsStructure", func(t *testing.T) {
-		// Verify that all interests have the required fields
+	t.Run("VerifyCategoryFieldsStructure", func(t *testing.T) {
+		// Verify that all categories have the required fields
 		query := `SELECT id, name, description, icon_name, color_hex, is_test_data
-		          FROM interests
+		          FROM categories
 		          WHERE id IN ('biology', 'chemistry', 'physics', 'football', 'basketball')`
 
 		rows, err := db.Query(query)
-		assert.NoError(t, err, "Should query new interests without error")
+		assert.NoError(t, err, "Should query new categories without error")
 		defer rows.Close()
 
-		interestCount := 0
+		categoryCount := 0
 		for rows.Next() {
 			var id, name, description string
 			var iconName, colorHex sql.NullString
 			var isTestData bool
 
 			err := rows.Scan(&id, &name, &description, &iconName, &colorHex, &isTestData)
-			assert.NoError(t, err, "Should scan interest row without error")
+			assert.NoError(t, err, "Should scan category row without error")
 
 			// Verify required fields are not empty
-			assert.NotEmpty(t, id, "Interest ID should not be empty")
-			assert.NotEmpty(t, name, "Interest name should not be empty")
-			assert.NotEmpty(t, description, "Interest description should not be empty")
-			assert.True(t, isTestData, "Interest should have is_test_data = true")
+			assert.NotEmpty(t, id, "Category ID should not be empty")
+			assert.NotEmpty(t, name, "Category name should not be empty")
+			assert.NotEmpty(t, description, "Category description should not be empty")
+			assert.True(t, isTestData, "Category should have is_test_data = true")
 
 			// Verify optional fields are present (can be empty)
 			assert.True(t, iconName.Valid || !iconName.Valid, "icon_name field should exist")
 			assert.True(t, colorHex.Valid || !colorHex.Valid, "color_hex field should exist")
 
-			interestCount++
+			categoryCount++
 		}
 
-		assert.Equal(t, 5, interestCount, "Should find exactly 5 new interests")
+		assert.Equal(t, 5, categoryCount, "Should find exactly 5 new categories")
 	})
 
 	t.Run("VerifyAppSettingsFieldsStructure", func(t *testing.T) {
@@ -170,16 +170,16 @@ func TestMigration027Verification(t *testing.T) {
 	t.Run("VerifyMigrationIntegrity", func(t *testing.T) {
 		// Verify that the migration didn't break existing data
 
-		// Check that original interests still exist
-		originalInterests := []string{"general_knowledge", "science", "history", "sports", "technology", "music", "geography", "literature", "art"}
+		// Check that original categories still exist
+		originalCategories := []string{"general_knowledge", "science", "history", "sports", "technology", "music", "geography", "literature", "art"}
 
-		for _, interestID := range originalInterests {
+		for _, categoryID := range originalCategories {
 			var exists bool
-			query := `SELECT EXISTS(SELECT 1 FROM interests WHERE id = $1)`
-			err := db.QueryRow(query, interestID).Scan(&exists)
-			assert.NoError(t, err, "Should query original interest %s without error", interestID)
+			query := `SELECT EXISTS(SELECT 1 FROM categories WHERE id = $1)`
+			err := db.QueryRow(query, categoryID).Scan(&exists)
+			assert.NoError(t, err, "Should query original category %s without error", categoryID)
 
-			assert.True(t, exists, "Original interest %s should still exist after migration", interestID)
+			assert.True(t, exists, "Original category %s should still exist after migration", categoryID)
 		}
 
 		// Check that original app settings still exist

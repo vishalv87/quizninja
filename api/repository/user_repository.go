@@ -151,7 +151,7 @@ func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferen
 	}
 
 	err = ur.db.QueryRow(query,
-		preferences.UserID, preferences.SelectedInterests, preferences.DifficultyPreference,
+		preferences.UserID, preferences.SelectedCategories, preferences.DifficultyPreference,
 		preferences.NotificationsEnabled, preferences.NotificationFrequency,
 		preferences.ProfileVisibility, preferences.ShowOnlineStatus,
 		preferences.AllowFriendRequests, preferences.ShareActivityStatus,
@@ -164,7 +164,7 @@ func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferen
 func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPreferences, error) {
 	preferences := &models.UserPreferences{}
 	query := `
-		SELECT id, user_id, selected_interests, difficulty_preference,
+		SELECT id, user_id, selected_categories, difficulty_preference,
 		       notifications_enabled, notification_frequency, profile_visibility,
 		       show_online_status, allow_friend_requests, share_activity_status,
 		       notification_types, onboarding_completed_at, created_at, updated_at, is_test_data
@@ -172,10 +172,10 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 		WHERE user_id = $1
 	`
 
-	var selectedInterestsSlice []string
+	var selectedCategoriesSlice []string
 	var notificationTypesJSON string
 	err := ur.db.QueryRow(query, userID).Scan(
-		&preferences.ID, &preferences.UserID, pq.Array(&selectedInterestsSlice),
+		&preferences.ID, &preferences.UserID, pq.Array(&selectedCategoriesSlice),
 		&preferences.DifficultyPreference, &preferences.NotificationsEnabled,
 		&preferences.NotificationFrequency, &preferences.ProfileVisibility,
 		&preferences.ShowOnlineStatus, &preferences.AllowFriendRequests,
@@ -188,7 +188,7 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 	}
 
 	// Convert []string to StringArray
-	preferences.SelectedInterests = models.StringArray(selectedInterestsSlice)
+	preferences.SelectedCategories = models.StringArray(selectedCategoriesSlice)
 
 	// Unmarshal the JSON for notification_types
 	if notificationTypesJSON != "" {
@@ -205,7 +205,7 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferences) error {
 	query := `
 		INSERT INTO user_preferences (
-			user_id, selected_interests, difficulty_preference,
+			user_id, selected_categories, difficulty_preference,
 			notifications_enabled, notification_frequency,
 			profile_visibility, show_online_status,
 			allow_friend_requests, share_activity_status,
@@ -215,7 +215,7 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 		)
 		ON CONFLICT (user_id) DO UPDATE SET
-			selected_interests = EXCLUDED.selected_interests,
+			selected_categories = EXCLUDED.selected_categories,
 			difficulty_preference = EXCLUDED.difficulty_preference,
 			notifications_enabled = EXCLUDED.notifications_enabled,
 			notification_frequency = EXCLUDED.notification_frequency,
@@ -250,7 +250,7 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 
 	_, err = ur.db.Exec(query,
 		preferences.UserID,
-		preferences.SelectedInterests,
+		preferences.SelectedCategories,
 		preferences.DifficultyPreference,
 		preferences.NotificationsEnabled,
 		preferences.NotificationFrequency,

@@ -341,7 +341,7 @@ func (ah *AuthHandler) createUserPreferences(user *models.User, preferencesReq *
 	now := time.Now()
 	preferences := &models.UserPreferences{
 		UserID:                user.ID,
-		SelectedInterests:     models.StringArray(preferencesReq.SelectedInterests),
+		SelectedCategories:    models.StringArray(preferencesReq.SelectedCategories),
 		DifficultyPreference:  preferencesReq.DifficultyPreference,
 		NotificationsEnabled:  preferencesReq.NotificationsEnabled,
 		NotificationFrequency: preferencesReq.NotificationFrequency,
