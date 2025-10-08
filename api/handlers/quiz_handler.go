@@ -883,12 +883,16 @@ func (h *QuizHandler) PauseQuizSession(c *gin.Context) {
 	}
 
 	userID := getUserIDFromContext(c)
+	fmt.Printf("[DEBUG] PauseQuizSession: quizID=%s, attemptID=%s, userID=%s\n", quizID, attemptID, userID)
 
 	var pauseRequest models.PauseSessionRequest
 	if err := c.ShouldBindJSON(&pauseRequest); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
+	fmt.Printf("[DEBUG] PauseQuizSession: Received request - QuestionIndex=%d, AnswersCount=%d, TimeSpent=%d, TimeRemaining=%v\n",
+		pauseRequest.CurrentQuestionIndex, len(pauseRequest.CurrentAnswers),
+		pauseRequest.TimeSpentSoFar, pauseRequest.TimeRemaining)
 
 	// Verify the attempt exists and belongs to the user
 	attempt, err := h.repo.Quiz.GetQuizAttempt(attemptID)
@@ -926,9 +930,12 @@ func (h *QuizHandler) PauseQuizSession(c *gin.Context) {
 	// Get the updated session details
 	session, err := h.repo.QuizSession.GetSessionByAttemptID(attemptID)
 	if err != nil {
+		fmt.Printf("[ERROR] PauseQuizSession: Failed to get session - %v\n", err)
 		utils.HandleError(c, err)
 		return
 	}
+	fmt.Printf("[DEBUG] PauseQuizSession: Retrieved session - ID=%s, State=%s, TimeRemaining=%v\n",
+		session.ID, session.SessionState, session.TimeRemaining)
 
 	response := models.SessionActionResponse{
 		SessionID:     session.ID,
@@ -1146,15 +1153,15 @@ func (h *QuizHandler) SaveQuizProgress(c *gin.Context) {
 		return
 	}
 
-	// Get the session for this attempt
-	session, err := h.repo.QuizSession.GetSessionByAttemptID(attemptID)
+	// Save the progress
+	err = h.repo.QuizSession.SaveSessionProgress(attemptID, &updateRequest)
 	if err != nil {
 		utils.HandleError(c, err)
 		return
 	}
 
-	// Save the progress
-	err = h.repo.QuizSession.SaveSessionProgress(session.ID, &updateRequest)
+	// Get the session for the response
+	session, err := h.repo.QuizSession.GetSessionByAttemptID(attemptID)
 	if err != nil {
 		utils.HandleError(c, err)
 		return

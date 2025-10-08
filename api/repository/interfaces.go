@@ -219,7 +219,7 @@ type QuizSessionRepositoryInterface interface {
 	GetSessionWithDetails(sessionID uuid.UUID) (*models.QuizSessionWithDetails, error)
 
 	// Session management
-	SaveSessionProgress(sessionID uuid.UUID, updateData *models.UpdateQuizSessionRequest) error
+	SaveSessionProgress(attemptID uuid.UUID, updateData *models.UpdateQuizSessionRequest) error
 	UpdateSessionActivity(sessionID uuid.UUID) error
 	CleanupExpiredSessions() (int, error)
 

@@ -21,6 +21,29 @@ func NewQuizSessionRepository() *QuizSessionRepository {
 	}
 }
 
+// acquireSessionLock acquires an advisory lock for a session operation
+// Uses PostgreSQL pg_advisory_lock with attemptID hash
+func (r *QuizSessionRepository) acquireSessionLock(attemptID uuid.UUID) error {
+	lockQuery := `SELECT pg_advisory_lock(hashtext($1::text))`
+	_, err := r.db.Exec(lockQuery, attemptID.String())
+	if err != nil {
+		return fmt.Errorf("failed to acquire session lock: %w", err)
+	}
+	fmt.Printf("[DEBUG] Acquired lock for attemptID: %s\n", attemptID)
+	return nil
+}
+
+// releaseSessionLock releases the advisory lock for a session operation
+func (r *QuizSessionRepository) releaseSessionLock(attemptID uuid.UUID) {
+	unlockQuery := `SELECT pg_advisory_unlock(hashtext($1::text))`
+	_, err := r.db.Exec(unlockQuery, attemptID.String())
+	if err != nil {
+		fmt.Printf("[ERROR] Failed to release lock for attemptID %s: %v\n", attemptID, err)
+	} else {
+		fmt.Printf("[DEBUG] Released lock for attemptID: %s\n", attemptID)
+	}
+}
+
 // CreateSession creates a new quiz session
 func (r *QuizSessionRepository) CreateSession(session *models.QuizSession) error {
 	query := `
@@ -129,6 +152,12 @@ func (r *QuizSessionRepository) DeleteSession(id uuid.UUID) error {
 
 // PauseSession pauses a quiz session
 func (r *QuizSessionRepository) PauseSession(attemptID uuid.UUID, pauseData *models.PauseSessionRequest) error {
+	// Acquire lock to prevent concurrent modifications
+	if err := r.acquireSessionLock(attemptID); err != nil {
+		return err
+	}
+	defer r.releaseSessionLock(attemptID)
+
 	query := `
 		UPDATE quiz_sessions
 		SET current_question_index = $2, current_answers = $3, session_state = 'paused',
@@ -141,17 +170,23 @@ func (r *QuizSessionRepository) PauseSession(attemptID uuid.UUID, pauseData *mod
 	if err != nil {
 		return fmt.Errorf("failed to marshal current answers: %w", err)
 	}
+	fmt.Printf("[DEBUG] PauseSession: attemptID=%s, questionIndex=%d, answersJSON=%s, timeSpent=%d, timeRemaining=%v\n",
+		attemptID, pauseData.CurrentQuestionIndex, string(answersJSON),
+		pauseData.TimeSpentSoFar, pauseData.TimeRemaining)
 
 	result, err := r.db.Exec(query, attemptID, pauseData.CurrentQuestionIndex,
 		answersJSON, pauseData.TimeSpentSoFar, pauseData.TimeRemaining)
 	if err != nil {
+		fmt.Printf("[ERROR] PauseSession: Database error - %v\n", err)
 		return fmt.Errorf("failed to pause quiz session: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
+		fmt.Printf("[ERROR] PauseSession: Failed to get affected rows - %v\n", err)
 		return fmt.Errorf("failed to get affected rows: %w", err)
 	}
+	fmt.Printf("[DEBUG] PauseSession: Rows affected = %d\n", rowsAffected)
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("active quiz session not found for attempt")
@@ -459,13 +494,19 @@ func (r *QuizSessionRepository) GetSessionWithDetails(sessionID uuid.UUID) (*mod
 }
 
 // SaveSessionProgress saves the current progress of a quiz session
-func (r *QuizSessionRepository) SaveSessionProgress(sessionID uuid.UUID, updateData *models.UpdateQuizSessionRequest) error {
+func (r *QuizSessionRepository) SaveSessionProgress(attemptID uuid.UUID, updateData *models.UpdateQuizSessionRequest) error {
+	// Acquire lock to prevent concurrent modifications
+	if err := r.acquireSessionLock(attemptID); err != nil {
+		return err
+	}
+	defer r.releaseSessionLock(attemptID)
+
 	query := `
 		UPDATE quiz_sessions
 		SET current_question_index = $2, current_answers = $3, time_spent_so_far = $4,
 		    time_remaining = $5, last_activity_at = CURRENT_TIMESTAMP,
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND session_state IN ('active', 'paused')`
+		WHERE attempt_id = $1 AND session_state IN ('active', 'paused')`
 
 	// Convert current answers to JSON
 	answersJSON, err := json.Marshal(updateData.CurrentAnswers)
@@ -473,7 +514,7 @@ func (r *QuizSessionRepository) SaveSessionProgress(sessionID uuid.UUID, updateD
 		return fmt.Errorf("failed to marshal current answers: %w", err)
 	}
 
-	result, err := r.db.Exec(query, sessionID, updateData.CurrentQuestionIndex,
+	result, err := r.db.Exec(query, attemptID, updateData.CurrentQuestionIndex,
 		answersJSON, updateData.TimeSpentSoFar, updateData.TimeRemaining)
 	if err != nil {
 		return fmt.Errorf("failed to save session progress: %w", err)
