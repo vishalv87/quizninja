@@ -501,12 +501,17 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
 	finalScore := scorePercentage * float64(basePoints) / 100
 
-	// Update the attempt
+	// Update the attempt with all required fields
+	timeNow := time.Now()
 	attempt.Score = finalScore
 	attempt.TotalPoints = basePoints
 	attempt.TimeSpent = submitRequest.TimeSpent
+	attempt.PercentageScore = scorePercentage
+	attempt.Passed = scorePercentage >= 60 // Passing threshold is 60%
+	attempt.Status = "completed"
 	attempt.IsCompleted = true
-	attempt.CompletedAt = &quiz.CreatedAt // Should be time.Now() but using consistent time
+	attempt.CompletedAt = &timeNow
+	attempt.UpdatedAt = timeNow
 
 	err = h.repo.Quiz.UpdateQuizAttempt(attempt)
 	if err != nil {
