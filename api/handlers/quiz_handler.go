@@ -529,8 +529,14 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		validatedAnswers = append(validatedAnswers, validatedAnswer)
 	}
 
-	// Calculate final score based on questions (default 1 point per question)
-	basePoints := totalQuestions // 1 point per question as default
+	// Log warning if answer count doesn't match expected questions
+	if len(validatedAnswers) != totalQuestions {
+		fmt.Printf("[WARNING] Answer count mismatch for quiz %s: submitted=%d, expected=%d\n",
+			quizID, len(validatedAnswers), totalQuestions)
+	}
+
+	// Calculate final score based on actual submitted answers (default 1 point per question)
+	basePoints := len(validatedAnswers) // Use actual submitted answers, not quiz definition
 	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
 	finalScore := scorePercentage * float64(basePoints) / 100
 
