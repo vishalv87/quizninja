@@ -85,6 +85,32 @@ func GenerateSchemaSQL(db *sql.DB, outputPath string) error {
 		}
 	}
 
+	// RLS Status
+	rlsStatus, err := getRLSStatus(db)
+	if err != nil {
+		return fmt.Errorf("failed to get RLS status: %w", err)
+	}
+	if len(rlsStatus) > 0 {
+		schema.WriteString("-- Row Level Security (RLS) Status\n")
+		for _, rls := range rlsStatus {
+			schema.WriteString(rls)
+			schema.WriteString("\n")
+		}
+	}
+
+	// Views
+	views, err := getViews(db)
+	if err != nil {
+		return fmt.Errorf("failed to get views: %w", err)
+	}
+	if len(views) > 0 {
+		schema.WriteString("-- Views\n")
+		for _, view := range views {
+			schema.WriteString(view)
+			schema.WriteString("\n")
+		}
+	}
+
 	// Write to file
 	return os.WriteFile(outputPath, []byte(schema.String()), 0644)
 }
@@ -386,6 +412,64 @@ func getTriggers(db *sql.DB) ([]string, error) {
 	}
 
 	return triggers, nil
+}
+
+// getRLSStatus retrieves RLS status for all tables
+func getRLSStatus(db *sql.DB) ([]string, error) {
+	query := `
+		SELECT
+			'ALTER TABLE ' || schemaname || '.' || tablename || ' ENABLE ROW LEVEL SECURITY;' as rls_statement
+		FROM pg_tables
+		WHERE schemaname = 'public'
+		AND tablename != 'migrations'
+		AND rowsecurity = true
+		ORDER BY tablename;
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rlsStatements []string
+	for rows.Next() {
+		var stmt string
+		if err := rows.Scan(&stmt); err != nil {
+			return nil, err
+		}
+		rlsStatements = append(rlsStatements, stmt)
+	}
+
+	return rlsStatements, nil
+}
+
+// getViews retrieves all view definitions
+func getViews(db *sql.DB) ([]string, error) {
+	query := `
+		SELECT
+			'CREATE OR REPLACE VIEW ' || schemaname || '.' || viewname || ' AS ' || definition
+		FROM pg_views
+		WHERE schemaname = 'public'
+		ORDER BY viewname;
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var views []string
+	for rows.Next() {
+		var view string
+		if err := rows.Scan(&view); err != nil {
+			return nil, err
+		}
+		views = append(views, view)
+	}
+
+	return views, nil
 }
 
 // UpdateSchemaAfterMigration should be called after running migrations
