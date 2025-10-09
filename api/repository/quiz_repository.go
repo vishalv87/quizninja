@@ -306,6 +306,82 @@ func (r *QuizRepository) GetQuizzesByUser(userID uuid.UUID, offset, limit int) (
 	return quizzes, total, nil
 }
 
+// GetCompletedQuizzesByUser retrieves quizzes that a user has completed
+func (r *QuizRepository) GetCompletedQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error) {
+	// Count total unique quizzes completed by user
+	countQuery := `
+		SELECT COUNT(DISTINCT qa.quiz_id)
+		FROM quiz_attempts qa
+		WHERE qa.user_id = $1 AND qa.is_completed = true`
+	var total int
+	err := r.db.QueryRow(countQuery, userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count completed quizzes: %w", err)
+	}
+
+	// Get paginated results with quiz details
+	// Using a subquery to get the most recent completion date for each quiz first,
+	// then paginate, and finally join to get full quiz details
+	query := `
+		WITH user_completed_quizzes AS (
+			SELECT DISTINCT qa.quiz_id, MAX(qa.completed_at) as last_completed
+			FROM quiz_attempts qa
+			WHERE qa.user_id = $1 AND qa.is_completed = true
+			GROUP BY qa.quiz_id
+			ORDER BY last_completed DESC
+			LIMIT $2 OFFSET $3
+		)
+		SELECT q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
+		       q.total_questions, q.is_featured, q.is_public, q.created_by, q.tags,
+		       q.thumbnail_url, q.created_at, q.updated_at, q.is_test_data,
+		       qs.total_attempts, qs.average_score, qs.average_time_seconds,
+		       ucq.last_completed
+		FROM user_completed_quizzes ucq
+		INNER JOIN quizzes q ON ucq.quiz_id = q.id
+		LEFT JOIN quiz_statistics qs ON q.id = qs.quiz_id
+		ORDER BY ucq.last_completed DESC`
+
+	rows, err := r.db.Query(query, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query completed quizzes: %w", err)
+	}
+	defer rows.Close()
+
+	var quizzes []models.Quiz
+	for rows.Next() {
+		var quiz models.Quiz
+		var tags pq.StringArray
+		var totalAttempts, averageTime sql.NullInt32
+		var averageScore sql.NullFloat64
+		var completedAt sql.NullTime
+
+		err := rows.Scan(
+			&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
+			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured, &quiz.IsPublic,
+			&quiz.CreatedBy, &tags, &quiz.ThumbnailURL, &quiz.CreatedAt, &quiz.UpdatedAt, &quiz.IsTestData,
+			&totalAttempts, &averageScore, &averageTime, &completedAt,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to scan completed quiz: %w", err)
+		}
+
+		quiz.Tags = models.StringArray(tags)
+
+		// Add statistics if available
+		if totalAttempts.Valid {
+			quiz.Statistics = &models.QuizStatistics{
+				TotalAttempts: int(totalAttempts.Int32),
+				AverageScore:  averageScore.Float64,
+				AverageTime:   int(averageTime.Int32),
+			}
+		}
+
+		quizzes = append(quizzes, quiz)
+	}
+
+	return quizzes, total, nil
+}
+
 // GetQuestionsByQuizID retrieves all questions for a quiz
 func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error) {
 	query := `

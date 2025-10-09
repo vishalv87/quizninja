@@ -163,7 +163,7 @@ func (h *QuizHandler) GetUserQuizzes(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	quizzes, total, err := h.repo.Quiz.GetQuizzesByUser(userID, offset, pageSize)
+	quizzes, total, err := h.repo.Quiz.GetCompletedQuizzesByUser(userID, offset, pageSize)
 	if err != nil {
 		utils.HandleError(c, err)
 		return

@@ -49,6 +49,7 @@ type QuizRepositoryInterface interface {
 	GetFeaturedQuizzes(limit int) ([]models.Quiz, error)
 	GetQuizzesByCategory(category string, limit int) ([]models.Quiz, error)
 	GetQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error)
+	GetCompletedQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error)
 
 	// Question read operations
 	GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error)
