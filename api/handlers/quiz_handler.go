@@ -468,9 +468,10 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		return
 	}
 
-	// Calculate score
+	// Calculate score and build validated answers
 	correctAnswers := 0
 	totalQuestions := len(quiz.Questions)
+	validatedAnswers := make([]models.AttemptAnswer, 0, len(submitRequest.Answers))
 
 	// Create a map for easy question lookup
 	questionMap := make(map[uuid.UUID]models.Question)
@@ -478,7 +479,7 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		questionMap[q.ID] = q
 	}
 
-	// Check each answer
+	// Check each answer and build validated answers array
 	for _, answer := range submitRequest.Answers {
 		questionID, err := uuid.Parse(answer.QuestionId)
 		if err != nil {
@@ -490,10 +491,42 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 			continue // Skip questions not found in quiz
 		}
 
-		// Check if answer is correct
-		if answer.SelectedOption != nil && *answer.SelectedOption == question.CorrectAnswer {
-			correctAnswers++
+		// Determine the selected answer and check if it's correct
+		var selectedOptionIndex int
+		var selectedAnswerText string
+		isCorrect := false
+		pointsEarned := 0
+
+		if answer.SelectedOptionIndex != nil {
+			selectedOptionIndex = *answer.SelectedOptionIndex
+			// Validate the index is within bounds
+			if selectedOptionIndex >= 0 && selectedOptionIndex < len(question.Options) {
+				selectedAnswerText = question.Options[selectedOptionIndex]
+				if selectedAnswerText == question.CorrectAnswer {
+					isCorrect = true
+					pointsEarned = 1 // Default 1 point per correct answer
+					correctAnswers++
+				}
+			}
+		} else if answer.SelectedOption != nil {
+			// Legacy support: if SelectedOption is provided as string
+			selectedAnswerText = *answer.SelectedOption
+			if selectedAnswerText == question.CorrectAnswer {
+				isCorrect = true
+				pointsEarned = 1
+				correctAnswers++
+			}
 		}
+
+		// Create validated answer with all fields
+		validatedAnswer := models.AttemptAnswer{
+			QuestionID:     questionID,
+			SelectedOption: selectedOptionIndex,
+			TextAnswer:     selectedAnswerText,
+			IsCorrect:      isCorrect,
+			PointsEarned:   pointsEarned,
+		}
+		validatedAnswers = append(validatedAnswers, validatedAnswer)
 	}
 
 	// Calculate final score based on questions (default 1 point per question)
@@ -501,8 +534,9 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
 	finalScore := scorePercentage * float64(basePoints) / 100
 
-	// Update the attempt with all required fields
+	// Update the attempt with all required fields including answers
 	timeNow := time.Now()
+	attempt.Answers = validatedAnswers
 	attempt.Score = finalScore
 	attempt.TotalPoints = basePoints
 	attempt.TimeSpent = submitRequest.TimeSpent
@@ -543,13 +577,14 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 	//     achievementNotifications = result.Notifications
 	// }
 
-	// Return the results
+	// Return the results including validated answers
 	response := gin.H{
 		"attempt_id":                attempt.ID,
 		"score":                     int(finalScore), // Convert back to int for response
 		"total_questions":           totalQuestions,
 		"correct_answers":           correctAnswers,
 		"time_spent":                submitRequest.TimeSpent,
+		"answers":                   validatedAnswers, // Include validated answers with isCorrect status
 		"achievement_notifications": achievementNotifications, // Include achievement notifications
 	}
 
