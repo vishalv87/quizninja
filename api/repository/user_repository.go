@@ -123,7 +123,7 @@ func (ur *UserRepository) DeleteUser(id uuid.UUID) error {
 func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferences) error {
 	query := `
 		INSERT INTO user_preferences (
-			user_id, selected_interests, difficulty_preference, notifications_enabled,
+			user_id, selected_categories, difficulty_preference, notifications_enabled,
 			notification_frequency, profile_visibility, show_online_status,
 			allow_friend_requests, share_activity_status, notification_types,
 			onboarding_completed_at, is_test_data

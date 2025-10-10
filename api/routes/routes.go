@@ -47,7 +47,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 			quizzes.GET("/:id", quizHandler.GetQuizByID)
 			quizzes.GET("/featured", quizHandler.GetFeaturedQuizzes)
 			quizzes.GET("/category/:category", quizHandler.GetQuizzesByCategory)
-			quizzes.GET("/categories", categoriesHandler.GetCategories)
+			quizzes.GET("/categories", categoriesHandler.GetCategoryGroups)
 		}
 
 		// Categories endpoint for simple flat list
