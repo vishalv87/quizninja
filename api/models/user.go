@@ -121,6 +121,7 @@ type Category struct {
 	Description string    `json:"description" db:"description"`
 	IconURL     string    `json:"icon_url" db:"icon_url"`
 	IsActive    bool      `json:"is_active" db:"is_active"`
+	QuizCount   int       `json:"quiz_count" db:"quiz_count"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 	IsTestData  bool      `json:"is_test_data" db:"is_test_data"`

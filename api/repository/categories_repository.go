@@ -21,11 +21,14 @@ func NewCategoriesRepository() *CategoriesRepository {
 // GetAllCategories returns a simple flat list of all categories
 func (cr *CategoriesRepository) GetAllCategories() ([]models.Category, error) {
 	query := `
-		SELECT id, name, description,
-		       CONCAT('/icons/', COALESCE(icon_name, 'default'), '.png') as icon_url,
-		       created_at, updated_at, is_test_data
-		FROM categories
-		ORDER BY name ASC
+		SELECT c.id, c.name, c.description,
+		       CONCAT('/icons/', COALESCE(c.icon_name, 'default'), '.png') as icon_url,
+		       c.created_at, c.updated_at, c.is_test_data,
+		       COALESCE(COUNT(q.id), 0) as quiz_count
+		FROM categories c
+		LEFT JOIN quizzes q ON q.category_id = c.id
+		GROUP BY c.id, c.name, c.description, c.icon_name, c.created_at, c.updated_at, c.is_test_data
+		ORDER BY c.name ASC
 	`
 
 	rows, err := cr.db.Query(query)
@@ -45,6 +48,7 @@ func (cr *CategoriesRepository) GetAllCategories() ([]models.Category, error) {
 			&category.CreatedAt,
 			&category.UpdatedAt,
 			&category.IsTestData,
+			&category.QuizCount,
 		)
 		if err != nil {
 			continue
@@ -68,11 +72,14 @@ func (cr *CategoriesRepository) GetAllCategoryGroups() ([]models.CategoryGroup, 
 	// Query to get all categories from the database
 	// Note: is_test_data field is only used for test isolation, not production filtering
 	query := `
-		SELECT id, name, description,
-		       CONCAT('/icons/', COALESCE(icon_name, 'default'), '.png') as icon_url,
-		       created_at, updated_at, is_test_data
-		FROM categories
-		ORDER BY name ASC
+		SELECT c.id, c.name, c.description,
+		       CONCAT('/icons/', COALESCE(c.icon_name, 'default'), '.png') as icon_url,
+		       c.created_at, c.updated_at, c.is_test_data,
+		       COALESCE(COUNT(q.id), 0) as quiz_count
+		FROM categories c
+		LEFT JOIN quizzes q ON q.category_id = c.id
+		GROUP BY c.id, c.name, c.description, c.icon_name, c.created_at, c.updated_at, c.is_test_data
+		ORDER BY c.name ASC
 	`
 
 	rows, err := cr.db.Query(query)
@@ -92,6 +99,7 @@ func (cr *CategoriesRepository) GetAllCategoryGroups() ([]models.CategoryGroup, 
 			&category.CreatedAt,
 			&category.UpdatedAt,
 			&category.IsTestData,
+			&category.QuizCount,
 		)
 		if err != nil {
 			continue
