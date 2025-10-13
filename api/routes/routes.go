@@ -29,7 +29,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 	achievementHandler := handlers.NewAchievementHandler(cfg)
 	favoritesHandler := handlers.NewFavoritesHandler(cfg)
 	discussionHandler := handlers.NewDiscussionHandler(cfg)
-	digestHandler := handlers.NewDigestHandler(cfg)
 	notificationHandler := handlers.NewNotificationHandler(cfg)
 
 	api := r.Group("/api/v1")
@@ -70,19 +69,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 		}
 
 		// Note: Leaderboard endpoints moved to protected section for authentication
-
-		// Digest endpoints (public)
-		digest := api.Group("/digest")
-		{
-			digest.GET("/today", digestHandler.GetTodaysDigest)
-			digest.GET("/categories", digestHandler.GetDigestCategories)
-			digest.GET("", digestHandler.GetDigestList)
-			digest.GET("/:date", digestHandler.GetDigestByDate)
-			digest.GET("/articles/:id", digestHandler.GetArticleByID)
-			digest.GET("/stats", digestHandler.GetDigestStats)
-			digest.GET("/trending", digestHandler.GetTrendingArticles)
-			digest.GET("/trending/:category", digestHandler.GetTrendingArticlesByCategory)
-		}
 
 		auth := api.Group("/auth")
 		{
@@ -220,17 +206,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				discussions.PUT("/replies/:replyId", discussionHandler.UpdateDiscussionReply)
 				discussions.DELETE("/replies/:replyId", discussionHandler.DeleteDiscussionReply)
 				discussions.PUT("/replies/:replyId/like", discussionHandler.LikeDiscussionReply)
-			}
-
-			// Protected digest endpoints (admin/management)
-			protectedDigest := protected.Group("/digest")
-			{
-				protectedDigest.POST("", digestHandler.CreateDigest)
-				protectedDigest.PUT("/:id", digestHandler.UpdateDigest)
-				protectedDigest.DELETE("/:id", digestHandler.DeleteDigest)
-				protectedDigest.POST("/:digestId/articles", digestHandler.CreateArticle)
-				protectedDigest.DELETE("/articles/:id", digestHandler.DeleteArticle)
-				protectedDigest.GET("/today/ensure", digestHandler.GetOrCreateTodaysDigest)
 			}
 
 			// Admin endpoints for cache management
