@@ -138,6 +138,10 @@ type ChallengesRepositoryInterface interface {
 	CanUserChallenge(challengerID, challengedID uuid.UUID) (bool, error)
 	HasPendingChallenge(challengerID, challengedID uuid.UUID, quizID uuid.UUID) (bool, error)
 
+	// Asynchronous challenge operations
+	LinkAttemptToChallenge(challengeID uuid.UUID, attemptID uuid.UUID, userID uuid.UUID) error
+	CompleteChallengeAttempt(challengeID uuid.UUID, userID uuid.UUID, score float64) error
+
 	// Utility operations
 	ExpireChallenges() error
 }

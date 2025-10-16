@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"quizninja-api/database"
 	"quizninja-api/models"
@@ -27,22 +28,27 @@ func NewChallengesRepository() ChallengesRepositoryInterface {
 
 // CreateChallenge creates a new challenge
 func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) error {
-	log.Printf("CreateChallenge called: challengerID=%s, challengedID=%s, quizID=%s",
-		challenge.ChallengerID, challenge.ChallengedID, challenge.QuizID)
+	log.Printf("===== CreateChallenge Repository =====")
+	log.Printf("DEBUG: Input challengerID=%s, challengeeID=%s, quizID=%s",
+		challenge.ChallengerID, challenge.ChallengeeID, challenge.QuizID)
+	log.Printf("DEBUG: Message=%v, ExpiresAt=%v, IsGroupChallenge=%v, IsTestData=%v",
+		challenge.Message, challenge.ExpiresAt, challenge.IsGroupChallenge, challenge.IsTestData)
 
 	query := `
 		INSERT INTO challenges (
-			challenger_id, challenged_id, quiz_id, message, expires_at,
+			challenger_id, challengee_id, quiz_id, message, expires_at,
 			is_group_challenge, participant_ids, participant_scores, is_test_data
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, status, created_at, updated_at
 	`
+	log.Printf("DEBUG: SQL query prepared: %s", query)
 
 	var participantScores interface{}
 	if challenge.ParticipantScores != nil {
 		participantScoresJSON, err := json.Marshal(challenge.ParticipantScores)
 		if err != nil {
+			log.Printf("DEBUG: Failed to marshal participant scores: %v", err)
 			return fmt.Errorf("failed to marshal participant scores: %w", err)
 		}
 		participantScores = string(participantScoresJSON)
@@ -50,10 +56,14 @@ func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) erro
 		participantScores = nil
 	}
 
+	log.Printf("DEBUG: About to execute INSERT with params: [$1=%s, $2=%s, $3=%s, $4=%v, $5=%v, $6=%v, $7=%v, $8=%v, $9=%v]",
+		challenge.ChallengerID, challenge.ChallengeeID, challenge.QuizID, challenge.Message,
+		challenge.ExpiresAt, challenge.IsGroupChallenge, challenge.ParticipantIDs, participantScores, challenge.IsTestData)
+
 	err := r.db.QueryRow(
 		query,
 		challenge.ChallengerID,
-		challenge.ChallengedID,
+		challenge.ChallengeeID,
 		challenge.QuizID,
 		challenge.Message,
 		challenge.ExpiresAt,
@@ -69,9 +79,12 @@ func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) erro
 	)
 
 	if err != nil {
+		log.Printf("DEBUG: Database error occurred: %v", err)
+		log.Printf("DEBUG: Error type: %T", err)
 		return fmt.Errorf("failed to create challenge: %w", err)
 	}
 
+	log.Printf("DEBUG: Challenge created successfully with ID=%s, Status=%s", challenge.ID, challenge.Status)
 	return nil
 }
 
@@ -80,8 +93,8 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 	log.Printf("GetChallengeByID called: id=%s", id)
 
 	query := `
-		SELECT id, challenger_id, challenged_id, quiz_id, status,
-			   challenger_score, challenged_score, message, expires_at,
+		SELECT id, challenger_id, challengee_id, quiz_id, status,
+			   challenger_score, challengee_score, message, expires_at,
 			   is_group_challenge, participant_ids, participant_scores,
 			   created_at, updated_at, is_test_data
 		FROM challenges
@@ -95,11 +108,11 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 	err := r.db.QueryRow(query, id).Scan(
 		&challenge.ID,
 		&challenge.ChallengerID,
-		&challenge.ChallengedID,
+		&challenge.ChallengeeID,
 		&challenge.QuizID,
 		&challenge.Status,
 		&challenge.ChallengerScore,
-		&challenge.ChallengedScore,
+		&challenge.ChallengeeScore,
 		&challenge.Message,
 		&challenge.ExpiresAt,
 		&challenge.IsGroupChallenge,
@@ -140,8 +153,8 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 	log.Printf("GetChallengeWithDetails called: id=%s", id)
 
 	query := `
-		SELECT c.id, c.challenger_id, c.challenged_id, c.quiz_id, c.status,
-			   c.challenger_score, c.challenged_score, c.message, c.expires_at,
+		SELECT c.id, c.challenger_id, c.challengee_id, c.quiz_id, c.status,
+			   c.challenger_score, c.challengee_score, c.message, c.expires_at,
 			   c.is_group_challenge, c.participant_ids, c.participant_scores,
 			   c.created_at, c.updated_at, c.is_test_data,
 			   u1.name, COALESCE(u1.avatar_url, ''),
@@ -149,7 +162,7 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 			   q.title, q.category_id
 		FROM challenges c
 		JOIN users u1 ON c.challenger_id = u1.id
-		JOIN users u2 ON c.challenged_id = u2.id
+		JOIN users u2 ON c.challengee_id = u2.id
 		JOIN quizzes q ON c.quiz_id = q.id
 		WHERE c.id = $1
 	`
@@ -161,11 +174,11 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 	err := r.db.QueryRow(query, id).Scan(
 		&challenge.ID,
 		&challenge.ChallengerID,
-		&challenge.ChallengedID,
+		&challenge.ChallengeeID,
 		&challenge.QuizID,
 		&challenge.Status,
 		&challenge.ChallengerScore,
-		&challenge.ChallengedScore,
+		&challenge.ChallengeeScore,
 		&challenge.Message,
 		&challenge.ExpiresAt,
 		&challenge.IsGroupChallenge,
@@ -176,8 +189,8 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 		&challenge.IsTestData,
 		&challenge.ChallengerName,
 		&challenge.ChallengerAvatar,
-		&challenge.ChallengedName,
-		&challenge.ChallengedAvatar,
+		&challenge.ChallengeeName,
+		&challenge.ChallengeeAvatar,
 		&challenge.QuizTitle,
 		&challenge.QuizCategory,
 	)
@@ -213,7 +226,7 @@ func (r *ChallengesRepository) UpdateChallenge(challenge *models.Challenge) erro
 
 	query := `
 		UPDATE challenges
-		SET challenger_score = $2, challenged_score = $3, status = $4,
+		SET challenger_score = $2, challengee_score = $3, status = $4,
 			message = $5, expires_at = $6, participant_scores = $7,
 			updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
@@ -223,7 +236,7 @@ func (r *ChallengesRepository) UpdateChallenge(challenge *models.Challenge) erro
 		query,
 		challenge.ID,
 		challenge.ChallengerScore,
-		challenge.ChallengedScore,
+		challenge.ChallengeeScore,
 		challenge.Status,
 		challenge.Message,
 		challenge.ExpiresAt,
@@ -290,10 +303,10 @@ func (r *ChallengesRepository) UpdateChallengeScore(challengeID uuid.UUID, userI
 			SET challenger_score = $2, updated_at = CURRENT_TIMESTAMP
 			WHERE id = $1
 		`
-	} else if challenge.ChallengedID == userID {
+	} else if challenge.ChallengeeID == userID {
 		query = `
 			UPDATE challenges
-			SET challenged_score = $2, updated_at = CURRENT_TIMESTAMP
+			SET challengee_score = $2, updated_at = CURRENT_TIMESTAMP
 			WHERE id = $1
 		`
 	} else {
@@ -320,7 +333,7 @@ func (r *ChallengesRepository) UpdateChallengeScore(challengeID uuid.UUID, userI
 		return err
 	}
 
-	if updatedChallenge.ChallengerScore != nil && updatedChallenge.ChallengedScore != nil {
+	if updatedChallenge.ChallengerScore != nil && updatedChallenge.ChallengeeScore != nil {
 		return r.UpdateChallengeStatus(challengeID, "completed")
 	}
 
@@ -355,7 +368,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 	log.Printf("GetUserChallenges called: userID=%s", userID)
 
 	// Build WHERE clause
-	whereConditions := []string{"(c.challenger_id = $1 OR c.challenged_id = $1)"}
+	whereConditions := []string{"(c.challenger_id = $1 OR c.challengee_id = $1)"}
 	args := []interface{}{userID}
 	argIndex := 2
 
@@ -375,7 +388,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 		if filters.UserType == "challenger" {
 			whereConditions = append(whereConditions, fmt.Sprintf("c.challenger_id = $%d", argIndex))
 		} else if filters.UserType == "challenged" {
-			whereConditions = append(whereConditions, fmt.Sprintf("c.challenged_id = $%d", argIndex))
+			whereConditions = append(whereConditions, fmt.Sprintf("c.challengee_id = $%d", argIndex))
 		}
 		args = append(args, userID)
 		argIndex++
@@ -420,8 +433,8 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 
 	// Main query
 	query := fmt.Sprintf(`
-		SELECT c.id, c.challenger_id, c.challenged_id, c.quiz_id, c.status,
-			   c.challenger_score, c.challenged_score, c.message, c.expires_at,
+		SELECT c.id, c.challenger_id, c.challengee_id, c.quiz_id, c.status,
+			   c.challenger_score, c.challengee_score, c.message, c.expires_at,
 			   c.is_group_challenge, c.participant_ids, c.participant_scores,
 			   c.created_at, c.updated_at, c.is_test_data,
 			   u1.name, COALESCE(u1.avatar_url, ''),
@@ -429,7 +442,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 			   q.title, q.category_id
 		FROM challenges c
 		JOIN users u1 ON c.challenger_id = u1.id
-		JOIN users u2 ON c.challenged_id = u2.id
+		JOIN users u2 ON c.challengee_id = u2.id
 		JOIN quizzes q ON c.quiz_id = q.id
 		WHERE %s
 		ORDER BY %s
@@ -454,11 +467,11 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 		err := rows.Scan(
 			&challenge.ID,
 			&challenge.ChallengerID,
-			&challenge.ChallengedID,
+			&challenge.ChallengeeID,
 			&challenge.QuizID,
 			&challenge.Status,
 			&challenge.ChallengerScore,
-			&challenge.ChallengedScore,
+			&challenge.ChallengeeScore,
 			&challenge.Message,
 			&challenge.ExpiresAt,
 			&challenge.IsGroupChallenge,
@@ -469,8 +482,8 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 			&challenge.IsTestData,
 			&challenge.ChallengerName,
 			&challenge.ChallengerAvatar,
-			&challenge.ChallengedName,
-			&challenge.ChallengedAvatar,
+			&challenge.ChallengeeName,
+			&challenge.ChallengeeAvatar,
 			&challenge.QuizTitle,
 			&challenge.QuizCategory,
 		)
@@ -548,7 +561,7 @@ func (r *ChallengesRepository) AcceptChallenge(challengeID uuid.UUID, userID uui
 	query := `
 		UPDATE challenges
 		SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND challenged_id = $2 AND status = 'pending'
+		WHERE id = $1 AND challengee_id = $2 AND status = 'pending'
 	`
 
 	result, err := r.db.Exec(query, challengeID, userID)
@@ -576,7 +589,7 @@ func (r *ChallengesRepository) DeclineChallenge(challengeID uuid.UUID, userID uu
 	query := `
 		UPDATE challenges
 		SET status = 'declined', updated_at = CURRENT_TIMESTAMP
-		WHERE id = $1 AND challenged_id = $2 AND status = 'pending'
+		WHERE id = $1 AND challengee_id = $2 AND status = 'pending'
 	`
 
 	result, err := r.db.Exec(query, challengeID, userID)
@@ -613,22 +626,22 @@ func (r *ChallengesRepository) GetChallengeStats(userID uuid.UUID) (*models.Chal
 			COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_challenges,
 			COUNT(CASE
 				WHEN status = 'completed' AND (
-					(challenger_id = $1 AND challenger_score > challenged_score) OR
-					(challenged_id = $1 AND challenged_score > challenger_score)
+					(challenger_id = $1 AND challenger_score > challengee_score) OR
+					(challengee_id = $1 AND challengee_score > challenger_score)
 				) THEN 1
 			END) as won_challenges,
 			COUNT(CASE
 				WHEN status = 'completed' AND (
-					(challenger_id = $1 AND challenger_score < challenged_score) OR
-					(challenged_id = $1 AND challenged_score < challenger_score)
+					(challenger_id = $1 AND challenger_score < challengee_score) OR
+					(challengee_id = $1 AND challengee_score < challenger_score)
 				) THEN 1
 			END) as lost_challenges,
 			AVG(CASE
 				WHEN challenger_id = $1 THEN challenger_score
-				WHEN challenged_id = $1 THEN challenged_score
+				WHEN challengee_id = $1 THEN challengee_score
 			END) as average_score
 		FROM challenges
-		WHERE challenger_id = $1 OR challenged_id = $1
+		WHERE challenger_id = $1 OR challengee_id = $1
 	`
 
 	var stats models.ChallengeStatsResponse
@@ -683,7 +696,7 @@ func (r *ChallengesRepository) HasPendingChallenge(challengerID, challengedID uu
 	query := `
 		SELECT COUNT(*)
 		FROM challenges
-		WHERE challenger_id = $1 AND challenged_id = $2 AND quiz_id = $3 AND status = 'pending'
+		WHERE challenger_id = $1 AND challengee_id = $2 AND quiz_id = $3 AND status = 'pending'
 	`
 
 	var count int
@@ -717,5 +730,134 @@ func (r *ChallengesRepository) ExpireChallenges() error {
 	}
 
 	log.Printf("Expired %d challenges", rowsAffected)
+	return nil
+}
+
+// LinkAttemptToChallenge links a quiz attempt to a challenge
+// This is called when a user starts taking a quiz for a challenge
+func (r *ChallengesRepository) LinkAttemptToChallenge(challengeID uuid.UUID, attemptID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("LinkAttemptToChallenge called: challengeID=%s, attemptID=%s, userID=%s", challengeID, attemptID, userID)
+
+	// First get the challenge to determine which attempt field to update
+	challenge, err := r.GetChallengeByID(challengeID)
+	if err != nil {
+		return err
+	}
+
+	// Determine which attempt ID field to update based on user role
+	var query string
+	if challenge.ChallengerID == userID {
+		query = `
+			UPDATE challenges
+			SET challenger_attempt_id = $2, updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+		`
+	} else if challenge.ChallengeeID == userID {
+		query = `
+			UPDATE challenges
+			SET challengee_attempt_id = $2, updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+		`
+	} else {
+		return fmt.Errorf("user is not part of this challenge")
+	}
+
+	// Execute the update
+	result, err := r.db.Exec(query, challengeID, attemptID)
+	if err != nil {
+		return fmt.Errorf("failed to link attempt to challenge: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found")
+	}
+
+	// Also update the quiz_attempt record to mark it as a challenge attempt
+	updateAttemptQuery := `
+		UPDATE quiz_attempts
+		SET challenge_id = $2, is_challenge_attempt = true, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1
+	`
+	_, err = r.db.Exec(updateAttemptQuery, attemptID, challengeID)
+	if err != nil {
+		return fmt.Errorf("failed to update quiz attempt: %w", err)
+	}
+
+	log.Printf("Successfully linked attempt %s to challenge %s", attemptID, challengeID)
+	return nil
+}
+
+// CompleteChallengeAttempt marks a user's challenge attempt as complete and updates the challenge status
+// This method handles the asynchronous nature of challenges - it updates the appropriate completion timestamp
+// and transitions the challenge status based on whether one or both users have completed
+func (r *ChallengesRepository) CompleteChallengeAttempt(challengeID uuid.UUID, userID uuid.UUID, score float64) error {
+	log.Printf("CompleteChallengeAttempt called: challengeID=%s, userID=%s, score=%f", challengeID, userID, score)
+
+	// First get the challenge to determine which user is completing
+	challenge, err := r.GetChallengeByID(challengeID)
+	if err != nil {
+		return err
+	}
+
+	// Determine query based on user role and check opponent's completion status
+	var query string
+	var newStatus string
+
+	if challenge.ChallengerID == userID {
+		// Challenger is completing
+		query = `
+			UPDATE challenges
+			SET challenger_score = $2,
+			    challenger_completed_at = CURRENT_TIMESTAMP,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+			RETURNING challengee_completed_at
+		`
+	} else if challenge.ChallengeeID == userID {
+		// Challengee is completing
+		query = `
+			UPDATE challenges
+			SET challengee_score = $2,
+			    challengee_completed_at = CURRENT_TIMESTAMP,
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE id = $1
+			RETURNING challenger_completed_at
+		`
+	} else {
+		return fmt.Errorf("user is not part of this challenge")
+	}
+
+	// Execute the update and get opponent's completion status
+	var opponentCompletedAt *time.Time
+	err = r.db.QueryRow(query, challengeID, score).Scan(&opponentCompletedAt)
+	if err != nil {
+		return fmt.Errorf("failed to update challenge completion: %w", err)
+	}
+
+	// Determine the new status based on completion state
+	if opponentCompletedAt != nil {
+		// Both users have completed
+		newStatus = "completed"
+	} else {
+		// Only this user has completed
+		if challenge.ChallengerID == userID {
+			newStatus = "challenger_completed"
+		} else {
+			newStatus = "challengee_completed"
+		}
+	}
+
+	// Update the challenge status
+	err = r.UpdateChallengeStatus(challengeID, newStatus)
+	if err != nil {
+		return fmt.Errorf("failed to update challenge status: %w", err)
+	}
+
+	log.Printf("Successfully completed challenge attempt. New status: %s", newStatus)
 	return nil
 }

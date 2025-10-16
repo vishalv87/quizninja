@@ -154,6 +154,8 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				challenges.PUT("/:id/accept", challengesHandler.AcceptChallenge)
 				challenges.PUT("/:id/decline", challengesHandler.DeclineChallenge)
 				challenges.PUT("/:id/score", challengesHandler.UpdateChallengeScore)
+				challenges.POST("/:id/link-attempt", challengesHandler.LinkAttemptToChallenge)
+				challenges.PUT("/:id/complete", challengesHandler.CompleteChallengeAttempt)
 				challenges.POST("/expire", challengesHandler.ExpireChallenges) // Admin endpoint
 			}
 

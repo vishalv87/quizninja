@@ -52,7 +52,7 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 	t.Run("Complete Challenge Workflow", func(t *testing.T) {
 		t.Run("Step 1: Create Challenge", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengedID,
+				ChallengeeUserID: challengedID,
 				QuizID:           quizID,
 				Message:          stringPtr("End-to-end test challenge! 🚀"),
 				IsGroupChallenge: false,
@@ -91,7 +91,7 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 					found = true
 					assert.Equal(t, "pending", string(challenge.Status))
 					assert.Equal(t, challengerID, challenge.ChallengerID)
-					assert.Equal(t, challengedID, challenge.ChallengedID)
+					assert.Equal(t, challengedID, challenge.ChallengeeID)
 				}
 			}
 			assert.True(t, found, "Should find created challenge in challenger's pending list")
@@ -283,9 +283,9 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 			assert.Equal(t, "completed", string(challenge.Status))
 			assert.Equal(t, "End-to-end test challenge! 🚀", *challenge.Message)
 			assert.Equal(t, 87.5, *challenge.ChallengerScore)
-			assert.Equal(t, 92.0, *challenge.ChallengedScore)
+			assert.Equal(t, 92.0, *challenge.ChallengeeScore)
 			assert.NotEmpty(t, challenge.ChallengerName)
-			assert.NotEmpty(t, challenge.ChallengedName)
+			assert.NotEmpty(t, challenge.ChallengeeName)
 			assert.NotEmpty(t, challenge.QuizTitle)
 		})
 	})
@@ -294,7 +294,7 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 		t.Run("Challenge Decline Flow", func(t *testing.T) {
 			// Create another challenge
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengedID,
+				ChallengeeUserID: challengedID,
 				QuizID:           quizID,
 				Message:          stringPtr("This one will be declined"),
 				IsGroupChallenge: false,
@@ -337,7 +337,7 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 		t.Run("Prevent Duplicate Pending Challenges", func(t *testing.T) {
 			// Try to create the same challenge again
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengedID,
+				ChallengeeUserID: challengedID,
 				QuizID:           quizID,
 				Message:          stringPtr("Duplicate attempt"),
 				IsGroupChallenge: false,
@@ -378,7 +378,7 @@ func TestChallengesIntegrationEndToEnd(t *testing.T) {
 			// Create multiple challenges in sequence to test system load
 			for i := 0; i < 5; i++ {
 				createReq := models.CreateChallengeRequest{
-					ChallengedUserID: challengedID,
+					ChallengeeUserID: challengedID,
 					QuizID:           quizID,
 					Message:          stringPtr(fmt.Sprintf("Load test challenge #%d", i+1)),
 					IsGroupChallenge: false,

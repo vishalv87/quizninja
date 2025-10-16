@@ -38,24 +38,24 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 	// Assign different quiz IDs to different test groups
 	createValidQuizID := quizIDs[0]
 	duplicateTestQuizID := quizIDs[1]
-	stateManagementQuizID := quizIDs[2]          // Main challenge for state management
+	stateManagementQuizID := quizIDs[2] // Main challenge for state management
 	// retrievalTestQuizID := quizIDs[3] // No longer used - replaced with specific IDs
 
 	// Additional quiz IDs for state management subtests
-	preventAcceptQuizID := quizIDs[4]           // For "Prevent Non-Challenged User Accept"
-	declineChallengeQuizID := quizIDs[5]        // For "Decline Challenge"
-	updateScoresQuizID := quizIDs[6]            // For "Update Challenge Scores"
-	preventScoreUpdateQuizID := quizIDs[7]      // For "Prevent Non-Participant Score Update"
+	preventAcceptQuizID := quizIDs[4]      // For "Prevent Non-Challenged User Accept"
+	declineChallengeQuizID := quizIDs[5]   // For "Decline Challenge"
+	updateScoresQuizID := quizIDs[6]       // For "Update Challenge Scores"
+	preventScoreUpdateQuizID := quizIDs[7] // For "Prevent Non-Participant Score Update"
 
 	// Additional quiz IDs for retrieval section
-	retrievalPendingQuizID := quizIDs[3]        // For pending challenge in retrieval
-	retrievalActiveQuizID := quizIDs[8]         // For active challenge in retrieval
-	retrievalCompletedQuizID := quizIDs[9]      // For completed challenge in retrieval
+	retrievalPendingQuizID := quizIDs[3]   // For pending challenge in retrieval
+	retrievalActiveQuizID := quizIDs[8]    // For active challenge in retrieval
+	retrievalCompletedQuizID := quizIDs[9] // For completed challenge in retrieval
 
 	t.Run("Challenge Creation Flow", func(t *testing.T) {
 		t.Run("Create Valid Challenge", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengedID,
+				ChallengeeUserID: challengedID,
 				QuizID:           createValidQuizID,
 				Message:          stringPtr("Let's see who's smarter! 😄"),
 				IsGroupChallenge: false,
@@ -83,7 +83,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 
 		t.Run("Prevent Self Challenge", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengerID, // Same as challenger
+				ChallengeeUserID: challengerID,      // Same as challenger
 				QuizID:           createValidQuizID, // Can reuse since this test will fail validation
 				Message:          stringPtr("Challenge myself"),
 				IsGroupChallenge: false,
@@ -97,7 +97,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 
 		t.Run("Prevent Challenge Non-Friend", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: thirdUserID, // Not a friend
+				ChallengeeUserID: thirdUserID,       // Not a friend
 				QuizID:           createValidQuizID, // Can reuse since this test will fail validation
 				Message:          stringPtr("Challenge stranger"),
 				IsGroupChallenge: false,
@@ -112,7 +112,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 		t.Run("Prevent Duplicate Pending Challenge", func(t *testing.T) {
 			// Create first challenge with unique quiz ID
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengedID,
+				ChallengeeUserID: challengedID,
 				QuizID:           duplicateTestQuizID,
 				Message:          stringPtr("First challenge"),
 				IsGroupChallenge: false,
@@ -132,7 +132,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 
 		t.Run("Invalid Quiz ID", func(t *testing.T) {
 			createReq := models.CreateChallengeRequest{
-				ChallengedUserID: challengedID,
+				ChallengeeUserID: challengedID,
 				QuizID:           uuid.New(), // Non-existent quiz
 				Message:          stringPtr("Invalid quiz challenge"),
 				IsGroupChallenge: false,
@@ -411,7 +411,7 @@ func TestChallengesHandlerComprehensive(t *testing.T) {
 // Helper function to create a test challenge and return its ID
 func createTestChallenge(t *testing.T, tc *TestConfig, challengerToken string, challengedID, quizID uuid.UUID) uuid.UUID {
 	createReq := models.CreateChallengeRequest{
-		ChallengedUserID: challengedID,
+		ChallengeeUserID: challengedID,
 		QuizID:           quizID,
 		Message:          stringPtr("Test challenge"),
 		IsGroupChallenge: false,

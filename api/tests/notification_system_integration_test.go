@@ -493,7 +493,7 @@ func deleteNotification(t *testing.T, tc *TestConfig, token, notificationID stri
 // createChallenge creates a challenge and returns the challenge ID
 func createChallenge(t *testing.T, tc *TestConfig, challengerToken string, challengedID, quizID uuid.UUID, message string) string {
 	createReq := models.CreateChallengeRequest{
-		ChallengedUserID: challengedID,
+		ChallengeeUserID: challengedID,
 		QuizID:           quizID,
 		Message:          stringPtr(message),
 		IsGroupChallenge: false,

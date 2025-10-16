@@ -48,9 +48,9 @@ func TestChallengesHandler(t *testing.T) {
 					}
 
 					// Check challenged user data
-					if challenge.Challenged != nil {
+					if challenge.Challengee != nil {
 						challengedMap := map[string]interface{}{
-							"is_test_data": challenge.Challenged.IsTestData,
+							"is_test_data": challenge.Challengee.IsTestData,
 						}
 						VerifyIsTestDataField(t, challengedMap, true, fmt.Sprintf("challenge[%d] challenged", i))
 					}
@@ -213,9 +213,9 @@ func TestChallengesHandler(t *testing.T) {
 				VerifyIsTestDataField(t, challengerMap, true, "challenge detail challenger")
 			}
 
-			if response.Challenge.Challenged != nil {
+			if response.Challenge.Challengee != nil {
 				challengedMap := map[string]interface{}{
-					"is_test_data": response.Challenge.Challenged.IsTestData,
+					"is_test_data": response.Challenge.Challengee.IsTestData,
 				}
 				VerifyIsTestDataField(t, challengedMap, true, "challenge detail challenged")
 			}
@@ -272,7 +272,7 @@ func TestChallengesHandler(t *testing.T) {
 		}
 
 		createReq := models.CreateChallengeRequest{
-			ChallengedUserID: secondUserID,
+			ChallengeeUserID: secondUserID,
 			QuizID:           quizUUID,
 			Message:          stringPtr("Test challenge"),
 			IsGroupChallenge: false,

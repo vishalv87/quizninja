@@ -29,32 +29,39 @@ func NewChallengesHandler(cfg *config.Config) *ChallengesHandler {
 // CreateChallenge creates a new challenge
 // POST /api/v1/challenges
 func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
-	log.Println("CreateChallenge called")
+	log.Println("===== CreateChallenge called =====")
 	userID, exists := c.Get("user_id")
 	if !exists {
+		log.Println("DEBUG: User not authenticated")
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
 		return
 	}
 
 	challengerID := userID.(uuid.UUID)
+	log.Printf("DEBUG: ChallengerID from context: %s", challengerID)
 
 	var req models.CreateChallengeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("DEBUG: JSON binding failed with error: %v", err)
+		log.Printf("DEBUG: Error type: %T", err)
+		log.Printf("DEBUG: Error details: %+v", err)
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
 		return
 	}
 
-	log.Printf("CreateChallenge: challengerID=%s, challengedID=%s, quizID=%s",
-		challengerID, req.ChallengedUserID, req.QuizID)
+	log.Printf("DEBUG: Successfully parsed request - ChallengeeUserID=%s, QuizID=%s, Message=%v, ExpiresAt=%v, IsGroupChallenge=%v",
+		req.ChallengeeUserID, req.QuizID, req.Message, req.ExpiresAt, req.IsGroupChallenge)
+	log.Printf("CreateChallenge: challengerID=%s, challengeeID=%s, quizID=%s",
+		challengerID, req.ChallengeeUserID, req.QuizID)
 
 	// Check if user is trying to challenge themselves
-	if challengerID == req.ChallengedUserID {
+	if challengerID == req.ChallengeeUserID {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Cannot challenge yourself")
 		return
 	}
 
 	// Check if users are friends
-	canChallenge, err := h.repo.Challenges.CanUserChallenge(challengerID, req.ChallengedUserID)
+	canChallenge, err := h.repo.Challenges.CanUserChallenge(challengerID, req.ChallengeeUserID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to check challenge eligibility")
 		return
@@ -66,7 +73,7 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 	}
 
 	// Check if there's already a pending challenge for this quiz between these users
-	hasPending, err := h.repo.Challenges.HasPendingChallenge(challengerID, req.ChallengedUserID, req.QuizID)
+	hasPending, err := h.repo.Challenges.HasPendingChallenge(challengerID, req.ChallengeeUserID, req.QuizID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to check pending challenges")
 		return
@@ -87,7 +94,7 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 	// Create challenge
 	challenge := &models.Challenge{
 		ChallengerID:     challengerID,
-		ChallengedID:     req.ChallengedUserID,
+		ChallengeeID:     req.ChallengeeUserID,
 		QuizID:           req.QuizID,
 		Message:          req.Message,
 		ExpiresAt:        req.ExpiresAt,
@@ -196,7 +203,7 @@ func (h *ChallengesHandler) GetChallengeByID(c *gin.Context) {
 	}
 
 	// Check if user is part of this challenge
-	if challenge.ChallengerID != currentUserID && challenge.ChallengedID != currentUserID {
+	if challenge.ChallengerID != currentUserID && challenge.ChallengeeID != currentUserID {
 		utils.ErrorResponse(c, http.StatusForbidden, "You don't have access to this challenge")
 		return
 	}
@@ -465,5 +472,121 @@ func (h *ChallengesHandler) GetCompletedChallenges(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"challenges": challenges,
 		"total":      len(challenges),
+	})
+}
+
+// LinkAttemptToChallenge links a quiz attempt to a challenge
+// POST /api/v1/challenges/:id/link-attempt
+func (h *ChallengesHandler) LinkAttemptToChallenge(c *gin.Context) {
+	log.Println("LinkAttemptToChallenge called")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+
+	currentUserID := userID.(uuid.UUID)
+
+	challengeIDStr := c.Param("id")
+	challengeID, err := uuid.Parse(challengeIDStr)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
+		return
+	}
+
+	var req struct {
+		AttemptID string `json:"attempt_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
+		return
+	}
+
+	attemptID, err := uuid.Parse(req.AttemptID)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid attempt ID")
+		return
+	}
+
+	log.Printf("LinkAttemptToChallenge: challengeID=%s, attemptID=%s, userID=%s",
+		challengeID, attemptID, currentUserID)
+
+	// Link the attempt to the challenge
+	if err := h.repo.Challenges.LinkAttemptToChallenge(challengeID, attemptID, currentUserID); err != nil {
+		log.Printf("LinkAttemptToChallenge error: %v", err)
+		if err.Error() == "user is not part of this challenge" {
+			utils.ErrorResponse(c, http.StatusBadRequest, "You are not part of this challenge")
+			return
+		}
+		if err.Error() == "challenge not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Challenge not found")
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to link attempt to challenge")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Attempt linked to challenge successfully",
+	})
+}
+
+// CompleteChallengeAttempt marks a user's challenge attempt as complete
+// PUT /api/v1/challenges/:id/complete
+func (h *ChallengesHandler) CompleteChallengeAttempt(c *gin.Context) {
+	log.Println("CompleteChallengeAttempt called")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+
+	currentUserID := userID.(uuid.UUID)
+
+	challengeIDStr := c.Param("id")
+	challengeID, err := uuid.Parse(challengeIDStr)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
+		return
+	}
+
+	var req struct {
+		Score float64 `json:"score" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
+		return
+	}
+
+	log.Printf("CompleteChallengeAttempt: challengeID=%s, userID=%s, score=%f",
+		challengeID, currentUserID, req.Score)
+
+	// Complete the challenge attempt
+	if err := h.repo.Challenges.CompleteChallengeAttempt(challengeID, currentUserID, req.Score); err != nil {
+		log.Printf("CompleteChallengeAttempt error: %v", err)
+		if err.Error() == "user is not part of this challenge" {
+			utils.ErrorResponse(c, http.StatusBadRequest, "You are not part of this challenge")
+			return
+		}
+		if err.Error() == "challenge not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Challenge not found")
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to complete challenge attempt")
+		return
+	}
+
+	// Get updated challenge details
+	challenge, err := h.repo.Challenges.GetChallengeWithDetails(challengeID)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve updated challenge")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Challenge attempt completed successfully",
+		"challenge": challenge,
 	})
 }

@@ -375,6 +375,10 @@ type QuizAttempt struct {
 	OriginalAttemptID     *uuid.UUID             `json:"original_attempt_id,omitempty" db:"original_attempt_id"`
 	PerformanceComparison map[string]interface{} `json:"performance_comparison,omitempty" db:"performance_comparison"`
 	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
+
+	// Challenge tracking fields
+	ChallengeID         *uuid.UUID `json:"challenge_id,omitempty" db:"challenge_id"`
+	IsChallengeAttempt  bool       `json:"is_challenge_attempt" db:"is_challenge_attempt"`
 }
 
 // AttemptAnswer represents a user's answer to a quiz question
@@ -641,11 +645,11 @@ type FriendNotificationsResponse struct {
 type Challenge struct {
 	ID                uuid.UUID              `json:"id" db:"id"`
 	ChallengerID      uuid.UUID              `json:"challenger_id" db:"challenger_id"`
-	ChallengedID      uuid.UUID              `json:"challenged_id" db:"challenged_id"`
+	ChallengeeID      uuid.UUID              `json:"challengee_id" db:"challengee_id"`
 	QuizID            uuid.UUID              `json:"quiz_id" db:"quiz_id"`
 	Status            string                 `json:"status" db:"status"`
 	ChallengerScore   *float64               `json:"challenger_score,omitempty" db:"challenger_score"`
-	ChallengedScore   *float64               `json:"challenged_score,omitempty" db:"challenged_score"`
+	ChallengeeScore   *float64               `json:"challengee_score,omitempty" db:"challengee_score"`
 	Message           *string                `json:"message,omitempty" db:"message"`
 	ExpiresAt         *time.Time             `json:"expires_at,omitempty" db:"expires_at"`
 	IsGroupChallenge  bool                   `json:"is_group_challenge" db:"is_group_challenge"`
@@ -654,8 +658,16 @@ type Challenge struct {
 	CreatedAt         time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time              `json:"updated_at" db:"updated_at"`
 	IsTestData        bool                   `json:"is_test_data" db:"is_test_data"`
+
+	// Asynchronous challenge tracking fields
+	ChallengerAttemptID   *uuid.UUID `json:"challenger_attempt_id,omitempty" db:"challenger_attempt_id"`
+	ChallengeeAttemptID   *uuid.UUID `json:"challengee_attempt_id,omitempty" db:"challengee_attempt_id"`
+	ChallengerCompletedAt *time.Time `json:"challenger_completed_at,omitempty" db:"challenger_completed_at"`
+	ChallengeeCompletedAt *time.Time `json:"challengee_completed_at,omitempty" db:"challengee_completed_at"`
+
+	// Relationships
 	Challenger        *User                  `json:"challenger,omitempty"`
-	Challenged        *User                  `json:"challenged,omitempty"`
+	Challengee        *User                  `json:"challengee,omitempty"`
 	Quiz              *QuizSummary           `json:"quiz,omitempty"`
 }
 
@@ -664,8 +676,8 @@ type ChallengeWithDetails struct {
 	Challenge
 	ChallengerName   string `json:"challenger_name"`
 	ChallengerAvatar string `json:"challenger_avatar"`
-	ChallengedName   string `json:"challenged_name"`
-	ChallengedAvatar string `json:"challenged_avatar"`
+	ChallengeeName   string `json:"challengee_name"`
+	ChallengeeAvatar string `json:"challengee_avatar"`
 	QuizTitle        string `json:"quiz_title"`
 	QuizCategory     string `json:"quiz_category"`
 }
@@ -674,7 +686,7 @@ type ChallengeWithDetails struct {
 
 // CreateChallengeRequest represents the request to create a new challenge
 type CreateChallengeRequest struct {
-	ChallengedUserID uuid.UUID   `json:"challenged_user_id" binding:"required"`
+	ChallengeeUserID uuid.UUID   `json:"challengee_user_id" binding:"required"`
 	QuizID           uuid.UUID   `json:"quiz_id" binding:"required"`
 	Message          *string     `json:"message,omitempty"`
 	ExpiresAt        *time.Time  `json:"expires_at,omitempty"`
