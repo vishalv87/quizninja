@@ -708,7 +708,7 @@ type UpdateChallengeScoreRequest struct {
 type ChallengeFilters struct {
 	Status    string     `form:"status" binding:"omitempty,oneof=pending accepted completed expired declined"`
 	QuizID    *uuid.UUID `form:"quiz_id"`
-	UserType  string     `form:"user_type" binding:"omitempty,oneof=challenger challenged all"`
+	UserType  string     `form:"user_type" binding:"omitempty,oneof=challenger challengee all"`
 	StartDate *time.Time `form:"start_date" time_format:"2006-01-02"`
 	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02"`
 	Page      int        `form:"page,default=1" binding:"min=1"`

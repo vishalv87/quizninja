@@ -387,7 +387,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 	if filters.UserType != "" && filters.UserType != "all" {
 		if filters.UserType == "challenger" {
 			whereConditions = append(whereConditions, fmt.Sprintf("c.challenger_id = $%d", argIndex))
-		} else if filters.UserType == "challenged" {
+		} else if filters.UserType == "challengee" {
 			whereConditions = append(whereConditions, fmt.Sprintf("c.challengee_id = $%d", argIndex))
 		}
 		args = append(args, userID)
