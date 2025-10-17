@@ -609,6 +609,35 @@ func (r *ChallengesRepository) DeclineChallenge(challengeID uuid.UUID, userID uu
 	return nil
 }
 
+// CancelChallenge allows the challenger to cancel a pending challenge they created
+func (r *ChallengesRepository) CancelChallenge(challengeID uuid.UUID, userID uuid.UUID) error {
+	log.Printf("CancelChallenge called: challengeID=%s, userID=%s", challengeID, userID)
+
+	// Verify user is the challenger and challenge is still pending
+	// This prevents race conditions by checking status atomically
+	query := `
+		UPDATE challenges
+		SET status = 'declined', updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND challenger_id = $2 AND status = 'pending'
+	`
+
+	result, err := r.db.Exec(query, challengeID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to cancel challenge: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("challenge not found, already accepted/declined, or you are not the challenger")
+	}
+
+	return nil
+}
+
 // CompleteChallenge marks a challenge as completed
 func (r *ChallengesRepository) CompleteChallenge(challengeID uuid.UUID) error {
 	return r.UpdateChallengeStatus(challengeID, "completed")

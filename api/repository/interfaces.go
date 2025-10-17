@@ -129,6 +129,7 @@ type ChallengesRepositoryInterface interface {
 	// Challenge status operations
 	AcceptChallenge(challengeID uuid.UUID, userID uuid.UUID) error
 	DeclineChallenge(challengeID uuid.UUID, userID uuid.UUID) error
+	CancelChallenge(challengeID uuid.UUID, userID uuid.UUID) error
 	CompleteChallenge(challengeID uuid.UUID) error
 
 	// Challenge statistics

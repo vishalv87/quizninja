@@ -295,6 +295,42 @@ func (h *ChallengesHandler) DeclineChallenge(c *gin.Context) {
 	})
 }
 
+// CancelChallenge allows the challenger to cancel a pending challenge they created
+// PUT /api/v1/challenges/:id/cancel
+func (h *ChallengesHandler) CancelChallenge(c *gin.Context) {
+	log.Println("CancelChallenge called")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+
+	currentUserID := userID.(uuid.UUID)
+
+	challengeIDStr := c.Param("id")
+	challengeID, err := uuid.Parse(challengeIDStr)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
+		return
+	}
+
+	log.Printf("CancelChallenge: challengeID=%s, userID=%s", challengeID, currentUserID)
+
+	// Cancel the challenge
+	if err := h.repo.Challenges.CancelChallenge(challengeID, currentUserID); err != nil {
+		if err.Error() == "challenge not found, already accepted/declined, or you are not the challenger" {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Challenge not found, already accepted/declined, or you are not the challenger")
+			return
+		}
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to cancel challenge")
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Challenge cancelled successfully",
+	})
+}
+
 // UpdateChallengeScore updates the user's score for a challenge
 // PUT /api/v1/challenges/:id/score
 func (h *ChallengesHandler) UpdateChallengeScore(c *gin.Context) {
