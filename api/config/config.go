@@ -64,7 +64,7 @@ func Load() *Config {
 		log.Println("Loaded development/production environment configuration (.env)")
 	}
 
-	return &Config{
+	cfg := &Config{
 		DBHost:         getEnv("DB_HOST", "localhost"),
 		DBPort:         getEnv("DB_PORT", "5432"),
 		DBUser:         getEnv("DB_USER", "postgres"),
@@ -88,6 +88,13 @@ func Load() *Config {
 		// Test configuration
 		UseMockAuth: getBoolEnv("USE_MOCK_AUTH", false),
 	}
+
+	// ✅ SECURITY: Prevent mock auth in production
+	if cfg.GinMode == "release" && cfg.UseMockAuth {
+		log.Fatal("SECURITY ERROR: Mock authentication cannot be enabled in release mode")
+	}
+
+	return cfg
 }
 
 // isTestEnvironment detects if we're running in test mode
