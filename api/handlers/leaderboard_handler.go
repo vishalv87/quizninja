@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"quizninja-api/config"
@@ -29,8 +28,6 @@ func NewLeaderboardHandler(cfg *config.Config) *LeaderboardHandler {
 // GetLeaderboard retrieves the leaderboard with optional filtering
 // GET /api/v1/leaderboard
 func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
-	log.Println("GetLeaderboard called")
-
 	// Parse query parameters
 	var filters models.LeaderboardFilters
 	if err := c.ShouldBindQuery(&filters); err != nil {
@@ -45,9 +42,6 @@ func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 		userID = userIDInterface.(uuid.UUID)
 		isAuthenticated = true
 	}
-
-	log.Printf("GetLeaderboard: period=%s, friends_only=%t, limit=%d, offset=%d",
-		filters.Period, filters.FriendsOnly, filters.Limit, filters.Offset)
 
 	var leaderboard []models.LeaderboardEntry
 	var total int
@@ -67,7 +61,6 @@ func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 	}
 
 	if err != nil {
-		log.Printf("Error getting leaderboard: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve leaderboard")
 		return
 	}
@@ -77,7 +70,6 @@ func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 	if isAuthenticated {
 		userRank, err = h.repo.Leaderboard.GetUserRank(userID, filters.Period)
 		if err != nil {
-			log.Printf("Error getting user rank: %v", err)
 			// Don't fail the request, just log the error
 			userRank = nil
 		}
@@ -97,8 +89,6 @@ func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 // GetUserRank retrieves the current user's rank information
 // GET /api/v1/leaderboard/rank
 func (h *LeaderboardHandler) GetUserRank(c *gin.Context) {
-	log.Println("GetUserRank called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -121,11 +111,8 @@ func (h *LeaderboardHandler) GetUserRank(c *gin.Context) {
 		return
 	}
 
-	log.Printf("GetUserRank: userID=%s, period=%s", userID, period)
-
 	userRank, err := h.repo.Leaderboard.GetUserRank(userID.(uuid.UUID), period)
 	if err != nil {
-		log.Printf("Error getting user rank: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve user rank")
 		return
 	}
@@ -140,8 +127,6 @@ func (h *LeaderboardHandler) GetUserRank(c *gin.Context) {
 // This is typically called internally by the quiz completion handler
 // POST /api/v1/leaderboard/score
 func (h *LeaderboardHandler) UpdateUserScore(c *gin.Context) {
-	log.Println("UpdateUserScore called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -158,12 +143,9 @@ func (h *LeaderboardHandler) UpdateUserScore(c *gin.Context) {
 		return
 	}
 
-	log.Printf("UpdateUserScore: userID=%s, points=%d, quizID=%s", userID, req.Points, req.QuizID)
-
 	// Update user's score
 	err := h.repo.Leaderboard.UpdateUserScore(userID.(uuid.UUID), req.Points, req.QuizID)
 	if err != nil {
-		log.Printf("Error updating user score: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update user score")
 		return
 	}
@@ -171,7 +153,6 @@ func (h *LeaderboardHandler) UpdateUserScore(c *gin.Context) {
 	// Recalculate user level
 	err = h.repo.Leaderboard.RecalculateUserLevel(userID.(uuid.UUID))
 	if err != nil {
-		log.Printf("Error recalculating user level: %v", err)
 		// Don't fail the request for level calculation errors
 	}
 
@@ -185,8 +166,6 @@ func (h *LeaderboardHandler) UpdateUserScore(c *gin.Context) {
 // GetLeaderboardStats retrieves overall leaderboard statistics
 // GET /api/v1/leaderboard/stats
 func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
-	log.Println("GetLeaderboardStats called")
-
 	// Parse query parameters
 	period := c.DefaultQuery("period", "alltime")
 
@@ -203,12 +182,9 @@ func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
 		return
 	}
 
-	log.Printf("GetLeaderboardStats: period=%s", period)
-
 	// Get basic leaderboard to calculate stats
 	leaderboard, total, err := h.repo.Leaderboard.GetGlobalLeaderboard(period, 100, 0)
 	if err != nil {
-		log.Printf("Error getting leaderboard for stats: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve leaderboard statistics")
 		return
 	}

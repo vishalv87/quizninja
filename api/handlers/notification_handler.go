@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -30,7 +29,6 @@ func NewNotificationHandler(cfg *config.Config) *NotificationHandler {
 // GetNotifications retrieves notifications for the current user
 // GET /api/v1/notifications
 func (h *NotificationHandler) GetNotifications(c *gin.Context) {
-	log.Println("GetNotifications called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -53,8 +51,6 @@ func (h *NotificationHandler) GetNotifications(c *gin.Context) {
 	if filters.PageSize == 0 {
 		filters.PageSize = 20
 	}
-
-	log.Printf("GetNotifications: userID=%s, filters=%+v", currentUserID, filters)
 
 	// Get notifications
 	notifications, total, err := h.repo.Notification.GetNotifications(currentUserID, &filters)
@@ -88,7 +84,6 @@ func (h *NotificationHandler) GetNotifications(c *gin.Context) {
 // GetNotificationByID retrieves a specific notification
 // GET /api/v1/notifications/:id
 func (h *NotificationHandler) GetNotificationByID(c *gin.Context) {
-	log.Println("GetNotificationByID called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -103,8 +98,6 @@ func (h *NotificationHandler) GetNotificationByID(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid notification ID")
 		return
 	}
-
-	log.Printf("GetNotificationByID: notificationID=%s, userID=%s", notificationID, currentUserID)
 
 	// Get notification
 	notification, err := h.repo.Notification.GetNotificationByID(notificationID, currentUserID)
@@ -125,7 +118,6 @@ func (h *NotificationHandler) GetNotificationByID(c *gin.Context) {
 // MarkNotificationAsRead marks a specific notification as read
 // PUT /api/v1/notifications/:id/read
 func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
-	log.Println("MarkNotificationAsRead called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -140,8 +132,6 @@ func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid notification ID")
 		return
 	}
-
-	log.Printf("MarkNotificationAsRead: notificationID=%s, userID=%s", notificationID, currentUserID)
 
 	err = h.repo.Notification.MarkNotificationAsRead(notificationID, currentUserID)
 	if err != nil {
@@ -161,7 +151,6 @@ func (h *NotificationHandler) MarkNotificationAsRead(c *gin.Context) {
 // MarkNotificationAsUnread marks a specific notification as unread
 // PUT /api/v1/notifications/:id/unread
 func (h *NotificationHandler) MarkNotificationAsUnread(c *gin.Context) {
-	log.Println("MarkNotificationAsUnread called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -176,8 +165,6 @@ func (h *NotificationHandler) MarkNotificationAsUnread(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid notification ID")
 		return
 	}
-
-	log.Printf("MarkNotificationAsUnread: notificationID=%s, userID=%s", notificationID, currentUserID)
 
 	err = h.repo.Notification.MarkNotificationAsUnread(notificationID, currentUserID)
 	if err != nil {
@@ -197,7 +184,6 @@ func (h *NotificationHandler) MarkNotificationAsUnread(c *gin.Context) {
 // MarkAllNotificationsAsRead marks all notifications as read for the user
 // PUT /api/v1/notifications/read-all
 func (h *NotificationHandler) MarkAllNotificationsAsRead(c *gin.Context) {
-	log.Println("MarkAllNotificationsAsRead called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -205,7 +191,6 @@ func (h *NotificationHandler) MarkAllNotificationsAsRead(c *gin.Context) {
 	}
 
 	currentUserID := userID.(uuid.UUID)
-	log.Printf("MarkAllNotificationsAsRead: userID=%s", currentUserID)
 
 	err := h.repo.Notification.MarkAllNotificationsAsRead(currentUserID)
 	if err != nil {
@@ -221,7 +206,6 @@ func (h *NotificationHandler) MarkAllNotificationsAsRead(c *gin.Context) {
 // DeleteNotification deletes a notification
 // DELETE /api/v1/notifications/:id
 func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
-	log.Println("DeleteNotification called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -236,8 +220,6 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid notification ID")
 		return
 	}
-
-	log.Printf("DeleteNotification: notificationID=%s, userID=%s", notificationID, currentUserID)
 
 	err = h.repo.Notification.DeleteNotification(notificationID, currentUserID)
 	if err != nil {
@@ -257,7 +239,6 @@ func (h *NotificationHandler) DeleteNotification(c *gin.Context) {
 // GetNotificationStats retrieves notification statistics for the user
 // GET /api/v1/notifications/stats
 func (h *NotificationHandler) GetNotificationStats(c *gin.Context) {
-	log.Println("GetNotificationStats called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -265,7 +246,6 @@ func (h *NotificationHandler) GetNotificationStats(c *gin.Context) {
 	}
 
 	currentUserID := userID.(uuid.UUID)
-	log.Printf("GetNotificationStats: userID=%s", currentUserID)
 
 	stats, err := h.repo.Notification.GetNotificationStats(currentUserID)
 	if err != nil {
@@ -279,16 +259,11 @@ func (h *NotificationHandler) GetNotificationStats(c *gin.Context) {
 // CreateNotification creates a new notification (admin/system endpoint)
 // POST /api/v1/notifications
 func (h *NotificationHandler) CreateNotification(c *gin.Context) {
-	log.Println("CreateNotification called")
-	// This would typically be an admin-only endpoint with additional auth checks
-
 	var req models.CreateNotificationRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
 		return
 	}
-
-	log.Printf("CreateNotification: userID=%s, type=%s", req.UserID, req.Type)
 
 	// Create notification
 	notification, err := h.repo.Notification.CreateNotification(&req)
@@ -306,7 +281,6 @@ func (h *NotificationHandler) CreateNotification(c *gin.Context) {
 // GetFriendNotifications retrieves friend notifications for backward compatibility
 // GET /api/v1/friends/notifications
 func (h *NotificationHandler) GetFriendNotifications(c *gin.Context) {
-	log.Println("GetFriendNotifications (compat) called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -327,8 +301,6 @@ func (h *NotificationHandler) GetFriendNotifications(c *gin.Context) {
 	if err != nil || offset < 0 {
 		offset = 0
 	}
-
-	log.Printf("GetFriendNotifications: userID=%s, limit=%d, offset=%d", currentUserID, limit, offset)
 
 	notifications, total, err := h.repo.Notification.GetFriendNotifications(currentUserID, limit, offset)
 	if err != nil {
@@ -354,7 +326,6 @@ func (h *NotificationHandler) GetFriendNotifications(c *gin.Context) {
 // MarkFriendNotificationAsRead marks a friend notification as read for backward compatibility
 // PUT /api/v1/friends/notifications/:id/read
 func (h *NotificationHandler) MarkFriendNotificationAsRead(c *gin.Context) {
-	log.Println("MarkFriendNotificationAsRead (compat) called")
 	// This just delegates to the unified notification handler
 	h.MarkNotificationAsRead(c)
 }
@@ -362,7 +333,6 @@ func (h *NotificationHandler) MarkFriendNotificationAsRead(c *gin.Context) {
 // MarkAllFriendNotificationsAsRead marks all friend notifications as read for backward compatibility
 // PUT /api/v1/friends/notifications/read-all
 func (h *NotificationHandler) MarkAllFriendNotificationsAsRead(c *gin.Context) {
-	log.Println("MarkAllFriendNotificationsAsRead (compat) called")
 	// This just delegates to the unified notification handler
 	h.MarkAllNotificationsAsRead(c)
 }
@@ -370,9 +340,6 @@ func (h *NotificationHandler) MarkAllFriendNotificationsAsRead(c *gin.Context) {
 // CleanupExpiredNotifications cleans up expired notifications (admin endpoint)
 // POST /api/v1/notifications/cleanup
 func (h *NotificationHandler) CleanupExpiredNotifications(c *gin.Context) {
-	log.Println("CleanupExpiredNotifications called")
-	// This would typically be an admin-only or cron job endpoint
-
 	err := h.repo.Notification.CleanupExpiredNotifications()
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to cleanup expired notifications")

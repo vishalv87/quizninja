@@ -1,26 +1,33 @@
 package main
 
 import (
-	"log"
-
 	"quizninja-api/config"
 	"quizninja-api/database"
 	"quizninja-api/middleware"
 	"quizninja-api/routes"
+	"quizninja-api/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
 	cfg := config.Load()
 
+	// Initialize structured logger
+	utils.InitLogger(cfg)
+	utils.Infof("Starting QuizNinja API with log level: %s, format: %s", cfg.LogLevel, cfg.LogFormat)
+
 	// Validate configuration
 	if err := cfg.ValidateConfig(); err != nil {
-		log.Fatal("Configuration validation failed:", err)
+		utils.Fatal("Configuration validation failed:", err)
 	}
 
 	// Log authentication strategy
-	log.Printf("Authentication strategy: %s", cfg.GetAuthStrategy())
+	utils.WithFields(logrus.Fields{
+		"auth_strategy": cfg.GetAuthStrategy(),
+		"gin_mode":      cfg.GinMode,
+	}).Info("Application configuration loaded")
 
 	gin.SetMode(cfg.GinMode)
 
@@ -30,20 +37,26 @@ func main() {
 	// Initialize rate limiters if enabled
 	if cfg.RateLimitEnabled {
 		middleware.InitRateLimiters(cfg)
-		log.Println("Rate limiting enabled")
+		utils.WithFields(logrus.Fields{
+			"global":   cfg.RateLimitGlobal,
+			"auth":     cfg.RateLimitAuth,
+			"write":    cfg.RateLimitWrite,
+			"per_user": cfg.RateLimitPerUser,
+		}).Info("Rate limiting enabled")
 	} else {
-		log.Println("Rate limiting disabled")
+		utils.Info("Rate limiting disabled")
 	}
 
 	// Initialize request size limits if enabled
 	if cfg.RequestSizeLimitEnabled {
 		middleware.InitRequestSizeLimits(cfg)
-		log.Printf("Request size limiting enabled (default: %dMB, auth: %dMB, write: %dMB)",
-			cfg.RequestSizeDefault/(1024*1024),
-			cfg.RequestSizeAuth/(1024*1024),
-			cfg.RequestSizeWrite/(1024*1024))
+		utils.WithFields(logrus.Fields{
+			"default_mb": cfg.RequestSizeDefault / (1024 * 1024),
+			"auth_mb":    cfg.RequestSizeAuth / (1024 * 1024),
+			"write_mb":   cfg.RequestSizeWrite / (1024 * 1024),
+		}).Info("Request size limiting enabled")
 	} else {
-		log.Println("Request size limiting disabled")
+		utils.Info("Request size limiting disabled")
 	}
 
 	r := gin.New()
@@ -65,8 +78,12 @@ func main() {
 
 	routes.SetupRoutes(r, cfg)
 
-	log.Printf("Server starting on port %s", cfg.Port)
+	utils.WithFields(logrus.Fields{
+		"port":     cfg.Port,
+		"gin_mode": cfg.GinMode,
+	}).Info("Server starting")
+
 	if err := r.Run(":" + cfg.Port); err != nil {
-		log.Fatal("Failed to start server:", err)
+		utils.Fatal("Failed to start server:", err)
 	}
 }

@@ -3,11 +3,14 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"quizninja-api/utils"
+
+	"github.com/sirupsen/logrus"
 )
 
 // RunMigrations executes all SQL migration files in the migrations directory
@@ -30,15 +33,19 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
-	log.Println("All migrations completed successfully")
+	utils.WithFields(logrus.Fields{
+		"count": len(migrationFiles),
+	}).Info("All migrations completed successfully")
 
 	// Generate updated schema.sql file
-	log.Println("Updating schema.sql file...")
+	utils.Info("Updating schema.sql file")
 	if err := UpdateSchemaAfterMigration(db); err != nil {
-		log.Printf("Warning: Failed to update schema.sql: %v", err)
+		utils.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Warn("Failed to update schema.sql")
 		// Don't fail the migration if schema generation fails
 	} else {
-		log.Println("Schema.sql updated successfully")
+		utils.Info("Schema.sql updated successfully")
 	}
 
 	return nil
@@ -109,7 +116,9 @@ func runMigration(db *sql.DB, filename string) error {
 	}
 
 	if count > 0 {
-		log.Printf("Migration %s already applied, skipping", filepath.Base(filename))
+		utils.WithFields(logrus.Fields{
+			"migration": filepath.Base(filename),
+		}).Debug("Migration already applied, skipping")
 		return nil
 	}
 
@@ -143,6 +152,8 @@ func runMigration(db *sql.DB, filename string) error {
 		return fmt.Errorf("failed to commit migration: %w", err)
 	}
 
-	log.Printf("Successfully applied migration: %s", filepath.Base(filename))
+	utils.WithFields(logrus.Fields{
+		"migration": filepath.Base(filename),
+	}).Info("Successfully applied migration")
 	return nil
 }

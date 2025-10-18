@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 	"quizninja-api/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
@@ -42,7 +42,9 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			// Use mock token validation
 			user, err = utils.ValidateMockJWT(token, utils.DefaultMockJWTConfig)
 			if err != nil {
-				log.Printf("Mock auth failed: %v", err)
+				utils.WithFields(logrus.Fields{
+					"error": err.Error(),
+				}).Warn("Mock authentication failed")
 				c.JSON(http.StatusUnauthorized, gin.H{
 					"error": "Authentication failed - invalid or expired mock token",
 				})
@@ -55,9 +57,15 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			user, supabaseErr = utils.ValidateSupabaseTokenHTTP(token, cfg.SupabaseURL, cfg.SupabaseAnonKey)
 			if supabaseErr != nil {
 				if !utils.IsSupabaseErrorRetryable(supabaseErr) {
-					log.Printf("Supabase auth failed (non-retryable): %v", supabaseErr)
+					utils.WithFields(logrus.Fields{
+						"error":     supabaseErr.Message,
+						"retryable": false,
+					}).Warn("Supabase authentication failed")
 				} else {
-					log.Printf("Supabase auth failed (retryable): %v", supabaseErr)
+					utils.WithFields(logrus.Fields{
+						"error":     supabaseErr.Message,
+						"retryable": true,
+					}).Warn("Supabase authentication failed")
 				}
 
 				c.JSON(http.StatusUnauthorized, gin.H{
@@ -71,7 +79,10 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// SUCCESS: Auth worked - now lookup database user ID
 		supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(user.ID)
 		if parseErr != nil {
-			log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
+			utils.WithFields(logrus.Fields{
+				"supabase_user_id": user.ID,
+				"error":            parseErr.Error(),
+			}).Error("Failed to parse Supabase user ID as UUID")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid Supabase user ID format",
 			})
@@ -83,7 +94,10 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		userRepo := repository.NewUserRepository()
 		dbUser, err := userRepo.GetUserBySupabaseID(supabaseUserID.String())
 		if err != nil {
-			log.Printf("Failed to find database user by Supabase ID %s: %v", supabaseUserID, err)
+			utils.WithFields(logrus.Fields{
+				"supabase_user_id": supabaseUserID,
+				"error":            err.Error(),
+			}).Error("Failed to find database user by Supabase ID")
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "User not found in database",
 			})

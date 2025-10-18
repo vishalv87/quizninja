@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"quizninja-api/config"
@@ -29,22 +28,16 @@ func NewChallengesHandler(cfg *config.Config) *ChallengesHandler {
 // CreateChallenge creates a new challenge
 // POST /api/v1/challenges
 func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
-	log.Println("===== CreateChallenge called =====")
 	userID, exists := c.Get("user_id")
 	if !exists {
-		log.Println("DEBUG: User not authenticated")
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
 		return
 	}
 
 	challengerID := userID.(uuid.UUID)
-	log.Printf("DEBUG: ChallengerID from context: %s", challengerID)
 
 	var req models.CreateChallengeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("DEBUG: JSON binding failed with error: %v", err)
-		log.Printf("DEBUG: Error type: %T", err)
-		log.Printf("DEBUG: Error details: %+v", err)
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
 		return
 	}
@@ -58,11 +51,6 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 		}
 		req.Message = &sanitizedMessage
 	}
-
-	log.Printf("DEBUG: Successfully parsed request - ChallengeeUserID=%s, QuizID=%s, Message=%v, ExpiresAt=%v, IsGroupChallenge=%v",
-		req.ChallengeeUserID, req.QuizID, req.Message, req.ExpiresAt, req.IsGroupChallenge)
-	log.Printf("CreateChallenge: challengerID=%s, challengeeID=%s, quizID=%s",
-		challengerID, req.ChallengeeUserID, req.QuizID)
 
 	// Check if user is trying to challenge themselves
 	if challengerID == req.ChallengeeUserID {
@@ -114,7 +102,6 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 	}
 
 	if err := h.repo.Challenges.CreateChallenge(challenge); err != nil {
-		log.Printf("CreateChallenge error: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create challenge")
 		return
 	}
@@ -122,7 +109,6 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 	// Get the created challenge with details
 	challengeDetails, err := h.repo.Challenges.GetChallengeWithDetails(challenge.ID)
 	if err != nil {
-		log.Printf("GetChallengeWithDetails error: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve challenge details")
 		return
 	}
@@ -136,7 +122,6 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 // GetChallenges retrieves challenges for the current user
 // GET /api/v1/challenges
 func (h *ChallengesHandler) GetChallenges(c *gin.Context) {
-	log.Println("GetChallenges called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -160,8 +145,6 @@ func (h *ChallengesHandler) GetChallenges(c *gin.Context) {
 		filters.PageSize = 10
 	}
 
-	log.Printf("GetChallenges: userID=%s, filters=%+v", currentUserID, filters)
-
 	challenges, total, err := h.repo.Challenges.GetUserChallenges(currentUserID, &filters)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve challenges")
@@ -184,23 +167,12 @@ func (h *ChallengesHandler) GetChallenges(c *gin.Context) {
 // GetChallengeByID retrieves a specific challenge
 // GET /api/v1/challenges/:id
 func (h *ChallengesHandler) GetChallengeByID(c *gin.Context) {
-	log.Println("GetChallengeByID called")
-	userID, exists := c.Get("user_id")
-	if !exists {
-		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
-		return
-	}
-
-	currentUserID := userID.(uuid.UUID)
-
 	challengeIDStr := c.Param("id")
 	challengeID, err := uuid.Parse(challengeIDStr)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
 		return
 	}
-
-	log.Printf("GetChallengeByID: challengeID=%s, userID=%s", challengeID, currentUserID)
 
 	challenge, err := h.repo.Challenges.GetChallengeWithDetails(challengeID)
 	if err != nil {
@@ -231,7 +203,6 @@ func (h *ChallengesHandler) GetChallengeByID(c *gin.Context) {
 // AcceptChallenge accepts a challenge
 // PUT /api/v1/challenges/:id/accept
 func (h *ChallengesHandler) AcceptChallenge(c *gin.Context) {
-	log.Println("AcceptChallenge called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -246,8 +217,6 @@ func (h *ChallengesHandler) AcceptChallenge(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
 		return
 	}
-
-	log.Printf("AcceptChallenge: challengeID=%s, userID=%s", challengeID, currentUserID)
 
 	// Accept the challenge
 	if err := h.repo.Challenges.AcceptChallenge(challengeID, currentUserID); err != nil {
@@ -275,7 +244,6 @@ func (h *ChallengesHandler) AcceptChallenge(c *gin.Context) {
 // DeclineChallenge declines a challenge
 // PUT /api/v1/challenges/:id/decline
 func (h *ChallengesHandler) DeclineChallenge(c *gin.Context) {
-	log.Println("DeclineChallenge called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -290,8 +258,6 @@ func (h *ChallengesHandler) DeclineChallenge(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
 		return
 	}
-
-	log.Printf("DeclineChallenge: challengeID=%s, userID=%s", challengeID, currentUserID)
 
 	// Decline the challenge
 	if err := h.repo.Challenges.DeclineChallenge(challengeID, currentUserID); err != nil {
@@ -311,7 +277,6 @@ func (h *ChallengesHandler) DeclineChallenge(c *gin.Context) {
 // CancelChallenge allows the challenger to cancel a pending challenge they created
 // PUT /api/v1/challenges/:id/cancel
 func (h *ChallengesHandler) CancelChallenge(c *gin.Context) {
-	log.Println("CancelChallenge called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -326,8 +291,6 @@ func (h *ChallengesHandler) CancelChallenge(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid challenge ID")
 		return
 	}
-
-	log.Printf("CancelChallenge: challengeID=%s, userID=%s", challengeID, currentUserID)
 
 	// Cancel the challenge
 	if err := h.repo.Challenges.CancelChallenge(challengeID, currentUserID); err != nil {
@@ -347,7 +310,6 @@ func (h *ChallengesHandler) CancelChallenge(c *gin.Context) {
 // UpdateChallengeScore updates the user's score for a challenge
 // PUT /api/v1/challenges/:id/score
 func (h *ChallengesHandler) UpdateChallengeScore(c *gin.Context) {
-	log.Println("UpdateChallengeScore called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -368,9 +330,6 @@ func (h *ChallengesHandler) UpdateChallengeScore(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request data")
 		return
 	}
-
-	log.Printf("UpdateChallengeScore: challengeID=%s, userID=%s, score=%f",
-		challengeID, currentUserID, req.UserScore)
 
 	// Update the score
 	if err := h.repo.Challenges.UpdateChallengeScore(challengeID, currentUserID, req.UserScore); err != nil {
@@ -402,7 +361,6 @@ func (h *ChallengesHandler) UpdateChallengeScore(c *gin.Context) {
 // GetChallengeStats retrieves challenge statistics for the current user
 // GET /api/v1/challenges/stats
 func (h *ChallengesHandler) GetChallengeStats(c *gin.Context) {
-	log.Println("GetChallengeStats called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -410,8 +368,6 @@ func (h *ChallengesHandler) GetChallengeStats(c *gin.Context) {
 	}
 
 	currentUserID := userID.(uuid.UUID)
-
-	log.Printf("GetChallengeStats: userID=%s", currentUserID)
 
 	stats, err := h.repo.Challenges.GetChallengeStats(currentUserID)
 	if err != nil {
@@ -425,8 +381,6 @@ func (h *ChallengesHandler) GetChallengeStats(c *gin.Context) {
 // ExpireChallenges manually triggers challenge expiration (admin endpoint)
 // POST /api/v1/challenges/expire
 func (h *ChallengesHandler) ExpireChallenges(c *gin.Context) {
-	log.Println("ExpireChallenges called")
-
 	if err := h.repo.Challenges.ExpireChallenges(); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to expire challenges")
 		return
@@ -440,7 +394,6 @@ func (h *ChallengesHandler) ExpireChallenges(c *gin.Context) {
 // GetPendingChallenges retrieves pending challenges for the current user
 // GET /api/v1/challenges/pending
 func (h *ChallengesHandler) GetPendingChallenges(c *gin.Context) {
-	log.Println("GetPendingChallenges called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -469,7 +422,6 @@ func (h *ChallengesHandler) GetPendingChallenges(c *gin.Context) {
 // GetActiveChallenges retrieves active challenges for the current user
 // GET /api/v1/challenges/active
 func (h *ChallengesHandler) GetActiveChallenges(c *gin.Context) {
-	log.Println("GetActiveChallenges called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -498,7 +450,6 @@ func (h *ChallengesHandler) GetActiveChallenges(c *gin.Context) {
 // GetCompletedChallenges retrieves completed challenges for the current user
 // GET /api/v1/challenges/completed
 func (h *ChallengesHandler) GetCompletedChallenges(c *gin.Context) {
-	log.Println("GetCompletedChallenges called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -527,7 +478,6 @@ func (h *ChallengesHandler) GetCompletedChallenges(c *gin.Context) {
 // LinkAttemptToChallenge links a quiz attempt to a challenge
 // POST /api/v1/challenges/:id/link-attempt
 func (h *ChallengesHandler) LinkAttemptToChallenge(c *gin.Context) {
-	log.Println("LinkAttemptToChallenge called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -558,12 +508,8 @@ func (h *ChallengesHandler) LinkAttemptToChallenge(c *gin.Context) {
 		return
 	}
 
-	log.Printf("LinkAttemptToChallenge: challengeID=%s, attemptID=%s, userID=%s",
-		challengeID, attemptID, currentUserID)
-
 	// Link the attempt to the challenge
 	if err := h.repo.Challenges.LinkAttemptToChallenge(challengeID, attemptID, currentUserID); err != nil {
-		log.Printf("LinkAttemptToChallenge error: %v", err)
 		if err.Error() == "user is not part of this challenge" {
 			utils.ErrorResponse(c, http.StatusBadRequest, "You are not part of this challenge")
 			return
@@ -584,7 +530,6 @@ func (h *ChallengesHandler) LinkAttemptToChallenge(c *gin.Context) {
 // CompleteChallengeAttempt marks a user's challenge attempt as complete
 // PUT /api/v1/challenges/:id/complete
 func (h *ChallengesHandler) CompleteChallengeAttempt(c *gin.Context) {
-	log.Println("CompleteChallengeAttempt called")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -609,12 +554,8 @@ func (h *ChallengesHandler) CompleteChallengeAttempt(c *gin.Context) {
 		return
 	}
 
-	log.Printf("CompleteChallengeAttempt: challengeID=%s, userID=%s, score=%f",
-		challengeID, currentUserID, req.Score)
-
 	// Complete the challenge attempt
 	if err := h.repo.Challenges.CompleteChallengeAttempt(challengeID, currentUserID, req.Score); err != nil {
-		log.Printf("CompleteChallengeAttempt error: %v", err)
 		if err.Error() == "user is not part of this challenge" {
 			utils.ErrorResponse(c, http.StatusBadRequest, "You are not part of this challenge")
 			return

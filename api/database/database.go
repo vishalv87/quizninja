@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 
 	"quizninja-api/config"
+	"quizninja-api/utils"
 
 	"github.com/cenkalti/backoff/v5"
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 )
 
 var DB *sql.DB
@@ -23,12 +24,20 @@ func Connect(cfg *config.Config) {
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require connect_timeout=10",
 			cfg.SupabaseDBHost, cfg.SupabaseDBPort, cfg.SupabaseDBUser,
 			cfg.SupabaseDBPassword, cfg.SupabaseDBName)
-		log.Println("Connecting to Supabase PostgreSQL database...")
+		utils.WithFields(logrus.Fields{
+			"host": cfg.SupabaseDBHost,
+			"port": cfg.SupabaseDBPort,
+			"db":   cfg.SupabaseDBName,
+		}).Info("Connecting to Supabase PostgreSQL database")
 	} else {
 		// Traditional PostgreSQL connection with timeout
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable connect_timeout=10",
 			cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
-		log.Println("Connecting to traditional PostgreSQL database...")
+		utils.WithFields(logrus.Fields{
+			"host": cfg.DBHost,
+			"port": cfg.DBPort,
+			"db":   cfg.DBName,
+		}).Info("Connecting to traditional PostgreSQL database")
 	}
 
 	// Configure exponential backoff for retry logic
@@ -44,11 +53,16 @@ func Connect(cfg *config.Config) {
 	// Retry logic for database connection
 	operation := func() (struct{}, error) {
 		attemptCount++
-		log.Printf("Database connection attempt %d...", attemptCount)
+		utils.WithFields(logrus.Fields{
+			"attempt": attemptCount,
+		}).Debug("Database connection attempt")
 
 		DB, err = sql.Open("postgres", dsn)
 		if err != nil {
-			log.Printf("Attempt %d failed - error opening connection: %v", attemptCount, err)
+			utils.WithFields(logrus.Fields{
+				"attempt": attemptCount,
+				"error":   err.Error(),
+			}).Warn("Database connection attempt failed - error opening connection")
 			return struct{}{}, err
 		}
 
@@ -57,7 +71,10 @@ func Connect(cfg *config.Config) {
 		defer cancel()
 
 		if err = DB.PingContext(ctx); err != nil {
-			log.Printf("Attempt %d failed - error pinging database: %v", attemptCount, err)
+			utils.WithFields(logrus.Fields{
+				"attempt": attemptCount,
+				"error":   err.Error(),
+			}).Warn("Database connection attempt failed - error pinging database")
 			DB.Close() // Clean up failed connection
 			return struct{}{}, err
 		}
@@ -73,7 +90,10 @@ func Connect(cfg *config.Config) {
 		backoff.WithMaxElapsedTime(30*time.Second),
 	)
 	if err != nil {
-		log.Fatalf("Failed to connect to database after %d attempts: %v", attemptCount, err)
+		utils.WithFields(logrus.Fields{
+			"attempts": attemptCount,
+			"error":    err.Error(),
+		}).Fatal("Failed to connect to database after multiple attempts")
 	}
 
 	// Configure connection pool settings
@@ -82,14 +102,26 @@ func Connect(cfg *config.Config) {
 	DB.SetConnMaxLifetime(5 * time.Minute) // Maximum lifetime of a connection
 
 	if cfg.UseSupabase {
-		log.Printf("Successfully connected to Supabase database after %d attempt(s)", attemptCount)
+		utils.WithFields(logrus.Fields{
+			"attempts":   attemptCount,
+			"database":   "supabase",
+			"max_conns":  25,
+			"idle_conns": 5,
+		}).Info("Successfully connected to Supabase database")
 	} else {
-		log.Printf("Successfully connected to traditional database after %d attempt(s)", attemptCount)
+		utils.WithFields(logrus.Fields{
+			"attempts":   attemptCount,
+			"database":   "traditional",
+			"max_conns":  25,
+			"idle_conns": 5,
+		}).Info("Successfully connected to traditional database")
 	}
 
 	// Run migrations - works for both traditional PostgreSQL and Supabase
 	if err = RunMigrations(DB); err != nil {
-		log.Fatal("Failed to run migrations:", err)
+		utils.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatal("Failed to run migrations")
 	}
 }
 

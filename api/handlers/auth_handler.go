@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type AuthHandler struct {
@@ -34,7 +34,9 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 	if idempotencyKey != "" {
 		store := utils.GetIdempotencyStore()
 		if cached, exists := store.Get(idempotencyKey); exists {
-			log.Printf("Returning cached response for idempotency key: %s", idempotencyKey)
+			utils.WithFields(logrus.Fields{
+				"idempotency_key": idempotencyKey,
+			}).Info("Returning cached response for idempotent request")
 			c.JSON(cached.StatusCode, cached.ResponseBody)
 			return
 		}
@@ -105,7 +107,10 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 	// Convert Supabase ID to UUID
 	supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(req.SupabaseUserID)
 	if parseErr != nil {
-		log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
+		utils.WithFields(logrus.Fields{
+			"supabase_user_id": req.SupabaseUserID,
+			"error":            parseErr.Error(),
+		}).Error("Failed to parse Supabase user ID as UUID")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid Supabase user ID format",
 		})
@@ -125,7 +130,10 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 	}
 
 	if err := ah.userRepo.CreateUser(user); err != nil {
-		log.Printf("Failed to create local user profile: %v", err)
+		utils.WithFields(logrus.Fields{
+			"email":  req.Email,
+			"error":  err.Error(),
+		}).Error("Failed to create local user profile")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to create user profile",
 		})
@@ -149,7 +157,10 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 	if idempotencyKey != "" {
 		store := utils.GetIdempotencyStore()
 		store.Set(idempotencyKey, http.StatusCreated, response)
-		log.Printf("Cached registration response for idempotency key: %s", idempotencyKey)
+		utils.WithFields(logrus.Fields{
+			"idempotency_key": idempotencyKey,
+			"user_id":         user.ID,
+		}).Info("Cached registration response")
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -170,7 +181,7 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 		// User doesn't exist locally - create from Supabase data
 		supabaseUserID, parseErr := utils.ConvertSupabaseIDToUUID(req.SupabaseUserID)
 		if parseErr != nil {
-			log.Printf("Failed to parse Supabase user ID as UUID: %v", parseErr)
+			utils.WithFields(logrus.Fields{"supabase_user_id": req.SupabaseUserID, "error": parseErr.Error()}).Error("Failed to parse Supabase user ID as UUID in Login")
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error": "Invalid Supabase user ID format",
 			})
@@ -189,14 +200,20 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 		}
 
 		if createErr := ah.userRepo.CreateUser(user); createErr != nil {
-			log.Printf("Failed to create local user profile for Supabase user: %v", createErr)
+			utils.WithFields(logrus.Fields{
+				"email": req.Email,
+				"error": createErr.Error(),
+			}).Error("Failed to create local user profile for Supabase user during login")
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Failed to create user profile",
 			})
 			return
 		}
 	} else if err != nil {
-		log.Printf("Failed to get user by Supabase ID: %v", err)
+		utils.WithFields(logrus.Fields{
+			"supabase_user_id": req.SupabaseUserID,
+			"error":            err.Error(),
+		}).Error("Failed to get user by Supabase ID")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve user",
 		})
@@ -209,7 +226,10 @@ func (ah *AuthHandler) Login(c *gin.Context) {
 		user.LastAuthMethod = "supabase"
 
 		if updateErr := ah.userRepo.UpdateUser(user); updateErr != nil {
-			log.Printf("Failed to update user profile: %v", updateErr)
+			utils.WithFields(logrus.Fields{
+				"user_id": user.ID,
+				"error":   updateErr.Error(),
+			}).Warn("Failed to update user profile during login - continuing anyway")
 			// Don't fail the login for update errors, just log
 		}
 	}
@@ -406,7 +426,10 @@ func (ah *AuthHandler) createUserPreferences(user *models.User, preferencesReq *
 	}
 
 	if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {
-		log.Printf("Failed to create user preferences: %v", err)
+		utils.WithFields(logrus.Fields{
+			"user_id": user.ID,
+			"error":   err.Error(),
+		}).Error("Failed to create user preferences")
 		return
 	}
 

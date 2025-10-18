@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -30,8 +29,6 @@ func NewDiscussionHandler(cfg *config.Config) *DiscussionHandler {
 // GetDiscussions retrieves discussions with filtering
 // GET /api/v1/discussions
 func (h *DiscussionHandler) GetDiscussions(c *gin.Context) {
-	log.Println("GetDiscussions called")
-
 	// Get user ID if authenticated (optional for public discussions)
 	var userID *uuid.UUID
 	if authUserID, exists := c.Get("user_id"); exists {
@@ -120,7 +117,6 @@ func (h *DiscussionHandler) GetDiscussions(c *gin.Context) {
 
 	discussions, total, err := h.repo.Discussion.GetDiscussions(&filters, userID)
 	if err != nil {
-		log.Printf("Error getting discussions: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve discussions")
 		return
 	}
@@ -144,8 +140,6 @@ func (h *DiscussionHandler) GetDiscussions(c *gin.Context) {
 // GetDiscussion retrieves a single discussion by ID
 // GET /api/v1/discussions/:id
 func (h *DiscussionHandler) GetDiscussion(c *gin.Context) {
-	log.Println("GetDiscussion called")
-
 	discussionIDStr := c.Param("id")
 	discussionID, err := uuid.Parse(discussionIDStr)
 	if err != nil {
@@ -162,7 +156,6 @@ func (h *DiscussionHandler) GetDiscussion(c *gin.Context) {
 
 	discussion, err := h.repo.Discussion.GetDiscussionWithDetails(discussionID, userID)
 	if err != nil {
-		log.Printf("Error getting discussion: %v", err)
 		if err.Error() == "discussion not found" {
 			utils.ErrorResponse(c, http.StatusNotFound, "Discussion not found")
 			return
@@ -197,8 +190,6 @@ func (h *DiscussionHandler) GetDiscussion(c *gin.Context) {
 // CreateDiscussion creates a new discussion
 // POST /api/v1/discussions
 func (h *DiscussionHandler) CreateDiscussion(c *gin.Context) {
-	log.Println("CreateDiscussion called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -226,7 +217,6 @@ func (h *DiscussionHandler) CreateDiscussion(c *gin.Context) {
 
 	err := h.repo.Discussion.CreateDiscussion(discussion)
 	if err != nil {
-		log.Printf("Error creating discussion: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create discussion")
 		return
 	}
@@ -244,8 +234,6 @@ func (h *DiscussionHandler) CreateDiscussion(c *gin.Context) {
 // UpdateDiscussion updates an existing discussion
 // PUT /api/v1/discussions/:id
 func (h *DiscussionHandler) UpdateDiscussion(c *gin.Context) {
-	log.Println("UpdateDiscussion called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -268,7 +256,6 @@ func (h *DiscussionHandler) UpdateDiscussion(c *gin.Context) {
 	// Get existing discussion
 	discussion, err := h.repo.Discussion.GetDiscussionByID(discussionID)
 	if err != nil {
-		log.Printf("Error getting discussion: %v", err)
 		utils.ErrorResponse(c, http.StatusNotFound, "Discussion not found")
 		return
 	}
@@ -289,7 +276,6 @@ func (h *DiscussionHandler) UpdateDiscussion(c *gin.Context) {
 
 	err = h.repo.Discussion.UpdateDiscussion(discussion)
 	if err != nil {
-		log.Printf("Error updating discussion: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update discussion")
 		return
 	}
@@ -307,8 +293,6 @@ func (h *DiscussionHandler) UpdateDiscussion(c *gin.Context) {
 // DeleteDiscussion deletes a discussion
 // DELETE /api/v1/discussions/:id
 func (h *DiscussionHandler) DeleteDiscussion(c *gin.Context) {
-	log.Println("DeleteDiscussion called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -324,7 +308,6 @@ func (h *DiscussionHandler) DeleteDiscussion(c *gin.Context) {
 
 	err = h.repo.Discussion.DeleteDiscussion(discussionID, userID.(uuid.UUID))
 	if err != nil {
-		log.Printf("Error deleting discussion: %v", err)
 		if err.Error() == "discussion not found or unauthorized" {
 			utils.ErrorResponse(c, http.StatusNotFound, "Discussion not found or unauthorized")
 			return
@@ -341,8 +324,6 @@ func (h *DiscussionHandler) DeleteDiscussion(c *gin.Context) {
 // GetDiscussionReplies retrieves replies for a discussion
 // GET /api/v1/discussions/:id/replies
 func (h *DiscussionHandler) GetDiscussionReplies(c *gin.Context) {
-	log.Println("GetDiscussionReplies called")
-
 	discussionIDStr := c.Param("id")
 	discussionID, err := uuid.Parse(discussionIDStr)
 	if err != nil {
@@ -372,7 +353,6 @@ func (h *DiscussionHandler) GetDiscussionReplies(c *gin.Context) {
 
 	replies, total, err := h.repo.Discussion.GetDiscussionReplies(discussionID, userID, pageSize, offset)
 	if err != nil {
-		log.Printf("Error getting discussion replies: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve replies")
 		return
 	}
@@ -396,8 +376,6 @@ func (h *DiscussionHandler) GetDiscussionReplies(c *gin.Context) {
 // CreateDiscussionReply creates a new reply to a discussion
 // POST /api/v1/discussions/:id/replies
 func (h *DiscussionHandler) CreateDiscussionReply(c *gin.Context) {
-	log.Println("CreateDiscussionReply called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -432,7 +410,6 @@ func (h *DiscussionHandler) CreateDiscussionReply(c *gin.Context) {
 
 	err = h.repo.Discussion.CreateDiscussionReply(reply)
 	if err != nil {
-		log.Printf("Error creating discussion reply: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create reply")
 		return
 	}
@@ -446,8 +423,6 @@ func (h *DiscussionHandler) CreateDiscussionReply(c *gin.Context) {
 // UpdateDiscussionReply updates an existing reply
 // PUT /api/v1/discussions/replies/:replyId
 func (h *DiscussionHandler) UpdateDiscussionReply(c *gin.Context) {
-	log.Println("UpdateDiscussionReply called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -470,7 +445,6 @@ func (h *DiscussionHandler) UpdateDiscussionReply(c *gin.Context) {
 	// Get existing reply
 	reply, err := h.repo.Discussion.GetReplyByID(replyID)
 	if err != nil {
-		log.Printf("Error getting reply: %v", err)
 		utils.ErrorResponse(c, http.StatusNotFound, "Reply not found")
 		return
 	}
@@ -488,7 +462,6 @@ func (h *DiscussionHandler) UpdateDiscussionReply(c *gin.Context) {
 
 	err = h.repo.Discussion.UpdateDiscussionReply(reply)
 	if err != nil {
-		log.Printf("Error updating reply: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update reply")
 		return
 	}
@@ -502,8 +475,6 @@ func (h *DiscussionHandler) UpdateDiscussionReply(c *gin.Context) {
 // DeleteDiscussionReply deletes a reply
 // DELETE /api/v1/discussions/replies/:replyId
 func (h *DiscussionHandler) DeleteDiscussionReply(c *gin.Context) {
-	log.Println("DeleteDiscussionReply called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -519,7 +490,6 @@ func (h *DiscussionHandler) DeleteDiscussionReply(c *gin.Context) {
 
 	err = h.repo.Discussion.DeleteDiscussionReply(replyID, userID.(uuid.UUID))
 	if err != nil {
-		log.Printf("Error deleting reply: %v", err)
 		if err.Error() == "reply not found or unauthorized" {
 			utils.ErrorResponse(c, http.StatusNotFound, "Reply not found or unauthorized")
 			return
@@ -536,8 +506,6 @@ func (h *DiscussionHandler) DeleteDiscussionReply(c *gin.Context) {
 // LikeDiscussion likes or unlikes a discussion
 // PUT /api/v1/discussions/:id/like
 func (h *DiscussionHandler) LikeDiscussion(c *gin.Context) {
-	log.Println("LikeDiscussion called")
-
 	userID, exists := c.Get("user_id")
 	if !exists {
 		utils.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
@@ -561,7 +529,6 @@ func (h *DiscussionHandler) LikeDiscussion(c *gin.Context) {
 	// Check if already liked
 	isLiked, err := h.repo.Discussion.IsDiscussionLikedByUser(discussionID, userID.(uuid.UUID))
 	if err != nil {
-		log.Printf("Error checking if discussion is liked: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to check like status")
 		return
 	}
@@ -571,7 +538,6 @@ func (h *DiscussionHandler) LikeDiscussion(c *gin.Context) {
 		// Unlike
 		err = h.repo.Discussion.UnlikeDiscussion(discussionID, userID.(uuid.UUID))
 		if err != nil {
-			log.Printf("Error unliking discussion: %v", err)
 			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to unlike discussion")
 			return
 		}
@@ -581,7 +547,6 @@ func (h *DiscussionHandler) LikeDiscussion(c *gin.Context) {
 		// Like
 		err = h.repo.Discussion.LikeDiscussion(discussionID, userID.(uuid.UUID))
 		if err != nil {
-			log.Printf("Error liking discussion: %v", err)
 			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to like discussion")
 			return
 		}
@@ -592,7 +557,6 @@ func (h *DiscussionHandler) LikeDiscussion(c *gin.Context) {
 	// Get updated discussion to return new likes count
 	updatedDiscussion, err := h.repo.Discussion.GetDiscussionByID(discussionID)
 	if err != nil {
-		log.Printf("Error getting updated discussion: %v", err)
 		// Still return success but with old likes count
 		updatedDiscussion = discussion
 	}
@@ -612,7 +576,6 @@ func (h *DiscussionHandler) LikeDiscussion(c *gin.Context) {
 // LikeDiscussionReply likes or unlikes a discussion reply
 // PUT /api/v1/discussions/replies/:replyId/like
 func (h *DiscussionHandler) LikeDiscussionReply(c *gin.Context) {
-	log.Println("LikeDiscussionReply called")
 
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -637,7 +600,6 @@ func (h *DiscussionHandler) LikeDiscussionReply(c *gin.Context) {
 	// Check if already liked
 	isLiked, err := h.repo.Discussion.IsReplyLikedByUser(replyID, userID.(uuid.UUID))
 	if err != nil {
-		log.Printf("Error checking if reply is liked: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to check like status")
 		return
 	}
@@ -647,7 +609,6 @@ func (h *DiscussionHandler) LikeDiscussionReply(c *gin.Context) {
 		// Unlike
 		err = h.repo.Discussion.UnlikeDiscussionReply(replyID, userID.(uuid.UUID))
 		if err != nil {
-			log.Printf("Error unliking reply: %v", err)
 			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to unlike reply")
 			return
 		}
@@ -657,7 +618,6 @@ func (h *DiscussionHandler) LikeDiscussionReply(c *gin.Context) {
 		// Like
 		err = h.repo.Discussion.LikeDiscussionReply(replyID, userID.(uuid.UUID))
 		if err != nil {
-			log.Printf("Error liking reply: %v", err)
 			utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to like reply")
 			return
 		}
@@ -668,7 +628,6 @@ func (h *DiscussionHandler) LikeDiscussionReply(c *gin.Context) {
 	// Get updated reply to return new likes count
 	updatedReply, err := h.repo.Discussion.GetReplyByID(replyID)
 	if err != nil {
-		log.Printf("Error getting updated reply: %v", err)
 		// Still return success but with old likes count
 		updatedReply = reply
 	}
@@ -688,8 +647,6 @@ func (h *DiscussionHandler) LikeDiscussionReply(c *gin.Context) {
 // GetDiscussionStats retrieves discussion statistics
 // GET /api/v1/discussions/stats
 func (h *DiscussionHandler) GetDiscussionStats(c *gin.Context) {
-	log.Println("GetDiscussionStats called")
-
 	// Get user ID if authenticated (optional)
 	var userID *uuid.UUID
 	if authUserID, exists := c.Get("user_id"); exists {
@@ -699,7 +656,6 @@ func (h *DiscussionHandler) GetDiscussionStats(c *gin.Context) {
 
 	stats, err := h.repo.Discussion.GetDiscussionStats(userID)
 	if err != nil {
-		log.Printf("Error getting discussion stats: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve discussion statistics")
 		return
 	}

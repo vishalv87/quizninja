@@ -47,6 +47,11 @@ type Config struct {
 	RequestSizeDefault      int64 // default max request size in bytes
 	RequestSizeAuth         int64 // max request size for auth endpoints in bytes
 	RequestSizeWrite        int64 // max request size for write operations in bytes
+
+	// Logging Configuration
+	LogLevel  string // DEBUG, INFO, WARN, ERROR, FATAL
+	LogFormat string // text or json
+	LogOutput string // stdout, file, or both
 }
 
 func Load() *Config {
@@ -113,6 +118,11 @@ func Load() *Config {
 		RequestSizeDefault:      mbToBytes(getInt64Env("REQUEST_SIZE_DEFAULT", 10)),
 		RequestSizeAuth:         mbToBytes(getInt64Env("REQUEST_SIZE_AUTH", 1)),
 		RequestSizeWrite:        mbToBytes(getInt64Env("REQUEST_SIZE_WRITE", 5)),
+
+		// Logging Configuration
+		LogLevel:  strings.ToUpper(getEnv("LOG_LEVEL", "INFO")),
+		LogFormat: strings.ToLower(getEnv("LOG_FORMAT", "json")),
+		LogOutput: strings.ToLower(getEnv("LOG_OUTPUT", "stdout")),
 	}
 
 	//  SECURITY: Prevent mock auth in production
