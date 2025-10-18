@@ -91,8 +91,20 @@ func (h *QuizHandler) GetQuizByID(c *gin.Context) {
 		return
 	}
 
+	// ✅ SECURITY CHECK: Verify access to private quizzes
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		if utils.HandleAuthError(c, err) {
+			return
+		}
+	}
+
+	if !quiz.IsPublic && quiz.CreatedBy != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access denied to private quiz")
+		return
+	}
+
 	// Hide correct answers from questions unless user is the creator
-	userID := getUserIDFromContext(c)
 	if quiz.CreatedBy != userID && len(quiz.Questions) > 0 {
 		for i := range quiz.Questions {
 			quiz.Questions[i].CorrectAnswer = ""

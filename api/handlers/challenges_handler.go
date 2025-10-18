@@ -202,9 +202,12 @@ func (h *ChallengesHandler) GetChallengeByID(c *gin.Context) {
 		return
 	}
 
-	// Check if user is part of this challenge
-	if challenge.ChallengerID != currentUserID && challenge.ChallengeeID != currentUserID {
-		utils.ErrorResponse(c, http.StatusForbidden, "You don't have access to this challenge")
+	// ✅ Use centralized authorization check
+	err = utils.RequireAnyOwnership(c,
+		[]uuid.UUID{challenge.ChallengerID, challenge.ChallengeeID},
+		"challenge",
+	)
+	if utils.HandleAuthError(c, err) {
 		return
 	}
 
