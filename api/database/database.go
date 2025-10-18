@@ -100,6 +100,7 @@ func Connect(cfg *config.Config) {
 	DB.SetMaxOpenConns(25)                 // Maximum number of open connections
 	DB.SetMaxIdleConns(5)                  // Maximum number of idle connections
 	DB.SetConnMaxLifetime(5 * time.Minute) // Maximum lifetime of a connection
+	DB.SetConnMaxIdleTime(2 * time.Minute) // Maximum idle time of a connection
 
 	if cfg.UseSupabase {
 		utils.WithFields(logrus.Fields{
