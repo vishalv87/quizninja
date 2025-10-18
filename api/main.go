@@ -35,12 +35,28 @@ func main() {
 		log.Println("Rate limiting disabled")
 	}
 
+	// Initialize request size limits if enabled
+	if cfg.RequestSizeLimitEnabled {
+		middleware.InitRequestSizeLimits(cfg)
+		log.Printf("Request size limiting enabled (default: %dMB, auth: %dMB, write: %dMB)",
+			cfg.RequestSizeDefault/(1024*1024),
+			cfg.RequestSizeAuth/(1024*1024),
+			cfg.RequestSizeWrite/(1024*1024))
+	} else {
+		log.Println("Request size limiting disabled")
+	}
+
 	r := gin.New()
 
 	r.Use(middleware.Logger())
 	r.Use(middleware.ErrorHandler())
 	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.CORS(cfg.AllowedOrigins))
+
+	// Apply request size limit if enabled
+	if cfg.RequestSizeLimitEnabled {
+		r.Use(middleware.DefaultRequestSizeLimit())
+	}
 
 	// Apply global rate limiting if enabled
 	if cfg.RateLimitEnabled {

@@ -41,6 +41,12 @@ type Config struct {
 	RateLimitAuth    int64 // requests per minute per IP for auth endpoints
 	RateLimitWrite   int64 // requests per minute per IP for write operations
 	RateLimitPerUser int64 // requests per minute per authenticated user
+
+	// Request Size Limiting Configuration
+	RequestSizeLimitEnabled bool
+	RequestSizeDefault      int64 // default max request size in bytes
+	RequestSizeAuth         int64 // max request size for auth endpoints in bytes
+	RequestSizeWrite        int64 // max request size for write operations in bytes
 }
 
 func Load() *Config {
@@ -101,6 +107,12 @@ func Load() *Config {
 		RateLimitAuth:    getInt64Env("RATE_LIMIT_AUTH", 5),
 		RateLimitWrite:   getInt64Env("RATE_LIMIT_WRITE", 20),
 		RateLimitPerUser: getInt64Env("RATE_LIMIT_PER_USER", 60),
+
+		// Request Size Limiting Configuration (values in MB, converted to bytes)
+		RequestSizeLimitEnabled: getBoolEnv("REQUEST_SIZE_LIMIT_ENABLED", true),
+		RequestSizeDefault:      mbToBytes(getInt64Env("REQUEST_SIZE_DEFAULT", 10)),
+		RequestSizeAuth:         mbToBytes(getInt64Env("REQUEST_SIZE_AUTH", 1)),
+		RequestSizeWrite:        mbToBytes(getInt64Env("REQUEST_SIZE_WRITE", 5)),
 	}
 
 	//  SECURITY: Prevent mock auth in production
@@ -170,6 +182,11 @@ func getInt64Env(key string, defaultValue int64) int64 {
 		}
 	}
 	return defaultValue
+}
+
+// mbToBytes converts megabytes to bytes
+func mbToBytes(mb int64) int64 {
+	return mb * 1024 * 1024
 }
 
 // ValidateSupabaseConfig validates Supabase configuration for authentication
