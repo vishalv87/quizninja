@@ -49,6 +49,16 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 		return
 	}
 
+	//  SECURITY: Sanitize and validate message if provided
+	if req.Message != nil {
+		sanitizedMessage := utils.SanitizeHTML(*req.Message)
+		if err := utils.ValidateMessage(sanitizedMessage); err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		req.Message = &sanitizedMessage
+	}
+
 	log.Printf("DEBUG: Successfully parsed request - ChallengeeUserID=%s, QuizID=%s, Message=%v, ExpiresAt=%v, IsGroupChallenge=%v",
 		req.ChallengeeUserID, req.QuizID, req.Message, req.ExpiresAt, req.IsGroupChallenge)
 	log.Printf("CreateChallenge: challengerID=%s, challengeeID=%s, quizID=%s",
@@ -202,7 +212,7 @@ func (h *ChallengesHandler) GetChallengeByID(c *gin.Context) {
 		return
 	}
 
-	// ✅ Use centralized authorization check
+	//  Use centralized authorization check
 	err = utils.RequireAnyOwnership(c,
 		[]uuid.UUID{challenge.ChallengerID, challenge.ChallengeeID},
 		"challenge",

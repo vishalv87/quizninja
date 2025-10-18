@@ -103,7 +103,7 @@ func Load() *Config {
 		RateLimitPerUser: getInt64Env("RATE_LIMIT_PER_USER", 60),
 	}
 
-	// ✅ SECURITY: Prevent mock auth in production
+	//  SECURITY: Prevent mock auth in production
 	if cfg.GinMode == "release" && cfg.UseMockAuth {
 		log.Fatal("SECURITY ERROR: Mock authentication cannot be enabled in release mode")
 	}

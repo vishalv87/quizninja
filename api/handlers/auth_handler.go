@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"quizninja-api/config"
@@ -45,6 +46,33 @@ func (ah *AuthHandler) Register(c *gin.Context) {
 			"error": err.Error(),
 		})
 		return
+	}
+
+	//  SECURITY: Sanitize user inputs
+	req.Email = utils.SanitizeEmail(req.Email)
+	req.Name = utils.SanitizeName(req.Name)
+
+	//  SECURITY: Validate email format
+	if err := utils.ValidateEmail(req.Email); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	//  SECURITY: Validate name format and length
+	if err := utils.ValidateName(req.Name); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	//  SECURITY: Validate avatar URL if provided
+	if req.AvatarURL != nil {
+		avatarURL := strings.TrimSpace(*req.AvatarURL)
+		if err := utils.ValidateURL(avatarURL); err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid avatar URL: "+err.Error())
+			return
+		}
+		// Update with sanitized URL
+		*req.AvatarURL = avatarURL
 	}
 
 	// Check if user already exists by Supabase ID
@@ -252,6 +280,34 @@ func (ah *AuthHandler) UpdateProfile(c *gin.Context) {
 			"error": err.Error(),
 		})
 		return
+	}
+
+	//  SECURITY: Validate and sanitize inputs
+	if req.Email != nil {
+		sanitizedEmail := utils.SanitizeEmail(*req.Email)
+		if err := utils.ValidateEmail(sanitizedEmail); err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		req.Email = &sanitizedEmail
+	}
+
+	if req.Name != nil {
+		sanitizedName := utils.SanitizeName(*req.Name)
+		if err := utils.ValidateName(sanitizedName); err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		req.Name = &sanitizedName
+	}
+
+	if req.AvatarURL != nil {
+		avatarURL := strings.TrimSpace(*req.AvatarURL)
+		if err := utils.ValidateURL(avatarURL); err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid avatar URL: "+err.Error())
+			return
+		}
+		req.AvatarURL = &avatarURL
 	}
 
 	// Get current user

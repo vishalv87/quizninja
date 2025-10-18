@@ -9,6 +9,7 @@ import (
 
 // ValidationError represents a validation error
 type ValidationError struct {
+	Field   string
 	Message string
 }
 
@@ -19,6 +20,7 @@ func (e *ValidationError) Error() string {
 // NewValidationError creates a new validation error
 func NewValidationError(format string, args ...interface{}) *ValidationError {
 	return &ValidationError{
+		Field:   "",
 		Message: fmt.Sprintf(format, args...),
 	}
 }

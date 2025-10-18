@@ -91,7 +91,7 @@ func (h *QuizHandler) GetQuizByID(c *gin.Context) {
 		return
 	}
 
-	// ✅ SECURITY CHECK: Verify access to private quizzes
+	//  SECURITY CHECK: Verify access to private quizzes
 	userID, err := utils.GetUserIDFromContext(c)
 	if err != nil {
 		if utils.HandleAuthError(c, err) {
@@ -602,7 +602,7 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		"total_questions":           totalQuestions,
 		"correct_answers":           correctAnswers,
 		"time_spent":                submitRequest.TimeSpent,
-		"answers":                   validatedAnswers, // Include validated answers with isCorrect status
+		"answers":                   validatedAnswers,         // Include validated answers with isCorrect status
 		"achievement_notifications": achievementNotifications, // Include achievement notifications
 	}
 

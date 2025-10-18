@@ -72,17 +72,17 @@ func testQuizToAchievementFlow(t *testing.T, tc *TestConfig, userID uuid.UUID, t
 
 	// Verify data consistency
 	if len(finalAchievements) > len(initialAchievements) {
-		t.Logf("✅ New achievements unlocked: %d → %d", len(initialAchievements), len(finalAchievements))
+		t.Logf(" New achievements unlocked: %d → %d", len(initialAchievements), len(finalAchievements))
 
 		// Verify points were awarded
 		assert.Greater(t, finalPoints, initialPoints, "User points should increase when achievements are unlocked")
-		t.Logf("✅ Points updated: %d → %d", initialPoints, finalPoints)
+		t.Logf(" Points updated: %d → %d", initialPoints, finalPoints)
 
 		// Verify notifications were created in database
 		for _, achievement := range finalAchievements[len(initialAchievements):] {
 			hasNotification := verifyNotificationCreatedInDB(t, userID, achievement.ID)
 			if hasNotification {
-				t.Logf("✅ Notification created for achievement: %s", achievement.Achievement.Title)
+				t.Logf(" Notification created for achievement: %s", achievement.Achievement.Title)
 			}
 		}
 	} else {
@@ -92,7 +92,7 @@ func testQuizToAchievementFlow(t *testing.T, tc *TestConfig, userID uuid.UUID, t
 	// Step 6: Verify API consistency across all endpoints
 	verifyAchievementAPIConsistency(t, tc, token, finalAchievements, finalStats)
 
-	t.Logf("✅ Quiz-to-achievement flow verification completed")
+	t.Logf(" Quiz-to-achievement flow verification completed")
 }
 
 // testPerfectScoreAchievement tests perfect score achievement unlocking
@@ -108,12 +108,12 @@ func testPerfectScoreAchievement(t *testing.T, tc *TestConfig, userID uuid.UUID,
 	for _, notification := range notifications {
 		if containsString(notification.Title, "Perfect") || containsString(notification.Title, "100%") {
 			foundPerfectScore = true
-			t.Logf("✅ Perfect score achievement triggered: %s", notification.Title)
+			t.Logf(" Perfect score achievement triggered: %s", notification.Title)
 
 			// Verify in database
 			hasInDB := verifyAchievementUnlockedInDB(t, userID, "perfect_score")
 			if hasInDB {
-				t.Logf("✅ Perfect score achievement confirmed in database")
+				t.Logf(" Perfect score achievement confirmed in database")
 			}
 			break
 		}
@@ -139,12 +139,12 @@ func testSpeedAchievement(t *testing.T, tc *TestConfig, userID uuid.UUID, token 
 	for _, notification := range notifications {
 		if containsString(notification.Title, "Speed") || containsString(notification.Title, "Fast") || containsString(notification.Title, "Quick") {
 			foundSpeed = true
-			t.Logf("✅ Speed achievement triggered: %s", notification.Title)
+			t.Logf(" Speed achievement triggered: %s", notification.Title)
 
 			// Verify in database
 			hasInDB := verifyAchievementUnlockedInDB(t, userID, "speed_demon")
 			if hasInDB {
-				t.Logf("✅ Speed achievement confirmed in database")
+				t.Logf(" Speed achievement confirmed in database")
 			}
 			break
 		}
@@ -181,14 +181,14 @@ func testLeaderboardUpdatesAfterAchievements(t *testing.T, tc *TestConfig, userI
 	}
 
 	if len(notifications) > 0 {
-		t.Logf("✅ Achievements unlocked: %d notifications, estimated %d points awarded",
+		t.Logf(" Achievements unlocked: %d notifications, estimated %d points awarded",
 			len(notifications), pointsAwarded)
 	}
 
 	// Step 4: Verify points were updated
 	finalPoints := getUserPoints(t, tc, token)
 	if finalPoints > initialPoints {
-		t.Logf("✅ Points updated: %d → %d (+%d)", initialPoints, finalPoints, finalPoints-initialPoints)
+		t.Logf(" Points updated: %d → %d (+%d)", initialPoints, finalPoints, finalPoints-initialPoints)
 	} else {
 		t.Logf("ℹ️ No point changes detected (may be due to existing achievements)")
 	}
@@ -199,18 +199,18 @@ func testLeaderboardUpdatesAfterAchievements(t *testing.T, tc *TestConfig, userI
 
 	// Check if position improved or at least stayed consistent
 	if finalGlobalPosition <= initialGlobalPosition && finalPoints >= initialPoints {
-		t.Logf("✅ Global leaderboard position consistent: %d → %d", initialGlobalPosition, finalGlobalPosition)
+		t.Logf(" Global leaderboard position consistent: %d → %d", initialGlobalPosition, finalGlobalPosition)
 	}
 
 	if finalAchievementPosition <= initialAchievementPosition && finalPoints >= initialPoints {
-		t.Logf("✅ Achievement leaderboard position consistent: %d → %d",
+		t.Logf(" Achievement leaderboard position consistent: %d → %d",
 			initialAchievementPosition, finalAchievementPosition)
 	}
 
 	// Step 6: Verify leaderboard data consistency
 	verifyLeaderboardDataConsistency(t, tc, token, userID, finalPoints)
 
-	t.Logf("✅ Leaderboard verification completed")
+	t.Logf(" Leaderboard verification completed")
 }
 
 // testConsistencyAchievementProgress tests streak and consistency tracking
@@ -223,7 +223,7 @@ func testConsistencyAchievementProgress(t *testing.T, tc *TestConfig, userID uui
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err, "Should parse achievement progress response")
 
-		t.Logf("✅ Achievement progress tracking works: %d achievements tracked", len(response.Progress))
+		t.Logf(" Achievement progress tracking works: %d achievements tracked", len(response.Progress))
 
 		// Look for consistency-related achievements
 		for _, progress := range response.Progress {
@@ -316,7 +316,7 @@ func completeQuizWithScore(t *testing.T, tc *TestConfig, token string, targetSco
 	submitW := MakeAuthenticatedRequest(t, tc, "POST", submitURL, token, submitBody)
 
 	if submitW.Code == http.StatusOK {
-		t.Logf("✅ Quiz completed: attemptID=%s, targetScore=%.1f%%, timeSpent=%ds",
+		t.Logf(" Quiz completed: attemptID=%s, targetScore=%.1f%%, timeSpent=%ds",
 			attemptID, targetScore, timeSpentSeconds)
 	} else {
 		t.Logf("⚠️ Quiz submission returned status %d: %s", submitW.Code, submitW.Body.String())
@@ -509,7 +509,7 @@ func verifyLeaderboardDataConsistency(t *testing.T, tc *TestConfig, token string
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/leaderboard", token, nil)
 	if w.Code == http.StatusOK {
 		response := ParseJSONResponse(t, w)
-		t.Logf("✅ Global leaderboard API accessible")
+		t.Logf(" Global leaderboard API accessible")
 
 		// Verify user's points in leaderboard match expected
 		if data, exists := response["data"]; exists {
@@ -525,7 +525,7 @@ func verifyLeaderboardDataConsistency(t *testing.T, tc *TestConfig, token string
 											if pointsFloat, ok := points.(float64); ok {
 												userPoints := int(pointsFloat)
 												if userPoints == expectedPoints {
-													t.Logf("✅ User points in global leaderboard match expected: %d", userPoints)
+													t.Logf(" User points in global leaderboard match expected: %d", userPoints)
 												}
 											}
 										}
@@ -543,12 +543,12 @@ func verifyLeaderboardDataConsistency(t *testing.T, tc *TestConfig, token string
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/achievements/leaderboard", token, nil)
 	if w.Code == http.StatusOK {
 		response := ParseJSONResponse(t, w)
-		t.Logf("✅ Achievement leaderboard API accessible")
+		t.Logf(" Achievement leaderboard API accessible")
 
 		// Verify structure
 		if lb, exists := response["leaderboard"]; exists {
 			if lbList, ok := lb.([]interface{}); ok {
-				t.Logf("✅ Achievement leaderboard contains %d entries", len(lbList))
+				t.Logf(" Achievement leaderboard contains %d entries", len(lbList))
 			}
 		}
 	}
@@ -559,7 +559,7 @@ func verifyLeaderboardDataConsistency(t *testing.T, tc *TestConfig, token string
 		url := fmt.Sprintf("/api/v1/leaderboard?period=%s&limit=5", period)
 		w := MakeAuthenticatedRequest(t, tc, "GET", url, token, nil)
 		if w.Code == http.StatusOK {
-			t.Logf("✅ %s leaderboard accessible", period)
+			t.Logf(" %s leaderboard accessible", period)
 		}
 	}
 }
@@ -570,19 +570,19 @@ func verifyAchievementAPIConsistency(t *testing.T, tc *TestConfig, token string,
 	// Test achievements progress
 	w := MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/achievements/progress", token, nil)
 	if w.Code == http.StatusOK {
-		t.Logf("✅ Achievement progress API consistent")
+		t.Logf(" Achievement progress API consistent")
 	}
 
 	// Test all achievements endpoint
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/achievements", token, nil)
 	if w.Code == http.StatusOK {
-		t.Logf("✅ All achievements API consistent")
+		t.Logf(" All achievements API consistent")
 	}
 
 	// Test stats endpoint
 	w = MakeAuthenticatedRequest(t, tc, "GET", "/api/v1/achievements/stats", token, nil)
 	if w.Code == http.StatusOK {
-		t.Logf("✅ Achievement stats API consistent")
+		t.Logf(" Achievement stats API consistent")
 	}
 }
 
