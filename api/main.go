@@ -39,6 +39,7 @@ func main() {
 
 	r.Use(middleware.Logger())
 	r.Use(middleware.ErrorHandler())
+	r.Use(middleware.SecurityHeaders())
 	r.Use(middleware.CORS(cfg.AllowedOrigins))
 
 	// Apply global rate limiting if enabled
