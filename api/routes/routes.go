@@ -71,6 +71,10 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 		// Note: Leaderboard endpoints moved to protected section for authentication
 
 		auth := api.Group("/auth")
+		// Apply strict rate limiting to auth endpoints if enabled
+		if cfg.RateLimitEnabled {
+			auth.Use(middleware.AuthRateLimit())
+		}
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
@@ -79,6 +83,10 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 		// Protected endpoints
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(cfg))
+		// Apply per-user rate limiting if enabled
+		if cfg.RateLimitEnabled {
+			protected.Use(middleware.PerUserRateLimit())
+		}
 		{
 			protected.POST("/auth/logout", authHandler.Logout)
 			protected.GET("/profile", authHandler.GetProfile)
@@ -143,6 +151,10 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 
 			// Challenge endpoints
 			challenges := protected.Group("/challenges")
+			// Apply stricter rate limiting for write operations if enabled
+			if cfg.RateLimitEnabled {
+				challenges.Use(middleware.StrictRateLimit())
+			}
 			{
 				challenges.POST("", challengesHandler.CreateChallenge)
 				challenges.GET("", challengesHandler.GetChallenges)

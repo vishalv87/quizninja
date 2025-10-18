@@ -27,11 +27,24 @@ func main() {
 	database.Connect(cfg)
 	defer database.Close()
 
+	// Initialize rate limiters if enabled
+	if cfg.RateLimitEnabled {
+		middleware.InitRateLimiters(cfg)
+		log.Println("Rate limiting enabled")
+	} else {
+		log.Println("Rate limiting disabled")
+	}
+
 	r := gin.New()
 
 	r.Use(middleware.Logger())
 	r.Use(middleware.ErrorHandler())
 	r.Use(middleware.CORS(cfg.AllowedOrigins))
+
+	// Apply global rate limiting if enabled
+	if cfg.RateLimitEnabled {
+		r.Use(middleware.GlobalRateLimit())
+	}
 
 	routes.SetupRoutes(r, cfg)
 

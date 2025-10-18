@@ -34,6 +34,13 @@ type Config struct {
 
 	// Test configuration
 	UseMockAuth bool // Use mock auth manager for tests instead of real Supabase
+
+	// Rate Limiting Configuration
+	RateLimitEnabled bool
+	RateLimitGlobal  int64 // requests per minute per IP
+	RateLimitAuth    int64 // requests per minute per IP for auth endpoints
+	RateLimitWrite   int64 // requests per minute per IP for write operations
+	RateLimitPerUser int64 // requests per minute per authenticated user
 }
 
 func Load() *Config {
@@ -87,6 +94,13 @@ func Load() *Config {
 
 		// Test configuration
 		UseMockAuth: getBoolEnv("USE_MOCK_AUTH", false),
+
+		// Rate Limiting Configuration
+		RateLimitEnabled: getBoolEnv("RATE_LIMIT_ENABLED", true),
+		RateLimitGlobal:  getInt64Env("RATE_LIMIT_GLOBAL", 100),
+		RateLimitAuth:    getInt64Env("RATE_LIMIT_AUTH", 5),
+		RateLimitWrite:   getInt64Env("RATE_LIMIT_WRITE", 20),
+		RateLimitPerUser: getInt64Env("RATE_LIMIT_PER_USER", 60),
 	}
 
 	// ✅ SECURITY: Prevent mock auth in production
@@ -144,6 +158,15 @@ func getBoolEnv(key string, defaultValue bool) bool {
 			if parsed, err := strconv.ParseBool(value); err == nil {
 				return parsed
 			}
+		}
+	}
+	return defaultValue
+}
+
+func getInt64Env(key string, defaultValue int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return parsed
 		}
 	}
 	return defaultValue
