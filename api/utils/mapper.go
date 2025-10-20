@@ -23,6 +23,7 @@ func QuizToSummary(quiz *models.Quiz) models.QuizSummary {
 		Difficulty:    quiz.Difficulty,
 		TimeLimit:     quiz.TimeLimit,
 		QuestionCount: quiz.QuestionCount,
+		Points:        quiz.Points,
 		IsFeatured:    quiz.IsFeatured,
 		Tags:          tags,
 		ThumbnailURL:  quiz.ThumbnailURL,

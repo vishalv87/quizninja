@@ -201,6 +201,7 @@ type Quiz struct {
 	Difficulty    string          `json:"difficulty" db:"difficulty"`
 	TimeLimit     int             `json:"time_limit" db:"time_limit_minutes"` // in minutes
 	QuestionCount int             `json:"question_count" db:"total_questions"`
+	Points        int             `json:"points" db:"points"`
 	IsFeatured    bool            `json:"is_featured" db:"is_featured"`
 	IsPublic      bool            `json:"is_public" db:"is_public"`
 	CreatedBy     uuid.UUID       `json:"created_by" db:"created_by"`
@@ -327,6 +328,7 @@ type QuizSummary struct {
 	Difficulty    string                 `json:"difficulty"`
 	TimeLimit     int                    `json:"time_limit"`
 	QuestionCount int                    `json:"question_count"`
+	Points        int                    `json:"points"`
 	IsFeatured    bool                   `json:"is_featured"`
 	Tags          []string               `json:"tags"`
 	ThumbnailURL  *string                `json:"thumbnail_url,omitempty"`

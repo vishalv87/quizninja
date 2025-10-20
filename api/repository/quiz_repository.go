@@ -25,7 +25,7 @@ func NewQuizRepository() *QuizRepository {
 // GetQuizByID retrieves a quiz by its ID (basic info only)
 func (r *QuizRepository) GetQuizByID(id uuid.UUID) (*models.Quiz, error) {
 	query := `
-		SELECT id, title, description, category_id, difficulty, time_limit_minutes, total_questions,
+		SELECT id, title, description, category_id, difficulty, time_limit_minutes, total_questions, points,
 		       is_featured, is_public, created_by, tags, thumbnail_url, created_at, updated_at, is_test_data
 		FROM quizzes
 		WHERE id = $1`
@@ -35,7 +35,7 @@ func (r *QuizRepository) GetQuizByID(id uuid.UUID) (*models.Quiz, error) {
 
 	err := r.db.QueryRow(query, id).Scan(
 		&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
-		&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured, &quiz.IsPublic,
+		&quiz.TimeLimit, &quiz.QuestionCount, &quiz.Points, &quiz.IsFeatured, &quiz.IsPublic,
 		&quiz.CreatedBy, &tags, &quiz.ThumbnailURL, &quiz.CreatedAt, &quiz.UpdatedAt, &quiz.IsTestData,
 	)
 	if err != nil {
@@ -165,7 +165,7 @@ func (r *QuizRepository) GetQuizzes(filters *models.QuizFilters) ([]models.Quiz,
 	offset := (filters.Page - 1) * filters.PageSize
 	query := fmt.Sprintf(`
 		SELECT q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
-		       q.total_questions, q.is_featured, q.is_public, q.created_by, q.tags,
+		       q.total_questions, q.points, q.is_featured, q.is_public, q.created_by, q.tags,
 		       q.thumbnail_url, q.created_at, q.updated_at, q.is_test_data,
 		       qs.total_attempts, qs.average_score, qs.average_time_seconds
 		FROM quizzes q
@@ -191,7 +191,7 @@ func (r *QuizRepository) GetQuizzes(filters *models.QuizFilters) ([]models.Quiz,
 
 		err := rows.Scan(
 			&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
-			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured, &quiz.IsPublic,
+			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.Points, &quiz.IsFeatured, &quiz.IsPublic,
 			&quiz.CreatedBy, &tags, &quiz.ThumbnailURL, &quiz.CreatedAt, &quiz.UpdatedAt, &quiz.IsTestData,
 			&totalAttempts, &averageScore, &averageTime,
 		)
@@ -257,7 +257,7 @@ func (r *QuizRepository) GetQuizzesByUser(userID uuid.UUID, offset, limit int) (
 	// Get paginated results
 	query := `
 		SELECT q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
-		       q.total_questions, q.is_featured, q.is_public, q.created_by, q.tags,
+		       q.total_questions, q.points, q.is_featured, q.is_public, q.created_by, q.tags,
 		       q.thumbnail_url, q.created_at, q.updated_at, q.is_test_data,
 		       qs.total_attempts, qs.average_score, qs.average_time_seconds
 		FROM quizzes q
@@ -281,7 +281,7 @@ func (r *QuizRepository) GetQuizzesByUser(userID uuid.UUID, offset, limit int) (
 
 		err := rows.Scan(
 			&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
-			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured, &quiz.IsPublic,
+			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.Points, &quiz.IsFeatured, &quiz.IsPublic,
 			&quiz.CreatedBy, &tags, &quiz.ThumbnailURL, &quiz.CreatedAt, &quiz.UpdatedAt, &quiz.IsTestData,
 			&totalAttempts, &averageScore, &averageTime,
 		)
@@ -332,7 +332,7 @@ func (r *QuizRepository) GetCompletedQuizzesByUser(userID uuid.UUID, offset, lim
 			LIMIT $2 OFFSET $3
 		)
 		SELECT q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
-		       q.total_questions, q.is_featured, q.is_public, q.created_by, q.tags,
+		       q.total_questions, q.points, q.is_featured, q.is_public, q.created_by, q.tags,
 		       q.thumbnail_url, q.created_at, q.updated_at, q.is_test_data,
 		       qs.total_attempts, qs.average_score, qs.average_time_seconds,
 		       ucq.last_completed
@@ -357,7 +357,7 @@ func (r *QuizRepository) GetCompletedQuizzesByUser(userID uuid.UUID, offset, lim
 
 		err := rows.Scan(
 			&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
-			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured, &quiz.IsPublic,
+			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.Points, &quiz.IsFeatured, &quiz.IsPublic,
 			&quiz.CreatedBy, &tags, &quiz.ThumbnailURL, &quiz.CreatedAt, &quiz.UpdatedAt, &quiz.IsTestData,
 			&totalAttempts, &averageScore, &averageTime, &completedAt,
 		)
@@ -930,7 +930,7 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 			qa.completed_at, qa.created_at, qa.updated_at, qa.retake_count, qa.original_attempt_id,
 			qa.performance_comparison, qa.is_test_data,
 			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
-			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at, q.is_test_data
+			q.total_questions, q.points, q.is_featured, q.tags, q.thumbnail_url, q.created_at, q.is_test_data
 		FROM quiz_attempts qa
 		JOIN quizzes q ON qa.quiz_id = q.id
 		%s
@@ -965,7 +965,7 @@ func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.Attem
 			&attempt.RetakeCount, &attempt.OriginalAttemptID, &performanceJSON, &attempt.IsTestData,
 			&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
 			&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
-			&attempt.Quiz.QuestionCount, &attempt.Quiz.IsFeatured, &tags,
+			&attempt.Quiz.QuestionCount, &attempt.Quiz.Points, &attempt.Quiz.IsFeatured, &tags,
 			&attempt.Quiz.ThumbnailURL, &attempt.Quiz.CreatedAt, &attempt.Quiz.IsTestData,
 		)
 		if err != nil {
@@ -1015,7 +1015,7 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 			qa.percentage_score, qa.passed, qa.status, qa.is_completed, qa.started_at,
 			qa.completed_at, qa.created_at, qa.updated_at,
 			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
-			q.total_questions, q.is_featured, q.tags, q.thumbnail_url, q.created_at, q.is_test_data
+			q.total_questions, q.points, q.is_featured, q.tags, q.thumbnail_url, q.created_at, q.is_test_data
 		FROM quiz_attempts qa
 		JOIN quizzes q ON qa.quiz_id = q.id
 		WHERE qa.id = $1`
@@ -1033,7 +1033,7 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
 		&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
 		&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
-		&attempt.Quiz.QuestionCount, &attempt.Quiz.IsFeatured, &tags,
+		&attempt.Quiz.QuestionCount, &attempt.Quiz.Points, &attempt.Quiz.IsFeatured, &tags,
 		&attempt.Quiz.ThumbnailURL, &attempt.Quiz.CreatedAt, &attempt.Quiz.IsTestData,
 	)
 	if err != nil {
@@ -1166,7 +1166,7 @@ func (r *QuizRepository) GetUserFavorites(userID uuid.UUID, page, pageSize int) 
 		SELECT
 			f.id, f.user_id, f.quiz_id, f.favorited_at,
 			q.id, q.title, q.description, q.category_id, q.difficulty,
-			q.time_limit_minutes, q.total_questions, q.is_featured,
+			q.time_limit_minutes, q.total_questions, q.points, q.is_featured,
 			q.tags, q.thumbnail_url, q.created_at
 		FROM user_quiz_favorites f
 		JOIN quizzes q ON f.quiz_id = q.id
@@ -1189,7 +1189,7 @@ func (r *QuizRepository) GetUserFavorites(userID uuid.UUID, page, pageSize int) 
 		err := rows.Scan(
 			&favorite.ID, &favorite.UserID, &favorite.QuizID, &favorite.FavoritedAt,
 			&quiz.ID, &quiz.Title, &quiz.Description, &quiz.Category, &quiz.Difficulty,
-			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.IsFeatured,
+			&quiz.TimeLimit, &quiz.QuestionCount, &quiz.Points, &quiz.IsFeatured,
 			&tags, &quiz.ThumbnailURL, &quiz.CreatedAt,
 		)
 		if err != nil {
