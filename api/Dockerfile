@@ -42,36 +42,9 @@ COPY --from=builder /app/database/migrations /app/database/migrations
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Create supervisor configuration
+# Copy supervisor configuration
 RUN mkdir -p /etc/supervisor.d
-COPY <<EOF /etc/supervisor.d/supervisord.ini
-[supervisord]
-nodaemon=true
-logfile=/dev/null
-logfile_maxbytes=0
-loglevel=info
-
-[program:nginx]
-command=nginx -g "daemon off;"
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autostart=true
-autorestart=true
-priority=10
-
-[program:quizninja-api]
-command=/app/main
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autostart=true
-autorestart=true
-priority=20
-environment=PORT="8081"
-EOF
+COPY supervisord.ini /etc/supervisor.d/supervisord.ini
 
 # Expose port 8080 (Cloud Run requirement)
 EXPOSE 8080
