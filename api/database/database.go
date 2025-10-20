@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
 	"time"
 
 	"quizninja-api/config"
@@ -20,14 +21,18 @@ func Connect(cfg *config.Config) {
 	var dsn string
 
 	if cfg.UseSupabase {
+		// Resolve hostname to IPv4 to avoid IPv6 connectivity issues in Docker
+		resolvedHost := resolveToIPv4(cfg.SupabaseDBHost)
+
 		// Supabase PostgreSQL connection with SSL required and connection timeout
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=require connect_timeout=10",
-			cfg.SupabaseDBHost, cfg.SupabaseDBPort, cfg.SupabaseDBUser,
+			resolvedHost, cfg.SupabaseDBPort, cfg.SupabaseDBUser,
 			cfg.SupabaseDBPassword, cfg.SupabaseDBName)
 		utils.WithFields(logrus.Fields{
-			"host": cfg.SupabaseDBHost,
-			"port": cfg.SupabaseDBPort,
-			"db":   cfg.SupabaseDBName,
+			"host":          cfg.SupabaseDBHost,
+			"resolved_host": resolvedHost,
+			"port":          cfg.SupabaseDBPort,
+			"db":            cfg.SupabaseDBName,
 		}).Info("Connecting to Supabase PostgreSQL database")
 	} else {
 		// Traditional PostgreSQL connection with timeout
@@ -130,4 +135,55 @@ func Close() {
 	if DB != nil {
 		DB.Close()
 	}
+}
+
+// resolveToIPv4 resolves a hostname to an IPv4 address only.
+// This is useful in Docker environments where IPv6 may not be available.
+// If resolution fails or no IPv4 address is found, returns the original hostname.
+func resolveToIPv4(hostname string) string {
+	// Create a context with timeout for DNS resolution
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Use the default resolver with explicit IPv4-only lookup
+	resolver := &net.Resolver{
+		PreferGo: false, // Use system DNS resolver (more reliable in containers)
+	}
+
+	// Try to resolve to IPv4 addresses only using "ip4" network
+	ips, err := resolver.LookupIP(ctx, "ip4", hostname)
+	if err != nil {
+		utils.WithFields(logrus.Fields{
+			"hostname": hostname,
+			"error":    err.Error(),
+		}).Warn("Failed to resolve hostname to IPv4 using ip4 lookup, trying fallback")
+
+		// Fallback: Try standard lookup and filter for IPv4
+		ips, err = resolver.LookupIP(ctx, "ip", hostname)
+		if err != nil {
+			utils.WithFields(logrus.Fields{
+				"hostname": hostname,
+				"error":    err.Error(),
+			}).Warn("Failed to resolve hostname, using original hostname")
+			return hostname
+		}
+	}
+
+	// Find the first IPv4 address
+	for _, ip := range ips {
+		if ipv4 := ip.To4(); ipv4 != nil {
+			utils.WithFields(logrus.Fields{
+				"hostname": hostname,
+				"ipv4":     ipv4.String(),
+			}).Info("Successfully resolved hostname to IPv4 address")
+			return ipv4.String()
+		}
+	}
+
+	// No IPv4 address found, return original hostname
+	utils.WithFields(logrus.Fields{
+		"hostname": hostname,
+		"ip_count": len(ips),
+	}).Warn("No IPv4 address found for hostname, using original hostname")
+	return hostname
 }

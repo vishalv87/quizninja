@@ -1,6 +1,13 @@
 package main
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"quizninja-api/config"
 	"quizninja-api/database"
 	"quizninja-api/middleware"
@@ -78,12 +85,52 @@ func main() {
 
 	routes.SetupRoutes(r, cfg)
 
+	// Cloud Run provides PORT via environment variable
+	// Use PORT env var if available, otherwise use config port
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = cfg.Port
+	}
+
 	utils.WithFields(logrus.Fields{
-		"port":     cfg.Port,
+		"port":     port,
 		"gin_mode": cfg.GinMode,
 	}).Info("Server starting")
 
-	if err := r.Run(":" + cfg.Port); err != nil {
-		utils.Fatal("Failed to start server:", err)
+	// Create HTTP server with timeouts
+	srv := &http.Server{
+		Addr:           ":" + port,
+		Handler:        r,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		IdleTimeout:    60 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MB
 	}
+
+	// Start server in a goroutine
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			utils.Fatal("Server error:", err)
+		}
+	}()
+
+	utils.Info("Server started successfully. Press Ctrl+C to stop.")
+
+	// Wait for interrupt signal to gracefully shutdown the server
+	quit := make(chan os.Signal, 1)
+	// Accept SIGINT (Ctrl+C) and SIGTERM (Cloud Run shutdown)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	utils.Info("Shutting down server...")
+
+	// Give active requests time to finish (max 30 seconds)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		utils.Fatal("Server forced shutdown:", err)
+	}
+
+	utils.Info("Server stopped gracefully")
 }

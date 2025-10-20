@@ -1,0 +1,59 @@
+# Docker ignore file for QuizNinja API
+# Excludes unnecessary files from Docker build context
+
+# Compiled binaries (these are built fresh in the container)
+quizninja-api
+test-build
+/bin/
+/dist/
+
+# Environment files (secrets are passed via Cloud Run env vars)
+.env
+.env.*
+!.env.example
+
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# Test files
+*_test.go
+tests/
+coverage.out
+.env.test
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Temporary files
+tmp/
+temp/
+
+# Docker files (don't include in build context recursively)
+Dockerfile
+.dockerignore
