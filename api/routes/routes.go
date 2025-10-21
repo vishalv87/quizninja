@@ -43,7 +43,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 		quizzes := api.Group("/quizzes")
 		{
 			quizzes.GET("", quizHandler.GetQuizzes)
-			quizzes.GET("/:id", quizHandler.GetQuizByID)
 			quizzes.GET("/featured", quizHandler.GetFeaturedQuizzes)
 			quizzes.GET("/category/:category", quizHandler.GetQuizzesByCategory)
 			quizzes.GET("/categories", categoriesHandler.GetCategoryGroups)
@@ -108,6 +107,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 			// Protected quiz endpoints
 			protectedQuizzes := protected.Group("/quizzes")
 			{
+				protectedQuizzes.GET("/:id", quizHandler.GetQuizByID)
 				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
 				protectedQuizzes.POST("/:id/attempts/:attemptId/submit", quizHandler.SubmitQuizAttempt)
 				protectedQuizzes.PUT("/:id/attempts/:attemptId", quizHandler.UpdateQuizAttempt)
