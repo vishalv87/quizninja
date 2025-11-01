@@ -194,18 +194,6 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		return
 	}
 
-	// Check if force_restart parameter is provided
-	forceRestart := c.Query("force_restart") == "true"
-
-	// Check for retake request in the request body
-	var retakeRequest models.CreateRetakeRequest
-	isRetakeRequest := false
-	if c.Request.ContentLength > 0 {
-		if err := c.ShouldBindJSON(&retakeRequest); err == nil && retakeRequest.IsRetake {
-			isRetakeRequest = true
-		}
-	}
-
 	// Verify quiz exists and is public
 	quiz, err := h.repo.Quiz.GetQuizByID(quizID)
 	if err != nil {
@@ -231,6 +219,18 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		return
 	}
 
+	// Check if user has already completed this quiz (enforce one-attempt-per-quiz policy)
+	hasCompleted, err := h.repo.Quiz.HasUserCompletedQuiz(userID, quizID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	if hasCompleted {
+		utils.ErrorResponse(c, http.StatusConflict, "This quiz has already been completed. Each quiz can only be attempted once.")
+		return
+	}
+
 	// Check for existing active attempt
 	existingAttempt, err := h.repo.Quiz.GetActiveQuizAttempt(userID, quizID)
 	if err != nil {
@@ -238,113 +238,38 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		return
 	}
 
-	// If there's an existing active attempt and force_restart is not true, return error
-	if existingAttempt != nil && !forceRestart {
+	// If there's an existing active attempt, return error with resume information
+	if existingAttempt != nil {
 		c.JSON(http.StatusConflict, gin.H{
 			"error": gin.H{
 				"code":    http.StatusConflict,
-				"message": "Active quiz attempt already exists",
+				"message": "Active quiz attempt already exists. Please resume your existing attempt.",
 				"details": gin.H{
 					"existing_attempt_id": existingAttempt.ID,
 					"started_at":          existingAttempt.StartedAt,
-					"can_restart":         true,
 				},
 			},
 		})
 		return
 	}
 
-	// If force_restart is true, delete any existing active attempts
-	if forceRestart {
-		err = h.repo.Quiz.DeleteActiveQuizAttempt(userID, quizID)
-		if err != nil {
-			utils.HandleError(c, err)
-			return
-		}
-	}
-
-	// Handle retake logic
-	var originalAttemptID *uuid.UUID
-	var retakeCount int
-	var performanceComparison map[string]interface{}
-
-	if isRetakeRequest {
-		// Parse and validate original attempt ID
-		originalID, err := uuid.Parse(retakeRequest.OriginalAttemptID)
-		if err != nil {
-			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid original attempt ID format")
-			return
-		}
-		originalAttemptID = &originalID
-
-		// Verify the original attempt exists and belongs to the user
-		originalAttempt, err := h.repo.Quiz.GetQuizAttempt(originalID)
-		if err != nil {
-			utils.ErrorResponse(c, http.StatusNotFound, "Original attempt not found")
-			return
-		}
-
-		if originalAttempt.UserID != userID {
-			utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to retake this attempt")
-			return
-		}
-
-		if originalAttempt.QuizID != quizID {
-			utils.ErrorResponse(c, http.StatusBadRequest, "Original attempt does not belong to this quiz")
-			return
-		}
-
-		// Validate retake limit
-		err = h.repo.Quiz.ValidateRetakeLimit(userID, quizID)
-		if err != nil {
-			utils.ErrorResponse(c, http.StatusForbidden, err.Error())
-			return
-		}
-
-		// Get previous attempts for performance comparison
-		previousAttempts, err := h.repo.Quiz.GetQuizAttemptsForComparison(userID, quizID)
-		if err != nil {
-			utils.HandleError(c, err)
-			return
-		}
-
-		// Set retake count (increment from the maximum found)
-		retakeCount = originalAttempt.RetakeCount + 1
-		for _, attempt := range previousAttempts {
-			if attempt.RetakeCount >= retakeCount {
-				retakeCount = attempt.RetakeCount + 1
-			}
-		}
-
-		// Calculate performance comparison for completed attempts
-		if len(previousAttempts) > 0 {
-			performanceComparison = h.repo.Quiz.CalculatePerformanceComparison(
-				&models.QuizAttempt{PercentageScore: 0, TimeSpent: 0}, // Placeholder for new attempt
-				previousAttempts,
-			)
-		}
-	}
-
 	// Create quiz attempt
 	attempt := &models.QuizAttempt{
-		ID:                    uuid.New(),
-		QuizID:                quizID,
-		UserID:                userID,
-		Answers:               []models.AttemptAnswer{},
-		Score:                 0,
-		TotalPoints:           0,
-		TimeSpent:             0,
-		PercentageScore:       0,
-		Passed:                false,
-		Status:                "started",
-		IsCompleted:           false,
-		StartedAt:             time.Now(),
-		CreatedAt:             time.Now(),
-		UpdatedAt:             time.Now(),
-		RetakeCount:           retakeCount,
-		OriginalAttemptID:     originalAttemptID,
-		PerformanceComparison: performanceComparison,
-		IsTestData:            isTestUser,
+		ID:              uuid.New(),
+		QuizID:          quizID,
+		UserID:          userID,
+		Answers:         []models.AttemptAnswer{},
+		Score:           0,
+		TotalPoints:     0,
+		TimeSpent:       0,
+		PercentageScore: 0,
+		Passed:          false,
+		Status:          "started",
+		IsCompleted:     false,
+		StartedAt:       time.Now(),
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		IsTestData:      isTestUser,
 	}
 
 	err = h.repo.Quiz.CreateQuizAttempt(attempt)
@@ -392,25 +317,14 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 	}
 
 	response := gin.H{
-		"attempt_id":             attempt.ID,
-		"session_id":             session.ID,
-		"quiz":                   quizWithQuestions,
-		"started_at":             attempt.StartedAt,
-		"time_remaining":         session.TimeRemaining,
-		"is_retake":              attempt.IsRetake(),
-		"retake_count":           attempt.RetakeCount,
-		"original_attempt_id":    attempt.OriginalAttemptID,
-		"performance_comparison": attempt.PerformanceComparison,
+		"attempt_id":     attempt.ID,
+		"session_id":     session.ID,
+		"quiz":           quizWithQuestions,
+		"started_at":     attempt.StartedAt,
+		"time_remaining": session.TimeRemaining,
 	}
 
-	var message string
-	if attempt.IsRetake() {
-		message = fmt.Sprintf("Quiz retake #%d started successfully", attempt.RetakeCount)
-	} else {
-		message = "Quiz attempt started successfully"
-	}
-
-	utils.CreatedResponse(c, response, message)
+	utils.CreatedResponse(c, response, "Quiz attempt started successfully")
 }
 
 // SubmitQuizAttempt handles POST /api/v1/quizzes/{id}/attempts/{attemptId}/submit

@@ -263,7 +263,7 @@ func TestUserPerformanceAnalyticsIntegration(t *testing.T) {
 			requiredAttemptFields := []string{
 				"id", "quiz_id", "user_id", "score", "total_points", "time_spent",
 				"percentage_score", "passed", "status", "is_completed", "started_at",
-				"answers", "retake_count",
+				"answers",
 			}
 
 			for _, field := range requiredAttemptFields {

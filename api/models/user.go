@@ -358,29 +358,26 @@ type QuizFilters struct {
 }
 
 type QuizAttempt struct {
-	ID                    uuid.UUID              `json:"id" db:"id"`
-	QuizID                uuid.UUID              `json:"quiz_id" db:"quiz_id"`
-	UserID                uuid.UUID              `json:"user_id" db:"user_id"`
-	Answers               []AttemptAnswer        `json:"answers" db:"answers"`
-	Score                 float64                `json:"score" db:"score"`
-	TotalPoints           int                    `json:"total_points" db:"total_points"`
-	TimeSpent             int                    `json:"time_spent" db:"time_spent"` // in seconds
-	PercentageScore       float64                `json:"percentage_score" db:"percentage_score"`
-	Passed                bool                   `json:"passed" db:"passed"`
-	Status                string                 `json:"status" db:"status"` // started, completed, abandoned
-	IsCompleted           bool                   `json:"is_completed" db:"is_completed"`
-	StartedAt             time.Time              `json:"started_at" db:"started_at"`
-	CompletedAt           *time.Time             `json:"completed_at,omitempty" db:"completed_at"`
-	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
-	UpdatedAt             time.Time              `json:"updated_at" db:"updated_at"`
-	RetakeCount           int                    `json:"retake_count" db:"retake_count"`
-	OriginalAttemptID     *uuid.UUID             `json:"original_attempt_id,omitempty" db:"original_attempt_id"`
-	PerformanceComparison map[string]interface{} `json:"performance_comparison,omitempty" db:"performance_comparison"`
-	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
+	ID              uuid.UUID       `json:"id" db:"id"`
+	QuizID          uuid.UUID       `json:"quiz_id" db:"quiz_id"`
+	UserID          uuid.UUID       `json:"user_id" db:"user_id"`
+	Answers         []AttemptAnswer `json:"answers" db:"answers"`
+	Score           float64         `json:"score" db:"score"`
+	TotalPoints     int             `json:"total_points" db:"total_points"`
+	TimeSpent       int             `json:"time_spent" db:"time_spent"` // in seconds
+	PercentageScore float64         `json:"percentage_score" db:"percentage_score"`
+	Passed          bool            `json:"passed" db:"passed"`
+	Status          string          `json:"status" db:"status"` // started, completed, abandoned
+	IsCompleted     bool            `json:"is_completed" db:"is_completed"`
+	StartedAt       time.Time       `json:"started_at" db:"started_at"`
+	CompletedAt     *time.Time      `json:"completed_at,omitempty" db:"completed_at"`
+	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
+	IsTestData      bool            `json:"is_test_data" db:"is_test_data"`
 
 	// Challenge tracking fields
-	ChallengeID         *uuid.UUID `json:"challenge_id,omitempty" db:"challenge_id"`
-	IsChallengeAttempt  bool       `json:"is_challenge_attempt" db:"is_challenge_attempt"`
+	ChallengeID        *uuid.UUID `json:"challenge_id,omitempty" db:"challenge_id"`
+	IsChallengeAttempt bool       `json:"is_challenge_attempt" db:"is_challenge_attempt"`
 }
 
 // AttemptAnswer represents a user's answer to a quiz question
@@ -392,30 +389,6 @@ type AttemptAnswer struct {
 	PointsEarned   int       `json:"points_earned"`
 }
 
-// IsRetake returns true if this attempt is a retake
-func (qa *QuizAttempt) IsRetake() bool {
-	return qa.OriginalAttemptID != nil
-}
-
-// CanRetake returns true if this attempt can be retaken (max 3 retakes)
-func (qa *QuizAttempt) CanRetake() bool {
-	return qa.RetakeCount < 3 && qa.IsCompleted
-}
-
-// GetRetakeLabel returns a label for retake attempts
-func (qa *QuizAttempt) GetRetakeLabel() *string {
-	if qa.RetakeCount == 0 {
-		return nil
-	}
-	label := fmt.Sprintf("Retake #%d", qa.RetakeCount)
-	return &label
-}
-
-// CreateRetakeRequest represents the request body for creating a retake attempt
-type CreateRetakeRequest struct {
-	OriginalAttemptID string `json:"original_attempt_id" validate:"required,uuid"`
-	IsRetake          bool   `json:"is_retake"`
-}
 
 // UpdateAttemptRequest represents the request body for updating/completing a quiz attempt
 type UpdateAttemptRequest struct {
