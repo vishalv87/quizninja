@@ -31,9 +31,9 @@ func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) erro
 	query := `
 		INSERT INTO challenges (
 			challenger_id, challengee_id, quiz_id, message, expires_at,
-			is_group_challenge, participant_ids, participant_scores, is_test_data
+			is_group_challenge, participant_ids, participant_scores
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, status, created_at, updated_at
 	`
 
@@ -58,7 +58,6 @@ func (r *ChallengesRepository) CreateChallenge(challenge *models.Challenge) erro
 		challenge.IsGroupChallenge,
 		pq.Array(challenge.ParticipantIDs),
 		participantScores,
-		challenge.IsTestData,
 	).Scan(
 		&challenge.ID,
 		&challenge.Status,
@@ -79,7 +78,7 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 		SELECT id, challenger_id, challengee_id, quiz_id, status,
 			   challenger_score, challengee_score, message, expires_at,
 			   is_group_challenge, participant_ids, participant_scores,
-			   created_at, updated_at, is_test_data
+			   created_at, updated_at
 		FROM challenges
 		WHERE id = $1
 	`
@@ -103,7 +102,6 @@ func (r *ChallengesRepository) GetChallengeByID(id uuid.UUID) (*models.Challenge
 		&participantScoresJSON,
 		&challenge.CreatedAt,
 		&challenge.UpdatedAt,
-		&challenge.IsTestData,
 	)
 
 	if err != nil {
@@ -137,7 +135,7 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 		SELECT c.id, c.challenger_id, c.challengee_id, c.quiz_id, c.status,
 			   c.challenger_score, c.challengee_score, c.message, c.expires_at,
 			   c.is_group_challenge, c.participant_ids, c.participant_scores,
-			   c.created_at, c.updated_at, c.is_test_data,
+			   c.created_at, c.updated_at,
 			   u1.name, COALESCE(u1.avatar_url, ''),
 			   u2.name, COALESCE(u2.avatar_url, ''),
 			   q.title, q.category_id
@@ -167,7 +165,6 @@ func (r *ChallengesRepository) GetChallengeWithDetails(id uuid.UUID) (*models.Ch
 		&participantScoresJSON,
 		&challenge.CreatedAt,
 		&challenge.UpdatedAt,
-		&challenge.IsTestData,
 		&challenge.ChallengerName,
 		&challenge.ChallengerAvatar,
 		&challenge.ChallengeeName,
@@ -407,7 +404,7 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 		SELECT c.id, c.challenger_id, c.challengee_id, c.quiz_id, c.status,
 			   c.challenger_score, c.challengee_score, c.message, c.expires_at,
 			   c.is_group_challenge, c.participant_ids, c.participant_scores,
-			   c.created_at, c.updated_at, c.is_test_data,
+			   c.created_at, c.updated_at,
 			   u1.name, COALESCE(u1.avatar_url, ''),
 			   u2.name, COALESCE(u2.avatar_url, ''),
 			   q.title, q.category_id
@@ -450,7 +447,6 @@ func (r *ChallengesRepository) GetUserChallenges(userID uuid.UUID, filters *mode
 			&participantScoresJSON,
 			&challenge.CreatedAt,
 			&challenge.UpdatedAt,
-			&challenge.IsTestData,
 			&challenge.ChallengerName,
 			&challenge.ChallengerAvatar,
 			&challenge.ChallengeeName,

@@ -628,7 +628,6 @@ type Challenge struct {
 	ParticipantScores map[string]interface{} `json:"participant_scores,omitempty" db:"participant_scores"`
 	CreatedAt         time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time              `json:"updated_at" db:"updated_at"`
-	IsTestData        bool                   `json:"is_test_data" db:"is_test_data"`
 
 	// Asynchronous challenge tracking fields
 	ChallengerAttemptID   *uuid.UUID `json:"challenger_attempt_id,omitempty" db:"challenger_attempt_id"`

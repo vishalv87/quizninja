@@ -98,7 +98,6 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 		ExpiresAt:        req.ExpiresAt,
 		IsGroupChallenge: req.IsGroupChallenge,
 		ParticipantIDs:   req.ParticipantIDs,
-		IsTestData:       true,
 	}
 
 	if err := h.repo.Challenges.CreateChallenge(challenge); err != nil {
