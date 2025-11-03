@@ -422,7 +422,6 @@ func (ah *AuthHandler) createUserPreferences(user *models.User, preferencesReq *
 		NotificationsEnabled:  preferencesReq.NotificationsEnabled,
 		NotificationFrequency: preferencesReq.NotificationFrequency,
 		OnboardingCompletedAt: &now, // Mark onboarding as completed
-		IsTestData:            true,
 	}
 
 	if err := ah.userRepo.CreateUserPreferences(preferences); err != nil {

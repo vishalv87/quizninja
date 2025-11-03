@@ -23,11 +23,11 @@ func (cr *CategoriesRepository) GetAllCategories() ([]models.Category, error) {
 	query := `
 		SELECT c.id, c.name, c.description,
 		       CONCAT('/icons/', COALESCE(c.icon_name, 'default'), '.png') as icon_url,
-		       c.created_at, c.updated_at, c.is_test_data,
+		       c.created_at, c.updated_at,
 		       COALESCE(COUNT(q.id), 0) as quiz_count
 		FROM categories c
 		LEFT JOIN quizzes q ON q.category_id = c.id
-		GROUP BY c.id, c.name, c.description, c.icon_name, c.created_at, c.updated_at, c.is_test_data
+		GROUP BY c.id, c.name, c.description, c.icon_name, c.created_at, c.updated_at
 		ORDER BY c.name ASC
 	`
 
@@ -47,7 +47,6 @@ func (cr *CategoriesRepository) GetAllCategories() ([]models.Category, error) {
 			&category.IconURL,
 			&category.CreatedAt,
 			&category.UpdatedAt,
-			&category.IsTestData,
 			&category.QuizCount,
 		)
 		if err != nil {
@@ -70,15 +69,14 @@ func (cr *CategoriesRepository) GetAllCategories() ([]models.Category, error) {
 
 func (cr *CategoriesRepository) GetAllCategoryGroups() ([]models.CategoryGroup, error) {
 	// Query to get all categories from the database
-	// Note: is_test_data field is only used for test isolation, not production filtering
 	query := `
 		SELECT c.id, c.name, c.description,
 		       CONCAT('/icons/', COALESCE(c.icon_name, 'default'), '.png') as icon_url,
-		       c.created_at, c.updated_at, c.is_test_data,
+		       c.created_at, c.updated_at,
 		       COALESCE(COUNT(q.id), 0) as quiz_count
 		FROM categories c
 		LEFT JOIN quizzes q ON q.category_id = c.id
-		GROUP BY c.id, c.name, c.description, c.icon_name, c.created_at, c.updated_at, c.is_test_data
+		GROUP BY c.id, c.name, c.description, c.icon_name, c.created_at, c.updated_at
 		ORDER BY c.name ASC
 	`
 
@@ -98,7 +96,6 @@ func (cr *CategoriesRepository) GetAllCategoryGroups() ([]models.CategoryGroup, 
 			&category.IconURL,
 			&category.CreatedAt,
 			&category.UpdatedAt,
-			&category.IsTestData,
 			&category.QuizCount,
 		)
 		if err != nil {

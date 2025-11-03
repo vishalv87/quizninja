@@ -23,7 +23,7 @@ func (pr *PreferencesRepository) GetCategories() ([]models.Category, error) {
 	query := `
 		SELECT id, name, name as display_name, description,
 		       CONCAT('/icons/', icon_name, '.png') as icon_url,
-		       true as is_active, created_at, created_at as updated_at, is_test_data
+		       true as is_active, created_at, created_at as updated_at
 		FROM categories
 		ORDER BY name ASC
 	`
@@ -47,7 +47,6 @@ func (pr *PreferencesRepository) GetCategories() ([]models.Category, error) {
 			&category.IsActive,
 			&category.CreatedAt,
 			&category.UpdatedAt,
-			&category.IsTestData,
 		)
 		if err != nil {
 			log.Printf("GetCategories: Failed to scan category: %v", err)
@@ -68,7 +67,7 @@ func (pr *PreferencesRepository) GetCategories() ([]models.Category, error) {
 // GetDifficultyLevels retrieves all difficulty levels
 func (pr *PreferencesRepository) GetDifficultyLevels() ([]models.DifficultyLevel, error) {
 	query := `
-		SELECT id, name, name as display_name, description, 1 as order_level, true as is_active, is_test_data
+		SELECT id, name, name as display_name, description, 1 as order_level, true as is_active
 		FROM difficulty_levels
 		ORDER BY name ASC
 	`
@@ -90,7 +89,6 @@ func (pr *PreferencesRepository) GetDifficultyLevels() ([]models.DifficultyLevel
 			&level.Description,
 			&level.Order,
 			&level.IsActive,
-			&level.IsTestData,
 		)
 		if err != nil {
 			log.Printf("GetDifficultyLevels: Failed to scan difficulty level: %v", err)
@@ -111,7 +109,7 @@ func (pr *PreferencesRepository) GetDifficultyLevels() ([]models.DifficultyLevel
 // GetNotificationFrequencies retrieves all notification frequencies
 func (pr *PreferencesRepository) GetNotificationFrequencies() ([]models.NotificationFrequency, error) {
 	query := `
-		SELECT id, name, name as display_name, description, true as is_active, is_test_data
+		SELECT id, name, name as display_name, description, true as is_active
 		FROM notification_frequencies
 		ORDER BY name ASC
 	`
@@ -132,7 +130,6 @@ func (pr *PreferencesRepository) GetNotificationFrequencies() ([]models.Notifica
 			&frequency.DisplayName,
 			&frequency.Description,
 			&frequency.IsActive,
-			&frequency.IsTestData,
 		)
 		if err != nil {
 			log.Printf("GetNotificationFrequencies: Failed to scan notification frequency: %v", err)

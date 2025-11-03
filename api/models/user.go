@@ -52,7 +52,6 @@ type UserPreferences struct {
 	OnboardingCompletedAt *time.Time             `json:"onboarding_completed_at,omitempty" db:"onboarding_completed_at"`
 	CreatedAt             time.Time              `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time              `json:"updated_at" db:"updated_at"`
-	IsTestData            bool                   `json:"is_test_data" db:"is_test_data"`
 }
 
 // StringArray handles PostgreSQL array type
@@ -124,7 +123,6 @@ type Category struct {
 	QuizCount   int       `json:"quiz_count" db:"quiz_count"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
-	IsTestData  bool      `json:"is_test_data" db:"is_test_data"`
 }
 
 // DifficultyLevel represents quiz difficulty levels
@@ -135,7 +133,6 @@ type DifficultyLevel struct {
 	Description string `json:"description" db:"description"`
 	Order       int    `json:"order" db:"order"`
 	IsActive    bool   `json:"is_active" db:"is_active"`
-	IsTestData  bool   `json:"is_test_data" db:"is_test_data"`
 }
 
 // NotificationFrequency represents notification frequency options
@@ -145,7 +142,6 @@ type NotificationFrequency struct {
 	DisplayName string `json:"display_name" db:"display_name"`
 	Description string `json:"description" db:"description"`
 	IsActive    bool   `json:"is_active" db:"is_active"`
-	IsTestData  bool   `json:"is_test_data" db:"is_test_data"`
 }
 
 // AppSettings represents application configuration settings

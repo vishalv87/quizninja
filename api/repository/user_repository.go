@@ -155,8 +155,7 @@ func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferen
 		preferences.NotificationsEnabled, preferences.NotificationFrequency,
 		preferences.ProfileVisibility, preferences.ShowOnlineStatus,
 		preferences.AllowFriendRequests, preferences.ShareActivityStatus,
-		string(notificationTypesJSON), preferences.OnboardingCompletedAt,
-		preferences.IsTestData).Scan(&preferences.ID, &preferences.CreatedAt, &preferences.UpdatedAt)
+		string(notificationTypesJSON), preferences.OnboardingCompletedAt).Scan(&preferences.ID, &preferences.CreatedAt, &preferences.UpdatedAt)
 	return err
 }
 
@@ -181,7 +180,7 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 		&preferences.ShowOnlineStatus, &preferences.AllowFriendRequests,
 		&preferences.ShareActivityStatus, &notificationTypesJSON,
 		&preferences.OnboardingCompletedAt, &preferences.CreatedAt,
-		&preferences.UpdatedAt, &preferences.IsTestData,
+		&preferences.UpdatedAt, 
 	)
 	if err != nil {
 		return nil, err
@@ -259,8 +258,7 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 		preferences.AllowFriendRequests,
 		preferences.ShareActivityStatus,
 		string(notificationTypesJSON),
-		preferences.OnboardingCompletedAt,
-		preferences.IsTestData)
+		preferences.OnboardingCompletedAt)
 	return err
 }
 

@@ -75,7 +75,6 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 		AllowFriendRequests:   getBoolValue(req.AllowFriendRequests, true),
 		ShareActivityStatus:   getBoolValue(req.ShareActivityStatus, true),
 		NotificationTypes:     notificationTypes,
-		IsTestData:            true, // Set for test environment
 	}
 
 	err := ph.userRepo.UpdateUserPreferences(preferences)
