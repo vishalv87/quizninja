@@ -27,9 +27,9 @@ func NewFriendsRepository() FriendsRepositoryInterface {
 func (r *FriendsRepository) SendFriendRequest(requesterID, requestedID uuid.UUID, message *string) (*models.FriendRequest, error) {
 	log.Printf("SendFriendRequest called: requesterID=%s, requestedID=%s", requesterID, requestedID)
 	query := `
-		INSERT INTO friend_requests (requester_id, requested_id, message, is_test_data)
-		VALUES ($1, $2, $3, true)
-		RETURNING id, requester_id, requested_id, status, message, created_at, responded_at, is_test_data
+		INSERT INTO friend_requests (requester_id, requested_id, message)
+		VALUES ($1, $2, $3)
+		RETURNING id, requester_id, requested_id, status, message, created_at, responded_at
 	`
 
 	var friendRequest models.FriendRequest
@@ -41,7 +41,6 @@ func (r *FriendsRepository) SendFriendRequest(requesterID, requestedID uuid.UUID
 		&friendRequest.Message,
 		&friendRequest.CreatedAt,
 		&friendRequest.RespondedAt,
-		&friendRequest.IsTestData,
 	)
 
 	if err != nil {
@@ -148,9 +147,9 @@ func (r *FriendsRepository) CreateFriendship(user1ID, user2ID uuid.UUID) (*model
 	}
 
 	query := `
-		INSERT INTO friendships (user1_id, user2_id, is_test_data)
-		VALUES ($1, $2, true)
-		RETURNING id, user1_id, user2_id, created_at, is_test_data
+		INSERT INTO friendships (user1_id, user2_id)
+		VALUES ($1, $2)
+		RETURNING id, user1_id, user2_id, created_at
 	`
 
 	var friendship models.Friendship
@@ -159,7 +158,6 @@ func (r *FriendsRepository) CreateFriendship(user1ID, user2ID uuid.UUID) (*model
 		&friendship.User1ID,
 		&friendship.User2ID,
 		&friendship.CreatedAt,
-		&friendship.IsTestData,
 	)
 
 	if err != nil {
@@ -225,7 +223,7 @@ func (r *FriendsRepository) CancelFriendRequest(requestID uuid.UUID, requesterID
 func (r *FriendsRepository) GetPendingFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error) {
 	log.Printf("GetPendingFriendRequests called: userID=%s", userID)
 	query := `
-		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at, fr.is_test_data,
+		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at,
 			   u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.is_online, u.last_active
 		FROM friend_requests fr
 		JOIN users u ON fr.requester_id = u.id
@@ -252,7 +250,6 @@ func (r *FriendsRepository) GetPendingFriendRequests(userID uuid.UUID) ([]models
 			&friendRequest.Message,
 			&friendRequest.CreatedAt,
 			&friendRequest.RespondedAt,
-			&friendRequest.IsTestData,
 			&requester.ID,
 			&requester.Name,
 			&requester.Email,
@@ -278,7 +275,7 @@ func (r *FriendsRepository) GetPendingFriendRequests(userID uuid.UUID) ([]models
 func (r *FriendsRepository) GetSentFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error) {
 	log.Printf("GetSentFriendRequests called: userID=%s", userID)
 	query := `
-		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at, fr.is_test_data,
+		SELECT fr.id, fr.requester_id, fr.requested_id, fr.status, fr.message, fr.created_at, fr.responded_at,
 			   u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.is_online, u.last_active
 		FROM friend_requests fr
 		JOIN users u ON fr.requested_id = u.id
@@ -305,7 +302,6 @@ func (r *FriendsRepository) GetSentFriendRequests(userID uuid.UUID) ([]models.Fr
 			&friendRequest.Message,
 			&friendRequest.CreatedAt,
 			&friendRequest.RespondedAt,
-			&friendRequest.IsTestData,
 			&requested.ID,
 			&requested.Name,
 			&requested.Email,
@@ -333,7 +329,7 @@ func (r *FriendsRepository) GetFriends(userID uuid.UUID) ([]models.Friend, error
 	query := `
 		SELECT u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.current_streak,
 			   u.best_streak, u.total_quizzes_completed, u.average_score, u.is_online, u.last_active,
-			   f.created_at as friends_since, u.is_test_data
+			   f.created_at as friends_since
 		FROM friendships f
 		JOIN users u ON (CASE WHEN f.user1_id = $1 THEN f.user2_id ELSE f.user1_id END) = u.id
 		WHERE f.user1_id = $1 OR f.user2_id = $1
@@ -364,7 +360,6 @@ func (r *FriendsRepository) GetFriends(userID uuid.UUID) ([]models.Friend, error
 			&friend.IsOnline,
 			&friend.LastActive,
 			&friend.FriendsSince,
-			&friend.IsTestData,
 		)
 
 		if err != nil {
@@ -478,8 +473,7 @@ func (r *FriendsRepository) SearchUsers(searchQuery string, currentUserID uuid.U
 			   u.total_quizzes_completed, u.average_score, u.is_online,
 			   CASE WHEN f.id IS NOT NULL THEN true ELSE false END as is_friend,
 			   CASE WHEN fr1.id IS NOT NULL OR fr2.id IS NOT NULL THEN true ELSE false END as has_pending_request,
-			   CASE WHEN fr1.id IS NOT NULL THEN true ELSE false END as request_sent_by_me,
-			   u.is_test_data
+			   CASE WHEN fr1.id IS NOT NULL THEN true ELSE false END as request_sent_by_me
 		FROM users u
 		LEFT JOIN friendships f ON ((f.user1_id = $1 AND f.user2_id = u.id) OR (f.user2_id = $1 AND f.user1_id = u.id))
 		LEFT JOIN friend_requests fr1 ON (fr1.requester_id = $1 AND fr1.requested_id = u.id AND fr1.status = 'pending')
@@ -513,7 +507,6 @@ func (r *FriendsRepository) SearchUsers(searchQuery string, currentUserID uuid.U
 			&user.IsFriend,
 			&user.HasPendingRequest,
 			&user.RequestSentByMe,
-			&user.IsTestData,
 		)
 
 		if err != nil {
@@ -545,7 +538,7 @@ func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offs
 	// Main query
 	query := `
 		SELECT fn.id, fn.user_id, fn.type, fn.title, fn.message, fn.related_user_id,
-			   fn.friend_request_id, fn.is_read, fn.created_at, fn.read_at, fn.is_test_data,
+			   fn.friend_request_id, fn.is_read, fn.created_at, fn.read_at,
 			   u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.is_online, u.last_active
 		FROM friend_notifications fn
 		LEFT JOIN users u ON fn.related_user_id = u.id
@@ -577,7 +570,6 @@ func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offs
 			&notification.IsRead,
 			&notification.CreatedAt,
 			&notification.ReadAt,
-			&notification.IsTestData,
 			&relatedUser.ID,
 			&relatedUser.Name,
 			&relatedUser.Email,

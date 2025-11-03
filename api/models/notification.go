@@ -324,7 +324,6 @@ type FriendNotificationCompat struct {
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	ReadAt          *time.Time `json:"read_at,omitempty" db:"read_at"`
 	DeletedAt       *time.Time `json:"deleted_at,omitempty" db:"deleted_at"`
-	IsTestData      bool       `json:"is_test_data" db:"is_test_data"`
 	RelatedUser     *User      `json:"related_user,omitempty"`
 }
 
@@ -348,7 +347,6 @@ func (n *Notification) ToFriendNotificationCompat() *FriendNotificationCompat {
 		CreatedAt:       n.CreatedAt,
 		ReadAt:          n.ReadAt,
 		DeletedAt:       n.DeletedAt,
-		IsTestData:      n.IsTestData,
 		RelatedUser:     n.RelatedUser,
 	}
 }

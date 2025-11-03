@@ -504,20 +504,18 @@ type FriendRequest struct {
 	Message     *string    `json:"message,omitempty" db:"message"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	RespondedAt *time.Time `json:"responded_at,omitempty" db:"responded_at"`
-	IsTestData  bool       `json:"is_test_data" db:"is_test_data"`
 	Requester   *User      `json:"requester,omitempty"`
 	Requested   *User      `json:"requested,omitempty"`
 }
 
 // Friendship represents an accepted friendship between two users
 type Friendship struct {
-	ID         uuid.UUID `json:"id" db:"id"`
-	User1ID    uuid.UUID `json:"user1_id" db:"user1_id"`
-	User2ID    uuid.UUID `json:"user2_id" db:"user2_id"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	IsTestData bool      `json:"is_test_data" db:"is_test_data"`
-	User1      *User     `json:"user1,omitempty"`
-	User2      *User     `json:"user2,omitempty"`
+	ID        uuid.UUID `json:"id" db:"id"`
+	User1ID   uuid.UUID `json:"user1_id" db:"user1_id"`
+	User2ID   uuid.UUID `json:"user2_id" db:"user2_id"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	User1     *User     `json:"user1,omitempty"`
+	User2     *User     `json:"user2,omitempty"`
 }
 
 // FriendNotification represents a notification related to friends
@@ -551,7 +549,6 @@ type Friend struct {
 	IsOnline              bool      `json:"is_online"`
 	LastActive            time.Time `json:"last_active"`
 	FriendsSince          time.Time `json:"friends_since"`
-	IsTestData            bool      `json:"is_test_data"`
 }
 
 // Friends DTOs
@@ -600,7 +597,6 @@ type UserSearchResult struct {
 	IsFriend              bool      `json:"is_friend"`
 	HasPendingRequest     bool      `json:"has_pending_request"`
 	RequestSentByMe       bool      `json:"request_sent_by_me"`
-	IsTestData            bool      `json:"is_test_data"`
 }
 
 // FriendNotificationsResponse represents the response for friend notifications
