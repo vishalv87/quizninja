@@ -780,7 +780,6 @@ type Achievement struct {
 	IsActive     bool      `json:"is_active" db:"is_active"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
-	IsTestData   bool      `json:"is_test_data" db:"is_test_data"`
 }
 
 // UserAchievement represents a user's unlocked achievement
@@ -790,7 +789,6 @@ type UserAchievement struct {
 	AchievementID uuid.UUID    `json:"achievement_id" db:"achievement_id"`
 	UnlockedAt    time.Time    `json:"unlocked_at" db:"unlocked_at"`
 	PointsAwarded int          `json:"points_awarded" db:"points_awarded"`
-	IsTestData    bool         `json:"is_test_data" db:"is_test_data"`
 	Achievement   *Achievement `json:"achievement,omitempty"`
 }
 
