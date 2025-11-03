@@ -67,9 +67,9 @@ func (r *DiscussionRepository) CreateDiscussion(discussion *models.Discussion) e
 	log.Printf("CreateDiscussion called: quizID=%s, userID=%s", discussion.QuizID, discussion.UserID)
 
 	query := `
-		INSERT INTO discussions (quiz_id, question_id, user_id, content, type, is_test_data)
-		VALUES ($1, $2, $3, $4, $5, true)
-		RETURNING id, created_at, updated_at, is_test_data
+		INSERT INTO discussions (quiz_id, question_id, user_id, content, type)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, created_at, updated_at
 	`
 
 	err := r.db.QueryRow(query,
@@ -82,7 +82,6 @@ func (r *DiscussionRepository) CreateDiscussion(discussion *models.Discussion) e
 		&discussion.ID,
 		&discussion.CreatedAt,
 		&discussion.UpdatedAt,
-		&discussion.IsTestData,
 	)
 
 	if err != nil {
@@ -97,7 +96,7 @@ func (r *DiscussionRepository) GetDiscussionByID(id uuid.UUID) (*models.Discussi
 	log.Printf("GetDiscussionByID called: id=%s", id)
 
 	query := `
-		SELECT id, quiz_id, question_id, user_id, content, likes_count, replies_count, type, created_at, updated_at, is_test_data
+		SELECT id, quiz_id, question_id, user_id, content, likes_count, replies_count, type, created_at, updated_at
 		FROM discussions
 		WHERE id = $1
 	`
@@ -114,7 +113,6 @@ func (r *DiscussionRepository) GetDiscussionByID(id uuid.UUID) (*models.Discussi
 		&discussion.Type,
 		&discussion.CreatedAt,
 		&discussion.UpdatedAt,
-		&discussion.IsTestData,
 	)
 
 	if err != nil {
@@ -134,10 +132,10 @@ func (r *DiscussionRepository) GetDiscussionWithDetails(id uuid.UUID, userID *uu
 	query := `
 		SELECT
 			d.id, d.quiz_id, d.question_id, d.user_id, d.content, d.likes_count, d.replies_count,
-			d.type, d.created_at, d.updated_at, d.is_test_data,
-			u.name as user_name, u.avatar_url as user_avatar, u.is_test_data as user_is_test_data,
-			q.title as quiz_title, q.category_id as quiz_category, q.is_test_data as quiz_is_test_data,
-			qs.question_text, qs.is_test_data as question_is_test_data
+			d.type, d.created_at, d.updated_at,
+			u.name as user_name, u.avatar_url as user_avatar,
+			q.title as quiz_title, q.category_id as quiz_category,
+			qs.question_text
 		FROM discussions d
 		JOIN users u ON d.user_id = u.id
 		JOIN quizzes q ON d.quiz_id = q.id
@@ -148,9 +146,6 @@ func (r *DiscussionRepository) GetDiscussionWithDetails(id uuid.UUID, userID *uu
 	var discussion models.DiscussionWithDetails
 	var userAvatar sql.NullString
 	var questionText sql.NullString
-	var userIsTestData bool
-	var quizIsTestData bool
-	var questionIsTestData sql.NullBool
 
 	err := r.db.QueryRow(query, id).Scan(
 		&discussion.ID,
@@ -163,15 +158,11 @@ func (r *DiscussionRepository) GetDiscussionWithDetails(id uuid.UUID, userID *uu
 		&discussion.Type,
 		&discussion.CreatedAt,
 		&discussion.UpdatedAt,
-		&discussion.IsTestData,
 		&discussion.UserName,
 		&userAvatar,
-		&userIsTestData,
 		&discussion.QuizTitle,
 		&discussion.QuizCategory,
-		&quizIsTestData,
 		&questionText,
-		&questionIsTestData,
 	)
 
 	if err != nil {
@@ -315,8 +306,8 @@ func (r *DiscussionRepository) GetDiscussions(filters *models.DiscussionFilters,
 	mainQuery := fmt.Sprintf(`
 		SELECT
 			d.id, d.quiz_id, d.question_id, d.user_id, d.content, d.likes_count, d.replies_count,
-			d.type, d.created_at, d.updated_at, d.is_test_data,
-			u.name as user_name, u.avatar_url as user_avatar, u.is_test_data as user_is_test_data
+			d.type, d.created_at, d.updated_at,
+			u.name as user_name, u.avatar_url as user_avatar
 		FROM discussions d
 		JOIN users u ON d.user_id = u.id
 		%s
@@ -350,10 +341,8 @@ func (r *DiscussionRepository) GetDiscussions(filters *models.DiscussionFilters,
 			&discussion.Type,
 			&discussion.CreatedAt,
 			&discussion.UpdatedAt,
-			&discussion.IsTestData,
 			&user.Name,
 			&avatarURL,
-			&user.IsTestData,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan discussion: %w", err)
@@ -416,8 +405,8 @@ func (r *DiscussionRepository) CreateDiscussionReply(reply *models.DiscussionRep
 
 	// Insert the reply
 	query := `
-		INSERT INTO discussion_replies (discussion_id, user_id, content, is_test_data)
-		VALUES ($1, $2, $3, true)
+		INSERT INTO discussion_replies (discussion_id, user_id, content)
+		VALUES ($1, $2, $3)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -459,8 +448,8 @@ func (r *DiscussionRepository) GetDiscussionReplies(discussionID uuid.UUID, user
 	// Get replies with user details
 	query := `
 		SELECT
-			r.id, r.discussion_id, r.user_id, r.content, r.likes_count, r.created_at, r.updated_at, r.is_test_data,
-			u.name as user_name, u.avatar_url as user_avatar, u.is_test_data as user_is_test_data
+			r.id, r.discussion_id, r.user_id, r.content, r.likes_count, r.created_at, r.updated_at,
+			u.name as user_name, u.avatar_url as user_avatar
 		FROM discussion_replies r
 		JOIN users u ON r.user_id = u.id
 		WHERE r.discussion_id = $1
@@ -488,10 +477,8 @@ func (r *DiscussionRepository) GetDiscussionReplies(discussionID uuid.UUID, user
 			&reply.LikesCount,
 			&reply.CreatedAt,
 			&reply.UpdatedAt,
-			&reply.IsTestData,
 			&user.Name,
 			&avatarURL,
-			&user.IsTestData,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan discussion reply: %w", err)
@@ -523,7 +510,7 @@ func (r *DiscussionRepository) GetReplyByID(id uuid.UUID) (*models.DiscussionRep
 	log.Printf("GetReplyByID called: id=%s", id)
 
 	query := `
-		SELECT id, discussion_id, user_id, content, likes_count, created_at, updated_at, is_test_data
+		SELECT id, discussion_id, user_id, content, likes_count, created_at, updated_at
 		FROM discussion_replies
 		WHERE id = $1
 	`
@@ -537,7 +524,6 @@ func (r *DiscussionRepository) GetReplyByID(id uuid.UUID) (*models.DiscussionRep
 		&reply.LikesCount,
 		&reply.CreatedAt,
 		&reply.UpdatedAt,
-		&reply.IsTestData,
 	)
 
 	if err != nil {
@@ -633,8 +619,8 @@ func (r *DiscussionRepository) LikeDiscussion(discussionID uuid.UUID, userID uui
 
 	// Insert like (ignore if already exists)
 	query := `
-		INSERT INTO discussion_likes (discussion_id, user_id, is_test_data)
-		VALUES ($1, $2, true)
+		INSERT INTO discussion_likes (discussion_id, user_id)
+		VALUES ($1, $2)
 		ON CONFLICT (discussion_id, user_id) DO NOTHING
 	`
 
@@ -704,8 +690,8 @@ func (r *DiscussionRepository) LikeDiscussionReply(replyID uuid.UUID, userID uui
 
 	// Insert like (ignore if already exists)
 	query := `
-		INSERT INTO discussion_reply_likes (reply_id, user_id, is_test_data)
-		VALUES ($1, $2, true)
+		INSERT INTO discussion_reply_likes (reply_id, user_id)
+		VALUES ($1, $2)
 		ON CONFLICT (reply_id, user_id) DO NOTHING
 	`
 

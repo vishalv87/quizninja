@@ -18,7 +18,6 @@ type Discussion struct {
 	Type          string            `json:"type" db:"type"` // general, question, explanation, help
 	CreatedAt     time.Time         `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time         `json:"updated_at" db:"updated_at"`
-	IsTestData    bool              `json:"is_test_data" db:"is_test_data"`
 	User          *User             `json:"user,omitempty"`
 	Quiz          *QuizSummary      `json:"quiz,omitempty"`
 	Question      *Question         `json:"question,omitempty"`
@@ -35,7 +34,6 @@ type DiscussionReply struct {
 	LikesCount    int       `json:"likes_count" db:"likes_count"`
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
-	IsTestData    bool      `json:"is_test_data" db:"is_test_data"`
 	User          *User     `json:"user,omitempty"`
 	IsLikedByUser bool      `json:"is_liked_by_user"`
 }
@@ -46,7 +44,6 @@ type DiscussionLike struct {
 	DiscussionID uuid.UUID `json:"discussion_id" db:"discussion_id"`
 	UserID       uuid.UUID `json:"user_id" db:"user_id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	IsTestData   bool      `json:"is_test_data" db:"is_test_data"`
 }
 
 // DiscussionReplyLike represents a like on a discussion reply
@@ -55,7 +52,6 @@ type DiscussionReplyLike struct {
 	ReplyID    uuid.UUID `json:"reply_id" db:"reply_id"`
 	UserID     uuid.UUID `json:"user_id" db:"user_id"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	IsTestData bool      `json:"is_test_data" db:"is_test_data"`
 }
 
 // Discussion DTOs
