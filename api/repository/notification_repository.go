@@ -30,12 +30,12 @@ func (r *NotificationRepository) CreateNotification(notification *models.CreateN
 	query := `
 		INSERT INTO notifications (
 			user_id, type, title, message, data, related_user_id,
-			related_entity_id, related_entity_type, expires_at, is_test_data
+			related_entity_id, related_entity_type, expires_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, user_id, type, title, message, data, related_user_id,
 				  related_entity_id, related_entity_type, is_read, is_deleted, created_at,
-				  read_at, deleted_at, expires_at, is_test_data
+				  read_at, deleted_at, expires_at
 	`
 
 	var created models.Notification
@@ -66,7 +66,6 @@ func (r *NotificationRepository) CreateNotification(notification *models.CreateN
 		&created.ReadAt,
 		&created.DeletedAt,
 		&created.ExpiresAt,
-		&created.IsTestData,
 	)
 
 	if err != nil {
@@ -149,10 +148,10 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 		SELECT
 			n.id, n.user_id, n.type, n.title, n.message, n.data,
 			n.related_user_id, n.related_entity_id, n.related_entity_type,
-			n.is_read, n.is_deleted, n.created_at, n.read_at, n.deleted_at, n.expires_at, n.is_test_data,
+			n.is_read, n.is_deleted, n.created_at, n.read_at, n.deleted_at, n.expires_at,
 			u.id, u.name, u.email, u.avatar_url, u.level, u.total_points,
 			u.current_streak, u.best_streak, u.total_quizzes_completed,
-			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at, u.is_test_data
+			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at
 		FROM notifications n
 		LEFT JOIN users u ON n.related_user_id = u.id
 		%s
@@ -177,7 +176,7 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 		var relatedUserID, relatedUserName, relatedUserEmail, relatedUserAvatarURL, relatedUserLevel sql.NullString
 		var relatedUserTotalPoints, relatedUserCurrentStreak, relatedUserBestStreak, relatedUserTotalQuizzes sql.NullInt64
 		var relatedUserAverageScore sql.NullFloat64
-		var relatedUserIsOnline, relatedUserIsTestData sql.NullBool
+		var relatedUserIsOnline sql.NullBool
 		var relatedUserLastActive, relatedUserCreatedAt, relatedUserUpdatedAt sql.NullTime
 
 		// Scan notification fields and optional related user
@@ -197,7 +196,6 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 			&notification.ReadAt,
 			&notification.DeletedAt,
 			&notification.ExpiresAt,
-			&notification.IsTestData,
 			&relatedUserID,
 			&relatedUserName,
 			&relatedUserEmail,
@@ -212,7 +210,6 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 			&relatedUserLastActive,
 			&relatedUserCreatedAt,
 			&relatedUserUpdatedAt,
-			&relatedUserIsTestData,
 		)
 
 		if err != nil {
@@ -267,9 +264,6 @@ func (r *NotificationRepository) GetNotifications(userID uuid.UUID, filters *mod
 				if relatedUserUpdatedAt.Valid {
 					relatedUser.UpdatedAt = relatedUserUpdatedAt.Time
 				}
-				if relatedUserIsTestData.Valid {
-					relatedUser.IsTestData = relatedUserIsTestData.Bool
-				}
 
 				notification.RelatedUser = &relatedUser
 			}
@@ -294,10 +288,10 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 		SELECT
 			n.id, n.user_id, n.type, n.title, n.message, n.data,
 			n.related_user_id, n.related_entity_id, n.related_entity_type,
-			n.is_read, n.is_deleted, n.created_at, n.read_at, n.deleted_at, n.expires_at, n.is_test_data,
+			n.is_read, n.is_deleted, n.created_at, n.read_at, n.deleted_at, n.expires_at,
 			u.id, u.name, u.email, u.avatar_url, u.level, u.total_points,
 			u.current_streak, u.best_streak, u.total_quizzes_completed,
-			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at, u.is_test_data
+			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at
 		FROM notifications n
 		LEFT JOIN users u ON n.related_user_id = u.id
 		WHERE n.id = $1 AND n.user_id = $2 AND n.is_deleted = FALSE
@@ -310,7 +304,7 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 	var relatedUserID, relatedUserName, relatedUserEmail, relatedUserAvatarURL, relatedUserLevel sql.NullString
 	var relatedUserTotalPoints, relatedUserCurrentStreak, relatedUserBestStreak, relatedUserTotalQuizzes sql.NullInt64
 	var relatedUserAverageScore sql.NullFloat64
-	var relatedUserIsOnline, relatedUserIsTestData sql.NullBool
+	var relatedUserIsOnline sql.NullBool
 	var relatedUserLastActive, relatedUserCreatedAt, relatedUserUpdatedAt sql.NullTime
 
 	err := r.db.QueryRow(query, notificationID, userID).Scan(
@@ -329,7 +323,6 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 		&notification.ReadAt,
 		&notification.DeletedAt,
 		&notification.ExpiresAt,
-		&notification.IsTestData,
 		&relatedUserID,
 		&relatedUserName,
 		&relatedUserEmail,
@@ -344,7 +337,6 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 		&relatedUserLastActive,
 		&relatedUserCreatedAt,
 		&relatedUserUpdatedAt,
-		&relatedUserIsTestData,
 	)
 
 	if err != nil {
@@ -400,9 +392,6 @@ func (r *NotificationRepository) GetNotificationByID(notificationID uuid.UUID, u
 			}
 			if relatedUserUpdatedAt.Valid {
 				relatedUser.UpdatedAt = relatedUserUpdatedAt.Time
-			}
-			if relatedUserIsTestData.Valid {
-				relatedUser.IsTestData = relatedUserIsTestData.Bool
 			}
 
 			notification.RelatedUser = &relatedUser
@@ -644,7 +633,7 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 		SELECT
 			id, user_id, type, title, message, data,
 			related_user_id, related_entity_id, related_entity_type,
-			is_read, is_deleted, created_at, read_at, deleted_at, expires_at, is_test_data
+			is_read, is_deleted, created_at, read_at, deleted_at, expires_at
 		FROM notifications
 		WHERE user_id = $1 AND is_deleted = false
 		ORDER BY created_at DESC
@@ -676,7 +665,6 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 			&notification.ReadAt,
 			&notification.DeletedAt,
 			&notification.ExpiresAt,
-			&notification.IsTestData,
 		)
 		if err != nil {
 			continue
@@ -750,10 +738,10 @@ func (r *NotificationRepository) GetFriendNotifications(userID uuid.UUID, limit,
 	query := `
 		SELECT
 			n.id, n.user_id, n.type, n.title, n.message,
-			n.related_user_id, n.related_entity_id, n.is_read, n.created_at, n.read_at, n.is_test_data,
+			n.related_user_id, n.related_entity_id, n.is_read, n.created_at, n.read_at,
 			u.id, u.name, u.email, u.avatar_url, u.level, u.total_points,
 			u.current_streak, u.best_streak, u.total_quizzes_completed,
-			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at, u.is_test_data
+			u.average_score, u.is_online, u.last_active, u.created_at, u.updated_at
 		FROM notifications n
 		LEFT JOIN users u ON n.related_user_id = u.id
 		WHERE n.user_id = $1 AND n.type IN ($2, $3, $4)
@@ -799,7 +787,6 @@ func (r *NotificationRepository) GetFriendNotifications(userID uuid.UUID, limit,
 			&relatedUser.LastActive,
 			&relatedUser.CreatedAt,
 			&relatedUser.UpdatedAt,
-			&relatedUser.IsTestData,
 		)
 
 		if err != nil {

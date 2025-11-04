@@ -26,7 +26,6 @@ type Notification struct {
 	ReadAt            *time.Time       `json:"readAt,omitempty" db:"read_at"`
 	DeletedAt         *time.Time       `json:"deletedAt,omitempty" db:"deleted_at"`
 	ExpiresAt         *time.Time       `json:"expiresAt,omitempty" db:"expires_at"`
-	IsTestData        bool             `json:"isTestData" db:"is_test_data"`
 	RelatedUser       *User            `json:"relatedUser,omitempty"`
 }
 
