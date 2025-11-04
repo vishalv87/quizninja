@@ -126,8 +126,8 @@ func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferen
 			user_id, selected_categories, difficulty_preference, notifications_enabled,
 			notification_frequency, profile_visibility, show_online_status,
 			allow_friend_requests, share_activity_status, notification_types,
-			onboarding_completed_at, is_test_data
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			onboarding_completed_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, created_at, updated_at
 	`
 	// Handle JSONB field properly - marshal to JSON bytes
@@ -166,7 +166,7 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 		SELECT id, user_id, selected_categories, difficulty_preference,
 		       notifications_enabled, notification_frequency, profile_visibility,
 		       show_online_status, allow_friend_requests, share_activity_status,
-		       notification_types, onboarding_completed_at, created_at, updated_at, is_test_data
+		       notification_types, onboarding_completed_at, created_at, updated_at
 		FROM user_preferences
 		WHERE user_id = $1
 	`
@@ -180,7 +180,7 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 		&preferences.ShowOnlineStatus, &preferences.AllowFriendRequests,
 		&preferences.ShareActivityStatus, &notificationTypesJSON,
 		&preferences.OnboardingCompletedAt, &preferences.CreatedAt,
-		&preferences.UpdatedAt, 
+		&preferences.UpdatedAt
 	)
 	if err != nil {
 		return nil, err
@@ -209,9 +209,9 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 			profile_visibility, show_online_status,
 			allow_friend_requests, share_activity_status,
 			notification_types, onboarding_completed_at,
-			is_test_data, created_at, updated_at
+			created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
 		)
 		ON CONFLICT (user_id) DO UPDATE SET
 			selected_categories = EXCLUDED.selected_categories,
