@@ -180,7 +180,7 @@ func (ur *UserRepository) GetUserPreferences(userID uuid.UUID) (*models.UserPref
 		&preferences.ShowOnlineStatus, &preferences.AllowFriendRequests,
 		&preferences.ShareActivityStatus, &notificationTypesJSON,
 		&preferences.OnboardingCompletedAt, &preferences.CreatedAt,
-		&preferences.UpdatedAt
+		&preferences.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

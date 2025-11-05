@@ -49,8 +49,8 @@ func (r *QuizSessionRepository) CreateSession(session *models.QuizSession) error
 	query := `
 		INSERT INTO quiz_sessions (id, attempt_id, user_id, quiz_id, current_question_index,
 		                          current_answers, session_state, time_remaining, time_spent_so_far,
-		                          last_activity_at, created_at, updated_at, is_test_data)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`
+		                          last_activity_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
 	// Convert current answers to JSON
 	answersJSON, err := json.Marshal(session.CurrentAnswers)
@@ -62,7 +62,7 @@ func (r *QuizSessionRepository) CreateSession(session *models.QuizSession) error
 		session.ID, session.AttemptID, session.UserID, session.QuizID,
 		session.CurrentQuestionIndex, answersJSON, session.SessionState,
 		session.TimeRemaining, session.TimeSpentSoFar, session.LastActivityAt,
-		session.CreatedAt, session.UpdatedAt, session.IsTestData)
+		session.CreatedAt, session.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("failed to create quiz session: %w", err)
 	}
@@ -390,9 +390,9 @@ func (r *QuizSessionRepository) GetUserActiveSessions(userID uuid.UUID, filters 
 		SELECT
 			qs.id, qs.attempt_id, qs.user_id, qs.quiz_id, qs.current_question_index,
 			qs.current_answers, qs.session_state, qs.time_remaining, qs.time_spent_so_far,
-			qs.last_activity_at, qs.paused_at, qs.created_at, qs.updated_at, qs.is_test_data,
+			qs.last_activity_at, qs.paused_at, qs.created_at, qs.updated_at,
 			q.title, q.category_id, q.difficulty, q.thumbnail_url, q.total_questions,
-			q.time_limit_minutes, q.is_test_data
+			q.time_limit_minutes
 		FROM quiz_sessions qs
 		JOIN quizzes q ON qs.quiz_id = q.id
 		%s
@@ -417,10 +417,9 @@ func (r *QuizSessionRepository) GetUserActiveSessions(userID uuid.UUID, filters 
 			&session.ID, &session.AttemptID, &session.UserID, &session.QuizID,
 			&session.CurrentQuestionIndex, &answersJSON, &session.SessionState,
 			&session.TimeRemaining, &session.TimeSpentSoFar, &session.LastActivityAt,
-			&session.PausedAt, &session.CreatedAt, &session.UpdatedAt, &session.IsTestData,
+			&session.PausedAt, &session.CreatedAt, &session.UpdatedAt,
 			&session.QuizTitle, &session.QuizCategory, &session.QuizDifficulty,
 			&session.QuizThumbnail, &session.TotalQuestions, &session.OriginalTimeLimit,
-			&session.QuizIsTestData,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan session row: %w", err)
@@ -455,7 +454,7 @@ func (r *QuizSessionRepository) GetSessionWithDetails(sessionID uuid.UUID) (*mod
 			qs.current_answers, qs.session_state, qs.time_remaining, qs.time_spent_so_far,
 			qs.last_activity_at, qs.paused_at, qs.created_at, qs.updated_at,
 			q.title, q.category_id, q.difficulty, q.thumbnail_url, q.total_questions,
-			q.time_limit_minutes, q.is_test_data
+			q.time_limit_minutes
 		FROM quiz_sessions qs
 		JOIN quizzes q ON qs.quiz_id = q.id
 		WHERE qs.id = $1`
@@ -470,7 +469,6 @@ func (r *QuizSessionRepository) GetSessionWithDetails(sessionID uuid.UUID) (*mod
 		&session.PausedAt, &session.CreatedAt, &session.UpdatedAt,
 		&session.QuizTitle, &session.QuizCategory, &session.QuizDifficulty,
 		&session.QuizThumbnail, &session.TotalQuestions, &session.OriginalTimeLimit,
-		&session.QuizIsTestData,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

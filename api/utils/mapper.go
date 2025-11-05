@@ -28,7 +28,6 @@ func QuizToSummary(quiz *models.Quiz) models.QuizSummary {
 		Tags:          tags,
 		ThumbnailURL:  quiz.ThumbnailURL,
 		CreatedAt:     quiz.CreatedAt,
-		IsTestData:    quiz.IsTestData,
 	}
 
 	if quiz.Statistics != nil {

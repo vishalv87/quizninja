@@ -205,7 +205,6 @@ type Quiz struct {
 	ThumbnailURL  *string         `json:"thumbnail_url,omitempty" db:"thumbnail_url"`
 	CreatedAt     time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
-	IsTestData    bool            `json:"is_test_data" db:"is_test_data"`
 	Questions     []Question      `json:"questions,omitempty"`
 	Statistics    *QuizStatistics `json:"statistics,omitempty"`
 }
@@ -251,7 +250,6 @@ type Question struct {
 	ImageURL      *string     `json:"image_url,omitempty" db:"image_url"`
 	CreatedAt     time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time   `json:"updated_at" db:"updated_at"`
-	IsTestData    bool        `json:"is_test_data" db:"is_test_data"`
 }
 
 type QuizStatistics struct {
@@ -267,7 +265,6 @@ type QuizStatistics struct {
 	LastAttemptAt     *time.Time `json:"last_attempt_at,omitempty" db:"last_attempt_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
-	IsTestData        bool       `json:"is_test_data" db:"is_test_data"`
 }
 
 // Quiz DTOs
@@ -329,7 +326,6 @@ type QuizSummary struct {
 	Tags          []string               `json:"tags"`
 	ThumbnailURL  *string                `json:"thumbnail_url,omitempty"`
 	CreatedAt     time.Time              `json:"created_at"`
-	IsTestData    bool                   `json:"is_test_data" db:"is_test_data"`
 	Statistics    *QuizStatisticsSummary `json:"statistics,omitempty"`
 }
 
@@ -369,7 +365,6 @@ type QuizAttempt struct {
 	CompletedAt     *time.Time      `json:"completed_at,omitempty" db:"completed_at"`
 	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
-	IsTestData      bool            `json:"is_test_data" db:"is_test_data"`
 
 	// Challenge tracking fields
 	ChallengeID        *uuid.UUID `json:"challenge_id,omitempty" db:"challenge_id"`
@@ -831,7 +826,6 @@ type UserQuizFavorite struct {
 	UserID      uuid.UUID    `json:"user_id" db:"user_id"`
 	QuizID      uuid.UUID    `json:"quiz_id" db:"quiz_id"`
 	FavoritedAt time.Time    `json:"favorited_at" db:"favorited_at"`
-	IsTestData  bool         `json:"is_test_data" db:"is_test_data"`
 	Quiz        *QuizSummary `json:"quiz,omitempty"`
 }
 
@@ -866,7 +860,6 @@ type QuizSession struct {
 	PausedAt             *time.Time      `json:"paused_at,omitempty" db:"paused_at"`
 	CreatedAt            time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt            time.Time       `json:"updated_at" db:"updated_at"`
-	IsTestData           bool            `json:"is_test_data" db:"is_test_data"`
 	Quiz                 *QuizSummary    `json:"quiz,omitempty"`
 	Attempt              *QuizAttempt    `json:"attempt,omitempty"`
 }
@@ -932,7 +925,6 @@ type QuizSessionWithDetails struct {
 	QuizThumbnail     *string `json:"quiz_thumbnail,omitempty"`
 	TotalQuestions    int     `json:"total_questions"`
 	OriginalTimeLimit int     `json:"original_time_limit"` // in seconds
-	QuizIsTestData    bool    `json:"quiz_is_test_data" db:"quiz_is_test_data"`
 }
 
 // Quiz Session DTOs

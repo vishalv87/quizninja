@@ -212,13 +212,6 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 
 	userID := getUserIDFromContext(c)
 
-	// Check if this is a test user to properly set IsTestData fields
-	isTestUser, err := h.repo.User.IsTestUser(userID)
-	if err != nil {
-		utils.HandleError(c, err)
-		return
-	}
-
 	// Check if user has already completed this quiz (enforce one-attempt-per-quiz policy)
 	hasCompleted, err := h.repo.Quiz.HasUserCompletedQuiz(userID, quizID)
 	if err != nil {
@@ -269,7 +262,6 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		StartedAt:       time.Now(),
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
-		IsTestData:      isTestUser,
 	}
 
 	err = h.repo.Quiz.CreateQuizAttempt(attempt)
@@ -293,7 +285,6 @@ func (h *QuizHandler) StartQuizAttempt(c *gin.Context) {
 		LastActivityAt:       time.Now(),
 		CreatedAt:            time.Now(),
 		UpdatedAt:            time.Now(),
-		IsTestData:           isTestUser,
 	}
 
 	err = h.repo.QuizSession.CreateSession(session)
