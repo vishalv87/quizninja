@@ -26,7 +26,6 @@ type User struct {
 	AvatarURL             *string   `json:"avatar_url,omitempty" db:"avatar_url"`
 	CreatedAt             time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
-	IsTestData            bool      `json:"is_test_data" db:"is_test_data"`
 
 	// Supabase auth integration fields
 	AuthMethod     string     `json:"auth_method" db:"auth_method"`           // "supabase" or "jwt"
@@ -405,7 +404,6 @@ type UserStatistics struct {
 	QuizzesByDifficulty   map[string]int        `json:"quizzes_by_difficulty"`
 	ScoreDistribution     ScoreDistribution     `json:"score_distribution"`
 	MonthlyProgress       []MonthlyProgressItem `json:"monthly_progress"`
-	IsTestData            bool                  `json:"is_test_data"`
 }
 
 // CategoryPerformance represents performance metrics for a specific category
@@ -525,7 +523,6 @@ type FriendNotification struct {
 	IsRead          bool       `json:"is_read" db:"is_read"`
 	CreatedAt       time.Time  `json:"created_at" db:"created_at"`
 	ReadAt          *time.Time `json:"read_at,omitempty" db:"read_at"`
-	IsTestData      bool       `json:"is_test_data" db:"is_test_data"`
 	RelatedUser     *User      `json:"related_user,omitempty"`
 }
 

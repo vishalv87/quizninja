@@ -26,10 +26,10 @@ func NewUserRepository() *UserRepository {
 
 func (ur *UserRepository) CreateUser(user *models.User) error {
 	query := `
-		INSERT INTO users (email, password_hash, name, is_test_data, auth_method, supabase_id, last_auth_method)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO users (email, password_hash, name, auth_method, supabase_id, last_auth_method)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at, level, total_points, current_streak,
-		          best_streak, total_quizzes_completed, average_score, is_online, last_active, is_test_data,
+		          best_streak, total_quizzes_completed, average_score, is_online, last_active,
 		          auth_method, supabase_id, last_auth_method, migrated_at
 	`
 
@@ -41,11 +41,11 @@ func (ur *UserRepository) CreateUser(user *models.User) error {
 		user.LastAuthMethod = user.AuthMethod
 	}
 
-	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name, user.IsTestData,
+	err := ur.db.QueryRow(query, user.Email, user.PasswordHash, user.Name,
 		user.AuthMethod, user.SupabaseID, user.LastAuthMethod).Scan(
 		&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.Level, &user.TotalPoints,
 		&user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
-		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.IsTestData,
+		&user.AverageScore, &user.IsOnline, &user.LastActive,
 		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	return err
@@ -56,7 +56,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       last_active, avatar_url, created_at, updated_at,
 		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE email = $1
@@ -65,7 +65,7 @@ func (ur *UserRepository) GetUserByEmail(email string) (*models.User, error) {
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+		&user.CreatedAt, &user.UpdatedAt,
 		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	if err != nil {
@@ -79,7 +79,7 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       last_active, avatar_url, created_at, updated_at,
 		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE id = $1
@@ -88,7 +88,7 @@ func (ur *UserRepository) GetUserByID(id uuid.UUID) (*models.User, error) {
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+		&user.CreatedAt, &user.UpdatedAt,
 		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	if err != nil {
@@ -317,13 +317,13 @@ func (ur *UserRepository) GetUserStatistics(userID uuid.UUID) (*models.UserStati
 
 	// Get basic user stats from users table
 	userQuery := `
-		SELECT total_points, current_streak, best_streak, total_quizzes_completed, average_score, is_test_data
+		SELECT total_points, current_streak, best_streak, total_quizzes_completed, average_score
 		FROM users
 		WHERE id = $1
 	`
 	err := ur.db.QueryRow(userQuery, userID).Scan(
 		&stats.TotalPoints, &stats.CurrentStreak, &stats.BestStreak,
-		&stats.CompletedQuizzes, &stats.AverageScore, &stats.IsTestData,
+		&stats.CompletedQuizzes, &stats.AverageScore,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get basic user stats: %w", err)
@@ -638,7 +638,7 @@ func (ur *UserRepository) GetUserBySupabaseID(supabaseID string) (*models.User, 
 	query := `
 		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       last_active, avatar_url, created_at, updated_at,
 		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE supabase_id = $1
@@ -647,7 +647,7 @@ func (ur *UserRepository) GetUserBySupabaseID(supabaseID string) (*models.User, 
 		&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 		&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 		&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-		&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+		&user.CreatedAt, &user.UpdatedAt,
 		&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 	)
 	if err != nil {
@@ -712,7 +712,7 @@ func (ur *UserRepository) GetUsersByAuthMethod(authMethod string, limit int) ([]
 	query := `
 		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       last_active, avatar_url, created_at, updated_at,
 		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE auth_method = $1
@@ -733,7 +733,7 @@ func (ur *UserRepository) GetUsersByAuthMethod(authMethod string, limit int) ([]
 			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 			&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 			&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-			&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+			&user.CreatedAt, &user.UpdatedAt,
 			&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 		)
 		if err != nil {
@@ -778,7 +778,7 @@ func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, err
 	query := `
 		SELECT id, email, password_hash, name, level, total_points, current_streak,
 		       best_streak, total_quizzes_completed, average_score, is_online,
-		       last_active, avatar_url, created_at, updated_at, is_test_data,
+		       last_active, avatar_url, created_at, updated_at,
 		       auth_method, supabase_id, last_auth_method, migrated_at
 		FROM users
 		WHERE auth_method = 'jwt' AND supabase_id IS NULL
@@ -799,7 +799,7 @@ func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, err
 			&user.ID, &user.Email, &user.PasswordHash, &user.Name, &user.Level,
 			&user.TotalPoints, &user.CurrentStreak, &user.BestStreak, &user.TotalQuizzesCompleted,
 			&user.AverageScore, &user.IsOnline, &user.LastActive, &user.AvatarURL,
-			&user.CreatedAt, &user.UpdatedAt, &user.IsTestData,
+			&user.CreatedAt, &user.UpdatedAt,
 			&user.AuthMethod, &user.SupabaseID, &user.LastAuthMethod, &user.MigratedAt,
 		)
 		if err != nil {
@@ -809,20 +809,4 @@ func (ur *UserRepository) GetMigrationCandidates(limit int) ([]*models.User, err
 	}
 
 	return users, nil
-}
-
-// IsTestUser checks if a user is marked as test data
-func (ur *UserRepository) IsTestUser(userID uuid.UUID) (bool, error) {
-	query := `SELECT is_test_data FROM users WHERE id = $1`
-
-	var isTestData bool
-	err := ur.db.QueryRow(query, userID).Scan(&isTestData)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return false, fmt.Errorf("user not found")
-		}
-		return false, fmt.Errorf("failed to check test user status: %w", err)
-	}
-
-	return isTestData, nil
 }
