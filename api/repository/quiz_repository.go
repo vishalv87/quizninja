@@ -923,6 +923,57 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 	return &attempt, nil
 }
 
+// GetUserQuizAttemptWithDetails retrieves THE user's attempt for a specific quiz with quiz details
+// Since one-attempt-per-quiz policy is enforced, this returns a single result
+func (r *QuizRepository) GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error) {
+	query := `
+		SELECT
+			qa.id, qa.quiz_id, qa.user_id, qa.answers, qa.score, qa.total_points, qa.time_spent,
+			qa.percentage_score, qa.passed, qa.status, qa.is_completed, qa.started_at,
+			qa.completed_at, qa.created_at, qa.updated_at,
+			q.id, q.title, q.description, q.category_id, q.difficulty, q.time_limit_minutes,
+			q.total_questions, q.points, q.is_featured, q.tags, q.thumbnail_url, q.created_at
+		FROM quiz_attempts qa
+		JOIN quizzes q ON qa.quiz_id = q.id
+		WHERE qa.user_id = $1 AND qa.quiz_id = $2 AND qa.is_completed = true
+		LIMIT 1`
+
+	var attempt models.QuizAttemptWithDetails
+	var tags pq.StringArray
+	var answersJSON []byte
+
+	err := r.db.QueryRow(query, userID, quizID).Scan(
+		&attempt.ID, &attempt.QuizID, &attempt.UserID, &answersJSON, &attempt.Score,
+		&attempt.TotalPoints, &attempt.TimeSpent, &attempt.PercentageScore,
+		&attempt.Passed, &attempt.Status, &attempt.IsCompleted,
+		&attempt.StartedAt, &attempt.CompletedAt, &attempt.CreatedAt, &attempt.UpdatedAt,
+		&attempt.Quiz.ID, &attempt.Quiz.Title, &attempt.Quiz.Description,
+		&attempt.Quiz.Category, &attempt.Quiz.Difficulty, &attempt.Quiz.TimeLimit,
+		&attempt.Quiz.QuestionCount, &attempt.Quiz.Points, &attempt.Quiz.IsFeatured, &tags,
+		&attempt.Quiz.ThumbnailURL, &attempt.Quiz.CreatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("no attempt found for this quiz")
+		}
+		return nil, fmt.Errorf("failed to get user quiz attempt: %w", err)
+	}
+
+	// Unmarshal answers JSON
+	if answersJSON != nil {
+		err = json.Unmarshal(answersJSON, &attempt.Answers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal answers: %w", err)
+		}
+	}
+
+	// Convert tags and time limit
+	attempt.Quiz.Tags = []string(tags)
+	attempt.Quiz.TimeLimit = attempt.Quiz.TimeLimit * 60 // Convert minutes to seconds
+
+	return &attempt, nil
+}
+
 // CreateOrUpdateQuizStatistics creates or updates quiz statistics when an attempt is completed
 func (r *QuizRepository) CreateOrUpdateQuizStatistics(quizID uuid.UUID, score float64, timeSpent int) error {
 	// First, try to get existing statistics

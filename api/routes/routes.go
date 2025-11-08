@@ -98,6 +98,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				users.POST("/onboarding/complete", preferencesHandler.CompleteOnboarding)
 				users.GET("/onboarding/status", preferencesHandler.GetOnboardingStatus)
 				users.GET("/quizzes", quizHandler.GetUserQuizzes)
+				users.GET("/quizzes/:quizId/attempt", quizHandler.GetUserQuizAttempt)
 				users.GET("/stats", authHandler.GetUserStats)
 				users.GET("/attempts", quizHandler.GetUserAttempts)
 				users.GET("/attempts/:attemptId", quizHandler.GetAttemptDetails)
