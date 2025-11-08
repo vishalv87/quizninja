@@ -60,6 +60,7 @@ func CreateQuizRequestToQuiz(req *models.CreateQuizRequest, userID uuid.UUID) *m
 		Difficulty:    req.Difficulty,
 		TimeLimit:     req.TimeLimit,
 		QuestionCount: len(req.Questions),
+		Points:        len(req.Questions), // 1 point per question
 		IsFeatured:    req.IsFeatured,
 		IsPublic:      req.IsPublic,
 		CreatedBy:     userID,
@@ -192,6 +193,11 @@ func ValidateQuestionRequest(req *models.CreateQuestionRequest) error {
 
 // ValidateCreateQuizRequest validates the entire quiz creation request
 func ValidateCreateQuizRequest(req *models.CreateQuizRequest) error {
+	// Ensure at least one question is provided
+	if len(req.Questions) == 0 {
+		return fmt.Errorf("quiz must have at least one question")
+	}
+
 	// Validate questions
 	for i, question := range req.Questions {
 		if err := ValidateQuestionRequest(&question); err != nil {

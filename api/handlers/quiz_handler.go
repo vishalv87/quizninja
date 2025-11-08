@@ -452,16 +452,15 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 			quizID, len(validatedAnswers), totalQuestions)
 	}
 
-	// Calculate final score based on actual submitted answers (default 1 point per question)
-	basePoints := len(validatedAnswers) // Use actual submitted answers, not quiz definition
+	// Calculate final score: 1 point per correct answer
+	finalScore := float64(correctAnswers)
 	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
-	finalScore := scorePercentage * float64(basePoints) / 100
 
 	// Update the attempt with all required fields including answers
 	timeNow := time.Now()
 	attempt.Answers = validatedAnswers
 	attempt.Score = finalScore
-	attempt.TotalPoints = basePoints
+	attempt.TotalPoints = totalQuestions
 	attempt.TimeSpent = submitRequest.TimeSpent
 	attempt.PercentageScore = scorePercentage
 	attempt.Passed = scorePercentage >= 60 // Passing threshold is 60%
@@ -698,16 +697,15 @@ func (h *QuizHandler) UpdateQuizAttempt(c *gin.Context) {
 		return
 	}
 
-	// Calculate score and percentage
-	basePoints := totalQuestions // 1 point per question as default
+	// Calculate score: 1 point per correct answer
+	finalScore := float64(correctAnswers)
 	scorePercentage := float64(correctAnswers) / float64(totalQuestions) * 100
-	finalScore := scorePercentage * float64(basePoints) / 100
 	passed := scorePercentage >= 60.0 // 60% passing threshold
 
 	// Update the attempt
 	attempt.Answers = validatedAnswers
 	attempt.Score = finalScore
-	attempt.TotalPoints = basePoints
+	attempt.TotalPoints = totalQuestions
 	attempt.TimeSpent = updateRequest.TimeSpent
 	attempt.PercentageScore = scorePercentage
 	attempt.Passed = passed
