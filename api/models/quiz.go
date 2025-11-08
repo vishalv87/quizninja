@@ -1,7 +1,6 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -26,34 +25,6 @@ type Quiz struct {
 	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
 	Questions     []Question      `json:"questions,omitempty"`
 	Statistics    *QuizStatistics `json:"statistics,omitempty"`
-}
-
-// MarshalJSON converts TimeLimit from minutes to seconds for JSON response
-func (q Quiz) MarshalJSON() ([]byte, error) {
-	type Alias Quiz
-	return json.Marshal(&struct {
-		TimeLimit int `json:"time_limit"` // Convert minutes to seconds
-		*Alias
-	}{
-		TimeLimit: q.TimeLimit * 60, // Convert minutes to seconds
-		Alias:     (*Alias)(&q),
-	})
-}
-
-// UnmarshalJSON converts TimeLimit from seconds to minutes when receiving JSON
-func (q *Quiz) UnmarshalJSON(data []byte) error {
-	type Alias Quiz
-	aux := &struct {
-		TimeLimit int `json:"time_limit"` // Expect seconds from JSON
-		*Alias
-	}{
-		Alias: (*Alias)(q),
-	}
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-	q.TimeLimit = aux.TimeLimit / 60 // Convert seconds to minutes for storage
-	return nil
 }
 
 // Question represents a quiz question

@@ -406,19 +406,64 @@ func (ur *UserRepository) UpdateUserStatistics(userID uuid.UUID, newScore float6
 	}
 	defer tx.Rollback()
 
-	// First, get current user statistics
+	// First, get current user statistics including streak values
 	var currentTotalQuizzes int
 	var currentAverageScore sql.NullFloat64
+	var currentStreak int
+	var bestStreak int
 
 	query := `
-		SELECT total_quizzes_completed, average_score
+		SELECT total_quizzes_completed, average_score, current_streak, best_streak
 		FROM users
 		WHERE id = $1
 	`
 
-	err = tx.QueryRow(query, userID).Scan(&currentTotalQuizzes, &currentAverageScore)
+	err = tx.QueryRow(query, userID).Scan(&currentTotalQuizzes, &currentAverageScore, &currentStreak, &bestStreak)
 	if err != nil {
 		return fmt.Errorf("failed to get current user statistics: %w", err)
+	}
+
+	// Get the last quiz completion date (before this current quiz)
+	var lastCompletedAt sql.NullTime
+	lastQuizQuery := `
+		SELECT MAX(completed_at)
+		FROM quiz_attempts
+		WHERE user_id = $1 AND is_completed = true AND completed_at < CURRENT_TIMESTAMP
+	`
+	err = tx.QueryRow(lastQuizQuery, userID).Scan(&lastCompletedAt)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("failed to get last quiz completion date: %w", err)
+	}
+
+	// Calculate new streak
+	newStreak := currentStreak
+	now := time.Now()
+
+	if !lastCompletedAt.Valid {
+		// This is the user's first quiz completion
+		newStreak = 1
+	} else {
+		// Calculate days since last quiz
+		lastDate := lastCompletedAt.Time.Truncate(24 * time.Hour)
+		currentDate := now.Truncate(24 * time.Hour)
+		daysDiff := int(currentDate.Sub(lastDate).Hours() / 24)
+
+		if daysDiff == 0 {
+			// Completed another quiz on the same day - streak continues
+			newStreak = currentStreak
+		} else if daysDiff == 1 {
+			// Completed quiz on consecutive day - increment streak
+			newStreak = currentStreak + 1
+		} else {
+			// More than 1 day gap - streak breaks, reset to 1
+			newStreak = 1
+		}
+	}
+
+	// Update best streak if current streak is higher
+	newBestStreak := bestStreak
+	if newStreak > bestStreak {
+		newBestStreak = newStreak
 	}
 
 	// Calculate new statistics
@@ -435,16 +480,18 @@ func (ur *UserRepository) UpdateUserStatistics(userID uuid.UUID, newScore float6
 		newAverageScore = newScore
 	}
 
-	// Update user statistics
+	// Update user statistics including streaks
 	updateQuery := `
 		UPDATE users
 		SET total_quizzes_completed = $1,
 		    average_score = $2,
+		    current_streak = $3,
+		    best_streak = $4,
 		    updated_at = CURRENT_TIMESTAMP
-		WHERE id = $3
+		WHERE id = $5
 	`
 
-	_, err = tx.Exec(updateQuery, newTotalQuizzes, newAverageScore, userID)
+	_, err = tx.Exec(updateQuery, newTotalQuizzes, newAverageScore, newStreak, newBestStreak, userID)
 	if err != nil {
 		return fmt.Errorf("failed to update user statistics: %w", err)
 	}
@@ -453,6 +500,16 @@ func (ur *UserRepository) UpdateUserStatistics(userID uuid.UUID, newScore float6
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	// Log streak update for debugging
+	log.Printf("Updated streaks for user %s: current_streak=%d, best_streak=%d (days_since_last=%v)",
+		userID, newStreak, newBestStreak,
+		func() string {
+			if lastCompletedAt.Valid {
+				return fmt.Sprintf("%d", int(now.Sub(lastCompletedAt.Time).Hours()/24))
+			}
+			return "first_quiz"
+		}())
 
 	return nil
 }
