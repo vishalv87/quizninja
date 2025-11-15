@@ -1,16 +1,19 @@
 export interface Discussion {
   id: string;
   quiz_id: string;
+  question_id?: string;
   user_id: string;
   title: string;
   content: string;
+  type?: string;
   likes_count: number;
   replies_count: number;
+  is_liked_by_user?: boolean;
   created_at: string;
   updated_at: string;
   user: {
     id: string;
-    full_name: string;
+    name: string;
     avatar_url?: string;
   };
   quiz: {
@@ -25,19 +28,22 @@ export interface DiscussionReply {
   user_id: string;
   content: string;
   likes_count: number;
+  is_liked_by_user?: boolean;
   created_at: string;
   updated_at: string;
   user: {
     id: string;
-    full_name: string;
+    name: string;
     avatar_url?: string;
   };
 }
 
 export interface CreateDiscussionRequest {
   quiz_id: string;
+  question_id?: string;
   title: string;
   content: string;
+  type?: string;
 }
 
 export interface CreateDiscussionReplyRequest {
