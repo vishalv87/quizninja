@@ -1,3 +1,15 @@
+export interface Category {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+  icon_url: string;
+  is_active: boolean;
+  quiz_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Quiz {
   id: string;
   title: string;
@@ -13,6 +25,14 @@ export interface Quiz {
   updated_at: string;
   attempts_count?: number;
   average_score?: number;
+}
+
+export interface QuizListResponse {
+  quizzes: Quiz[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }
 
 export interface Question {

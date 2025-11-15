@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
   // Quizzes (Protected)
   QUIZ: {
     GET: (id: string) => `/quizzes/${id}`,
+    QUESTIONS: (id: string) => `/quizzes/${id}/questions`,
     START_ATTEMPT: (id: string) => `/quizzes/${id}/attempts`,
     SUBMIT_ATTEMPT: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}/submit`,
     UPDATE_ATTEMPT: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}`,

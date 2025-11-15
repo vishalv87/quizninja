@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 import { getSession } from "@/lib/supabase/client";
 import { API_ERROR_MESSAGES } from "@/lib/constants";
 import { apiLogger } from "@/lib/logger";
@@ -13,13 +13,23 @@ function getBaseURL(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8080/api/v1";
 }
 
-export const apiClient = axios.create({
+// Create base axios instance
+const axiosInstance = axios.create({
   baseURL: getBaseURL(),
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Type the apiClient to return data directly
+export const apiClient = axiosInstance as typeof axiosInstance & {
+  get: <T = any>(url: string, config?: any) => Promise<T>;
+  post: <T = any>(url: string, data?: any, config?: any) => Promise<T>;
+  put: <T = any>(url: string, data?: any, config?: any) => Promise<T>;
+  patch: <T = any>(url: string, data?: any, config?: any) => Promise<T>;
+  delete: <T = any>(url: string, config?: any) => Promise<T>;
+};
 
 apiLogger.info('API client initialized', {
   baseURL: getBaseURL(),
@@ -87,46 +97,46 @@ apiClient.interceptors.response.use(
             window.location.href = "/login";
           }
           return Promise.reject({
-            message: API_ERROR_MESSAGES.UNAUTHORIZED,
-            status,
             ...errorData,
+            message: errorData?.message || API_ERROR_MESSAGES.UNAUTHORIZED,
+            status: errorData?.status || status,
           });
 
         case 403:
           return Promise.reject({
-            message: API_ERROR_MESSAGES.FORBIDDEN,
-            status,
             ...errorData,
+            message: errorData?.message || API_ERROR_MESSAGES.FORBIDDEN,
+            status: errorData?.status || status,
           });
 
         case 404:
           return Promise.reject({
-            message: API_ERROR_MESSAGES.NOT_FOUND,
-            status,
             ...errorData,
+            message: errorData?.message || API_ERROR_MESSAGES.NOT_FOUND,
+            status: errorData?.status || status,
           });
 
         case 422:
           return Promise.reject({
-            message: API_ERROR_MESSAGES.VALIDATION_ERROR,
-            status,
             ...errorData,
+            message: errorData?.message || API_ERROR_MESSAGES.VALIDATION_ERROR,
+            status: errorData?.status || status,
           });
 
         case 500:
         case 502:
         case 503:
           return Promise.reject({
-            message: API_ERROR_MESSAGES.SERVER_ERROR,
-            status,
             ...errorData,
+            message: errorData?.message || API_ERROR_MESSAGES.SERVER_ERROR,
+            status: errorData?.status || status,
           });
 
         default:
           return Promise.reject({
-            message: errorData?.message || "An error occurred",
-            status,
             ...errorData,
+            message: errorData?.message || "An error occurred",
+            status: errorData?.status || status,
           });
       }
     } else if (error.request) {

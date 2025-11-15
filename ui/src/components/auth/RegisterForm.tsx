@@ -17,8 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function RegisterForm() {
-  const router = useRouter()
-  const { setUser, setSession } = useAuthStore()
+  const { setUser } = useAuthStore()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -46,16 +45,16 @@ export function RegisterForm() {
         password: data.password,
       })
 
-      if (response.data) {
+      if (response.user) {
         // Update auth store
-        setUser(response.data.user)
+        setUser(response.user)
 
         toast.success('Registration successful!', {
-          description: `Welcome to QuizNinja, ${response.data.user.name}!`,
+          description: `Welcome to QuizNinja, ${response.user.name}!`,
         })
 
-        // Redirect to dashboard or onboarding
-        router.push('/dashboard')
+        // Redirect to dashboard with full page reload to ensure middleware picks up cookies
+        window.location.href = '/dashboard'
       }
     } catch (error: any) {
       console.error('Registration error:', error)

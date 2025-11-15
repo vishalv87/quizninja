@@ -34,7 +34,7 @@ export async function middleware(req: NextRequest) {
   console.log(`[MIDDLEWARE] Processing request: ${path}`)
 
   try {
-    // Get the session
+    // Refresh session to ensure we have the latest state
     const {
       data: { session },
     } = await supabase.auth.getSession()
@@ -45,6 +45,7 @@ export async function middleware(req: NextRequest) {
       path,
       isAuthenticated,
       userId: session?.user?.id,
+      hasAccessToken: !!session?.access_token,
     })
 
     // Check if the current path is a protected route

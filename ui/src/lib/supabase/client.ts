@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { supabaseLogger } from "@/lib/logger";
 
 // Access environment variables directly to avoid module initialization timing issues
@@ -18,18 +18,14 @@ if (!SUPABASE_ANON_KEY) {
   );
 }
 
-supabaseLogger.info("Initializing Supabase client", {
+supabaseLogger.info("Initializing Supabase client (cookie-based)", {
   url: SUPABASE_URL,
   hasKey: !!SUPABASE_ANON_KEY,
 });
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-});
+// Use cookie-based client for Next.js App Router
+// This ensures middleware can read the session from cookies
+export const supabase = createClientComponentClient();
 
 supabaseLogger.info("Supabase client initialized successfully");
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -19,8 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function LoginForm() {
-  const router = useRouter()
-  const { setUser, setSession } = useAuthStore()
+  const { setUser } = useAuthStore()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -66,11 +64,10 @@ export function LoginForm() {
           description: `Welcome back, ${response.user.name || response.user.email}!`,
         })
 
-        // Wait a bit for session to be persisted, then redirect
-        authLogger.info('Waiting for session to persist before redirect')
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // With cookie-based auth, session is immediately available
+        authLogger.info('Session persisted to cookies, redirecting to dashboard')
 
-        authLogger.info('Redirecting to dashboard')
+        // Use window.location for full page reload to ensure middleware picks up cookies
         window.location.href = '/dashboard'
       }
     } catch (error: any) {
