@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { Bell, Menu, Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
 import { UserMenu } from './UserMenu'
+import { NotificationDropdown } from '@/components/notification/NotificationDropdown'
 import { useUIStore } from '@/store/uiStore'
 
 export function Header() {
@@ -51,14 +52,7 @@ export function Header() {
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/notifications">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notifications</span>
-              {/* Badge for unread notifications (to be implemented) */}
-              {/* <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive" /> */}
-            </Link>
-          </Button>
+          <NotificationDropdown />
 
           {/* User Menu */}
           <UserMenu />
