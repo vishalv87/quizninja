@@ -40,7 +40,7 @@ export default function LeaderboardPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total_users.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{stats.total_users?.toLocaleString() ?? '0'}</div>
             </CardContent>
           </Card>
           <Card>
@@ -49,7 +49,7 @@ export default function LeaderboardPage() {
               <Trophy className="h-4 w-4 text-yellow-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total_points_distributed.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{stats.total_points_distributed?.toLocaleString() ?? '0'}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Points distributed
               </p>
@@ -61,7 +61,7 @@ export default function LeaderboardPage() {
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{Math.round(stats.average_points).toLocaleString()}</div>
+              <div className="text-2xl font-bold">{Math.round(stats.average_points ?? 0).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Per user
               </p>

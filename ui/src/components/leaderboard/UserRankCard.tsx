@@ -74,7 +74,7 @@ export function UserRankCard({ rankData, isLoading = false }: UserRankCardProps)
     );
   }
 
-  const percentile = ((rankData.total_users - rankData.rank) / rankData.total_users) * 100;
+  const percentile = ((rankData.total_users ?? 1) - (rankData.rank ?? 0)) / (rankData.total_users ?? 1) * 100;
 
   return (
     <Card className="bg-gradient-to-br from-primary/5 to-primary/10">
@@ -88,19 +88,19 @@ export function UserRankCard({ rankData, isLoading = false }: UserRankCardProps)
         {/* User Info and Rank */}
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20 ring-2 ring-primary/20">
-            <AvatarImage src={rankData.user.avatar_url} alt={rankData.user.full_name} />
+            <AvatarImage src={rankData.user?.avatar_url} alt={rankData.user?.full_name ?? 'User'} />
             <AvatarFallback className="text-lg font-semibold">
-              {getInitials(rankData.user.full_name)}
+              {getInitials(rankData.user?.full_name ?? 'User')}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="text-xl font-bold mb-1">{rankData.user.full_name}</h3>
+            <h3 className="text-xl font-bold mb-1">{rankData.user?.full_name ?? 'User'}</h3>
             <div className="flex items-center gap-2">
-              <Badge variant={getRankVariant(rankData.rank)} className="text-base px-3 py-1">
-                #{rankData.rank}
+              <Badge variant={getRankVariant(rankData.rank ?? 0)} className="text-base px-3 py-1">
+                #{rankData.rank ?? 0}
               </Badge>
               <span className="text-sm text-muted-foreground">
-                out of {rankData.total_users.toLocaleString()} users
+                out of {rankData.total_users?.toLocaleString() ?? '0'} users
               </span>
             </div>
           </div>
@@ -113,7 +113,7 @@ export function UserRankCard({ rankData, isLoading = false }: UserRankCardProps)
             <div className="flex justify-center mb-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
             </div>
-            <p className="text-2xl font-bold">{rankData.total_points.toLocaleString()}</p>
+            <p className="text-2xl font-bold">{rankData.total_points?.toLocaleString() ?? '0'}</p>
             <p className="text-xs text-muted-foreground mt-1">Points</p>
           </div>
 
@@ -122,7 +122,7 @@ export function UserRankCard({ rankData, isLoading = false }: UserRankCardProps)
             <div className="flex justify-center mb-2">
               <Target className="h-5 w-5 text-blue-500" />
             </div>
-            <p className="text-2xl font-bold">{rankData.quizzes_completed}</p>
+            <p className="text-2xl font-bold">{rankData.quizzes_completed ?? 0}</p>
             <p className="text-xs text-muted-foreground mt-1">Quizzes</p>
           </div>
 
@@ -131,7 +131,7 @@ export function UserRankCard({ rankData, isLoading = false }: UserRankCardProps)
             <div className="flex justify-center mb-2">
               <Award className="h-5 w-5 text-purple-500" />
             </div>
-            <p className="text-2xl font-bold">{rankData.achievements_unlocked}</p>
+            <p className="text-2xl font-bold">{rankData.achievements_unlocked ?? 0}</p>
             <p className="text-xs text-muted-foreground mt-1">Achievements</p>
           </div>
         </div>

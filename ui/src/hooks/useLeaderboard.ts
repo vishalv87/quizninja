@@ -60,7 +60,18 @@ export function useUserRank(): UseQueryResult<UserRankResponse, Error> {
     queryKey: [QUERY_KEYS.LEADERBOARD, "rank"],
     queryFn: async () => {
       const response = await getUserRank();
-      return response.data;
+      return response.data ?? {
+        rank: 0,
+        total_users: 0,
+        user: {
+          id: '',
+          full_name: 'User',
+          avatar_url: undefined
+        },
+        total_points: 0,
+        quizzes_completed: 0,
+        achievements_unlocked: 0
+      };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
@@ -78,7 +89,12 @@ export function useLeaderboardStats(): UseQueryResult<LeaderboardStats, Error> {
     queryKey: [QUERY_KEYS.LEADERBOARD, "stats"],
     queryFn: async () => {
       const response = await getLeaderboardStats();
-      return response.data;
+      return response.data ?? {
+        total_users: 0,
+        total_points_distributed: 0,
+        average_points: 0,
+        top_user: null
+      };
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     refetchOnWindowFocus: false,
