@@ -6,6 +6,11 @@ export interface UserPreferences {
   email_notifications: boolean;
   onboarding_completed: boolean;
   theme: "light" | "dark" | "system";
+  // Privacy settings
+  profile_visibility?: "public" | "friends_only" | "private";
+  show_achievements?: boolean;
+  show_stats?: boolean;
+  allow_friend_requests?: boolean;
   created_at: string;
   updated_at: string;
 }

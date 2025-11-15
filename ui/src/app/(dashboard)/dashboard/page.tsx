@@ -1,20 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, FileQuestion, Swords, Trophy, Users } from 'lucide-react'
+import { ArrowRight, FileQuestion, Swords, Trophy } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { useUserStats } from '@/hooks/useUserStats'
 import { authLogger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RecentActivity } from '@/components/dashboard/RecentActivity'
+import { ActiveSessions } from '@/components/dashboard/ActiveSessions'
+import { FeaturedQuizzesDashboard } from '@/components/dashboard/FeaturedQuizzesDashboard'
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()
+  const { data: statsData, isLoading: isLoadingStats } = useUserStats()
+
+  const stats = statsData?.data
 
   authLogger.info('DashboardPage rendering', {
     isLoading,
     hasUser: !!user,
     userEmail: user?.email,
+    hasStats: !!stats,
   })
 
   if (isLoading) {
@@ -33,34 +41,34 @@ export default function DashboardPage() {
   const quickStats = [
     {
       title: 'Total Quizzes',
-      value: '—',
-      description: 'Quizzes available',
+      value: isLoadingStats ? '...' : stats?.total_quizzes_completed?.toString() || '0',
+      description: 'Quizzes completed',
       icon: FileQuestion,
       href: '/quizzes',
       color: 'text-blue-600',
     },
     {
       title: 'Your Rank',
-      value: '—',
+      value: isLoadingStats ? '...' : stats?.rank ? `#${stats.rank}` : '—',
       description: 'On the leaderboard',
       icon: Trophy,
       href: '/leaderboard',
       color: 'text-yellow-600',
     },
     {
-      title: 'Active Challenges',
-      value: '—',
-      description: 'Pending challenges',
-      icon: Swords,
-      href: '/challenges',
-      color: 'text-red-600',
+      title: 'Total Points',
+      value: isLoadingStats ? '...' : stats?.total_points?.toLocaleString() || '0',
+      description: 'Points earned',
+      icon: Trophy,
+      href: '/profile',
+      color: 'text-purple-600',
     },
     {
-      title: 'Friends',
-      value: '—',
-      description: 'Connected users',
-      icon: Users,
-      href: '/friends',
+      title: 'Achievements',
+      value: isLoadingStats ? '...' : stats?.achievements_unlocked?.toString() || '0',
+      description: 'Unlocked achievements',
+      icon: Trophy,
+      href: '/achievements',
       color: 'text-green-600',
     },
   ]
@@ -161,23 +169,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity Section (Placeholder) */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Recent Activity</h2>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground text-center">
-              No recent activity yet. Start taking quizzes to see your progress here!
-            </p>
-            <Button className="mt-4" asChild>
-              <Link href="/quizzes">
-                Browse Quizzes
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Active Sessions */}
+      <ActiveSessions />
+
+      {/* Recent Activity */}
+      <RecentActivity />
+
+      {/* Featured Quizzes */}
+      <FeaturedQuizzesDashboard />
     </div>
   )
 }

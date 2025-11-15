@@ -2,12 +2,19 @@
 
 import { Loader2 } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
+import { useUserStats } from '@/hooks/useUserStats'
 import { ProfileCard } from '@/components/profile/ProfileCard'
+import { AttemptHistory } from '@/components/profile/AttemptHistory'
+import { AchievementBadges } from '@/components/profile/AchievementBadges'
+import { DetailedStatistics } from '@/components/profile/DetailedStatistics'
 import { ErrorDisplay } from '@/components/common/ErrorBoundary'
 import { Card, CardContent } from '@/components/ui/card'
 
 export default function ProfilePage() {
   const { data: profile, isLoading, error } = useProfile()
+  const { data: statsData, isLoading: isLoadingStats } = useUserStats()
+
+  const stats = statsData?.data
 
   if (isLoading) {
     return (
@@ -51,12 +58,16 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <ProfileCard profile={profile} />
+      <ProfileCard profile={profile} stats={stats} isLoadingStats={isLoadingStats} />
 
-      {/* Additional sections can be added here in the future */}
-      {/* - Recent Activity */}
-      {/* - Achievements */}
-      {/* - Statistics */}
+      {/* Detailed Statistics */}
+      <DetailedStatistics stats={stats} isLoading={isLoadingStats} />
+
+      {/* Achievements */}
+      <AchievementBadges />
+
+      {/* Attempt History */}
+      <AttemptHistory />
     </div>
   )
 }

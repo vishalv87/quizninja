@@ -1,5 +1,5 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { getQuiz } from "@/lib/api/quiz";
+import { getQuiz, getFeaturedQuizzes } from "@/lib/api/quiz";
 import type { Quiz } from "@/types/quiz";
 
 /**
@@ -13,6 +13,20 @@ export function useQuiz(id: string): UseQueryResult<Quiz, Error> {
     queryKey: ["quiz", id],
     queryFn: () => getQuiz(id),
     enabled: !!id, // Only fetch if ID is provided
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+}
+
+/**
+ * Hook to fetch featured quizzes
+ *
+ * @returns React Query result with featured quizzes data
+ */
+export function useFeaturedQuizzes(): UseQueryResult<Quiz[], Error> {
+  return useQuery({
+    queryKey: ["quizzes", "featured"],
+    queryFn: getFeaturedQuizzes,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });

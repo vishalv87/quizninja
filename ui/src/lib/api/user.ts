@@ -1,0 +1,155 @@
+import { apiClient } from './client'
+import type { UserStats } from '@/types/user'
+import type { QuizAttempt } from '@/types/quiz'
+import type { APIResponse, PaginatedResponse } from '@/types/api'
+import { API_ENDPOINTS } from './endpoints'
+import { apiLogger } from '@/lib/logger'
+
+/**
+ * User API Service
+ * Handles user-related operations like stats, attempts, and active sessions
+ */
+
+/**
+ * Active Session Response Type
+ */
+export interface ActiveSession {
+  id: string
+  quiz_id: string
+  quiz_title: string
+  category: string
+  difficulty: string
+  started_at: string
+  time_elapsed_seconds: number
+  questions_answered: number
+  total_questions: number
+  status: 'in_progress' | 'paused'
+}
+
+/**
+ * User Attempt Filters
+ */
+export interface UserAttemptFilters {
+  limit?: number
+  offset?: number
+  category?: string
+  difficulty?: string
+  status?: 'completed' | 'in_progress' | 'abandoned'
+  from_date?: string
+  to_date?: string
+}
+
+/**
+ * Get current user's statistics
+ * Returns comprehensive statistics including points, quizzes taken, achievements, etc.
+ */
+export async function getUserStats(): Promise<APIResponse<UserStats>> {
+  try {
+    apiLogger.debug('[USER API] Fetching user stats')
+    const response = await apiClient.get<APIResponse<UserStats>>(
+      API_ENDPOINTS.USERS.STATS
+    )
+    apiLogger.info('[USER API] User stats fetched successfully')
+    return response as any
+  } catch (error: any) {
+    apiLogger.error('[USER API] Failed to fetch user stats', {
+      message: error.message,
+      responseData: error.response?.data,
+    })
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch user stats')
+  }
+}
+
+/**
+ * Get user's quiz attempt history with optional filters
+ * Supports pagination and filtering by category, difficulty, status, and date range
+ */
+export async function getUserAttempts(
+  filters?: UserAttemptFilters
+): Promise<PaginatedResponse<QuizAttempt>> {
+  try {
+    apiLogger.debug('[USER API] Fetching user attempts', { filters })
+
+    const params = new URLSearchParams()
+    if (filters?.limit) params.append('limit', filters.limit.toString())
+    if (filters?.offset) params.append('offset', filters.offset.toString())
+    if (filters?.category) params.append('category', filters.category)
+    if (filters?.difficulty) params.append('difficulty', filters.difficulty)
+    if (filters?.status) params.append('status', filters.status)
+    if (filters?.from_date) params.append('from_date', filters.from_date)
+    if (filters?.to_date) params.append('to_date', filters.to_date)
+
+    const url = `${API_ENDPOINTS.USERS.ATTEMPTS}${params.toString() ? '?' + params.toString() : ''}`
+
+    const response = await apiClient.get<APIResponse<PaginatedResponse<QuizAttempt>>>(url)
+
+    // Extract the paginated data from the API response wrapper
+    const paginatedData = (response as unknown as APIResponse<PaginatedResponse<QuizAttempt>>).data
+
+    apiLogger.info('[USER API] User attempts fetched successfully', {
+      count: paginatedData?.data?.length || 0,
+    })
+
+    return paginatedData
+  } catch (error: any) {
+    apiLogger.error('[USER API] Failed to fetch user attempts', {
+      message: error.message,
+      responseData: error.response?.data,
+    })
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch user attempts')
+  }
+}
+
+/**
+ * Get user's active quiz sessions
+ * Returns all in-progress or paused quiz attempts
+ */
+export async function getActiveSessions(): Promise<APIResponse<ActiveSession[]>> {
+  try {
+    apiLogger.debug('[USER API] Fetching active sessions')
+    const response = await apiClient.get<APIResponse<ActiveSession[]>>(
+      API_ENDPOINTS.USERS.ACTIVE_SESSIONS
+    ) as unknown as APIResponse<ActiveSession[]>
+
+    apiLogger.info('[USER API] Active sessions fetched successfully', {
+      count: response?.data?.length || 0,
+    })
+    return response
+  } catch (error: any) {
+    apiLogger.error('[USER API] Failed to fetch active sessions', {
+      message: error.message,
+      responseData: error.response?.data,
+    })
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch active sessions')
+  }
+}
+
+/**
+ * Get details of a specific attempt
+ */
+export async function getAttemptDetails(attemptId: string): Promise<APIResponse<QuizAttempt>> {
+  try {
+    apiLogger.debug('[USER API] Fetching attempt details', { attemptId })
+    const response = await apiClient.get<APIResponse<QuizAttempt>>(
+      API_ENDPOINTS.USERS.ATTEMPT_DETAILS(attemptId)
+    )
+    apiLogger.info('[USER API] Attempt details fetched successfully')
+    return response as any
+  } catch (error: any) {
+    apiLogger.error('[USER API] Failed to fetch attempt details', {
+      message: error.message,
+      responseData: error.response?.data,
+    })
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch attempt details')
+  }
+}
+
+/**
+ * Export all user API functions
+ */
+export const userApi = {
+  getUserStats,
+  getUserAttempts,
+  getActiveSessions,
+  getAttemptDetails,
+}

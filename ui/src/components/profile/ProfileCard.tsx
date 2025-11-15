@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { format } from 'date-fns'
 
 import type { Profile } from '@/types/auth'
+import type { UserStats } from '@/types/user'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,9 +13,11 @@ import { Badge } from '@/components/ui/badge'
 
 interface ProfileCardProps {
   profile: Profile
+  stats?: UserStats
+  isLoadingStats?: boolean
 }
 
-export function ProfileCard({ profile }: ProfileCardProps) {
+export function ProfileCard({ profile, stats, isLoadingStats }: ProfileCardProps) {
   const getInitials = (name?: string, email?: string) => {
     if (name) {
       return name
@@ -75,19 +78,27 @@ export function ProfileCard({ profile }: ProfileCardProps) {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 pt-4 border-t">
           <div className="text-center">
-            <p className="text-2xl font-bold">—</p>
+            <p className="text-2xl font-bold">
+              {isLoadingStats ? '...' : stats?.total_quizzes_completed?.toLocaleString() || '0'}
+            </p>
             <p className="text-xs text-muted-foreground">Quizzes Taken</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold">—</p>
+            <p className="text-2xl font-bold">
+              {isLoadingStats ? '...' : stats?.total_points?.toLocaleString() || '0'}
+            </p>
             <p className="text-xs text-muted-foreground">Total Points</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold">—</p>
+            <p className="text-2xl font-bold">
+              {isLoadingStats ? '...' : stats?.achievements_unlocked?.toLocaleString() || '0'}
+            </p>
             <p className="text-xs text-muted-foreground">Achievements</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold">—</p>
+            <p className="text-2xl font-bold">
+              {isLoadingStats ? '...' : stats?.rank ? `#${stats.rank}` : '—'}
+            </p>
             <p className="text-xs text-muted-foreground">Rank</p>
           </div>
         </div>
