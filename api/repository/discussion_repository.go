@@ -67,8 +67,8 @@ func (r *DiscussionRepository) CreateDiscussion(discussion *models.Discussion) e
 	log.Printf("CreateDiscussion called: quizID=%s, userID=%s", discussion.QuizID, discussion.UserID)
 
 	query := `
-		INSERT INTO discussions (quiz_id, question_id, user_id, content, type)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO discussions (quiz_id, question_id, user_id, title, content, type)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -76,6 +76,7 @@ func (r *DiscussionRepository) CreateDiscussion(discussion *models.Discussion) e
 		discussion.QuizID,
 		discussion.QuestionID,
 		discussion.UserID,
+		discussion.Title,
 		discussion.Content,
 		discussion.Type,
 	).Scan(
@@ -96,7 +97,7 @@ func (r *DiscussionRepository) GetDiscussionByID(id uuid.UUID) (*models.Discussi
 	log.Printf("GetDiscussionByID called: id=%s", id)
 
 	query := `
-		SELECT id, quiz_id, question_id, user_id, content, likes_count, replies_count, type, created_at, updated_at
+		SELECT id, quiz_id, question_id, user_id, title, content, likes_count, replies_count, type, created_at, updated_at
 		FROM discussions
 		WHERE id = $1
 	`
@@ -107,6 +108,7 @@ func (r *DiscussionRepository) GetDiscussionByID(id uuid.UUID) (*models.Discussi
 		&discussion.QuizID,
 		&discussion.QuestionID,
 		&discussion.UserID,
+		&discussion.Title,
 		&discussion.Content,
 		&discussion.LikesCount,
 		&discussion.RepliesCount,
@@ -131,7 +133,7 @@ func (r *DiscussionRepository) GetDiscussionWithDetails(id uuid.UUID, userID *uu
 
 	query := `
 		SELECT
-			d.id, d.quiz_id, d.question_id, d.user_id, d.content, d.likes_count, d.replies_count,
+			d.id, d.quiz_id, d.question_id, d.user_id, d.title, d.content, d.likes_count, d.replies_count,
 			d.type, d.created_at, d.updated_at,
 			u.name as user_name, u.avatar_url as user_avatar,
 			q.title as quiz_title, q.category_id as quiz_category,
@@ -152,6 +154,7 @@ func (r *DiscussionRepository) GetDiscussionWithDetails(id uuid.UUID, userID *uu
 		&discussion.QuizID,
 		&discussion.QuestionID,
 		&discussion.UserID,
+		&discussion.Title,
 		&discussion.Content,
 		&discussion.LikesCount,
 		&discussion.RepliesCount,
@@ -197,12 +200,13 @@ func (r *DiscussionRepository) UpdateDiscussion(discussion *models.Discussion) e
 
 	query := `
 		UPDATE discussions
-		SET content = $1, type = $2, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $3 AND user_id = $4
+		SET title = $1, content = $2, type = $3, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $4 AND user_id = $5
 		RETURNING updated_at
 	`
 
 	err := r.db.QueryRow(query,
+		discussion.Title,
 		discussion.Content,
 		discussion.Type,
 		discussion.ID,
@@ -305,7 +309,7 @@ func (r *DiscussionRepository) GetDiscussions(filters *models.DiscussionFilters,
 	// Build main query
 	mainQuery := fmt.Sprintf(`
 		SELECT
-			d.id, d.quiz_id, d.question_id, d.user_id, d.content, d.likes_count, d.replies_count,
+			d.id, d.quiz_id, d.question_id, d.user_id, d.title, d.content, d.likes_count, d.replies_count,
 			d.type, d.created_at, d.updated_at,
 			u.name as user_name, u.avatar_url as user_avatar
 		FROM discussions d
@@ -335,6 +339,7 @@ func (r *DiscussionRepository) GetDiscussions(filters *models.DiscussionFilters,
 			&discussion.QuizID,
 			&discussion.QuestionID,
 			&discussion.UserID,
+			&discussion.Title,
 			&discussion.Content,
 			&discussion.LikesCount,
 			&discussion.RepliesCount,

@@ -210,6 +210,7 @@ func (h *DiscussionHandler) CreateDiscussion(c *gin.Context) {
 		QuizID:     req.QuizID,
 		QuestionID: req.QuestionID,
 		UserID:     userID.(uuid.UUID),
+		Title:      req.Title,
 		Content:    req.Content,
 		Type:       req.Type,
 	}
@@ -266,6 +267,9 @@ func (h *DiscussionHandler) UpdateDiscussion(c *gin.Context) {
 	}
 
 	// Update fields if provided
+	if req.Title != nil {
+		discussion.Title = *req.Title
+	}
 	if req.Content != nil {
 		discussion.Content = *req.Content
 	}

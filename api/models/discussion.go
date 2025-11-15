@@ -12,6 +12,7 @@ type Discussion struct {
 	QuizID        uuid.UUID         `json:"quiz_id" db:"quiz_id"`
 	QuestionID    *uuid.UUID        `json:"question_id,omitempty" db:"question_id"`
 	UserID        uuid.UUID         `json:"user_id" db:"user_id"`
+	Title         string            `json:"title" db:"title"`
 	Content       string            `json:"content" db:"content"`
 	LikesCount    int               `json:"likes_count" db:"likes_count"`
 	RepliesCount  int               `json:"replies_count" db:"replies_count"`
@@ -60,6 +61,7 @@ type DiscussionReplyLike struct {
 type CreateDiscussionRequest struct {
 	QuizID     uuid.UUID  `json:"quiz_id" binding:"required"`
 	QuestionID *uuid.UUID `json:"question_id,omitempty"`
+	Title      string     `json:"title" binding:"required,min=3,max=200"`
 	Content    string     `json:"content" binding:"required,min=1,max=2000"`
 	Type       string     `json:"type" binding:"omitempty,oneof=general question explanation help"`
 }
@@ -71,6 +73,7 @@ type CreateDiscussionReplyRequest struct {
 
 // UpdateDiscussionRequest represents the request to update a discussion
 type UpdateDiscussionRequest struct {
+	Title   *string `json:"title,omitempty" binding:"omitempty,min=3,max=200"`
 	Content *string `json:"content,omitempty" binding:"omitempty,min=1,max=2000"`
 	Type    *string `json:"type,omitempty" binding:"omitempty,oneof=general question explanation help"`
 }
