@@ -1,29 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { Trophy, ArrowRight, Lock } from "lucide-react";
+import { Trophy, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AchievementBadge } from "@/components/achievement/AchievementBadge";
+import { useUserAchievements } from "@/hooks/useUserAchievements";
 
 /**
  * AchievementBadges Component
- * Displays user achievements on the profile page
- *
- * Note: This is a Phase 4 placeholder component.
- * Full implementation will be completed in Phase 7: Achievements & Gamification
- * which includes:
- * - Achievement hooks (useAchievements, useUserAchievements)
- * - Achievement API integration
- * - Achievement progress tracking
- * - Achievement unlock animations
+ * Displays user's recent unlocked achievements on the profile page
+ * Shows up to 6 most recent achievements with a link to view all
  */
 export function AchievementBadges() {
-  // Placeholder: In Phase 7, this will use useUserAchievements() hook
-  const isLoading = false;
-  const achievements: any[] = [];
+  const { data: achievements = [], isLoading, error } = useUserAchievements();
 
-  // Show placeholder UI since full achievement system is Phase 7
+  // Sort by unlock date (most recent first) and take first 6
+  const recentAchievements = [...achievements]
+    .sort((a, b) => new Date(b.unlocked_at).getTime() - new Date(a.unlocked_at).getTime())
+    .slice(0, 6);
+
+  // Calculate total points from all unlocked achievements
+  const totalPoints = achievements.reduce((sum, ach) => sum + (ach.achievement.points || 0), 0);
+
   return (
     <Card>
       <CardHeader>
@@ -33,7 +33,9 @@ export function AchievementBadges() {
               <Trophy className="h-5 w-5 text-yellow-500" />
               Achievements
             </CardTitle>
-            <CardDescription>Your unlocked achievements and progress</CardDescription>
+            <CardDescription>
+              {achievements.length} unlocked · {totalPoints} points earned
+            </CardDescription>
           </div>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/achievements">
@@ -44,59 +46,55 @@ export function AchievementBadges() {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Placeholder content - will be replaced in Phase 7 */}
-        <div className="flex flex-col items-center justify-center py-12 px-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400">
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+                <Skeleton className="h-6 w-16" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">
+              Failed to load achievements. Please try again later.
+            </p>
+          </div>
+        ) : achievements.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 mx-auto mb-4">
               <Trophy className="h-6 w-6" />
             </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 text-gray-400 dark:bg-gray-800">
-              <Lock className="h-6 w-6" />
-            </div>
-            <div className="flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 text-gray-400 dark:bg-gray-800">
-              <Lock className="h-6 w-6" />
-            </div>
+            <p className="text-sm text-muted-foreground mb-1">No achievements yet</p>
+            <p className="text-xs text-muted-foreground">
+              Complete quizzes and challenges to unlock achievements!
+            </p>
           </div>
-          <p className="text-muted-foreground text-center mb-2">
-            Achievement system coming soon!
-          </p>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
-            Full achievement tracking, progress monitoring, and unlock notifications will be
-            available in Phase 7 of the migration.
-          </p>
-          <div className="mt-6 flex gap-2">
-            <Badge variant="outline" className="text-xs">
-              Phase 7: Achievements & Gamification
-            </Badge>
-          </div>
-        </div>
-
-        {/*
-        Future Phase 7 implementation will include:
-        - Grid of unlocked achievement badges
-        - Progress bars for locked achievements
-        - Filter by category
-        - Achievement statistics
-        - Recent unlocks section
-
-        Example code structure:
-
-        {isLoading ? (
-          <LoadingSkeleton />
-        ) : achievements.length > 0 ? (
-          <div className="grid gap-3 md:grid-cols-2">
-            {achievements.slice(0, 6).map((achievement) => (
+        ) : (
+          <div className="space-y-3">
+            {recentAchievements.map((achievement) => (
               <AchievementBadge
                 key={achievement.id}
                 achievement={achievement}
                 variant="compact"
               />
             ))}
+            {achievements.length > 6 && (
+              <div className="pt-2">
+                <Button variant="outline" size="sm" asChild className="w-full">
+                  <Link href="/achievements">
+                    View {achievements.length - 6} more achievement{achievements.length - 6 !== 1 ? 's' : ''}
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
-        ) : (
-          <EmptyState />
         )}
-        */}
       </CardContent>
     </Card>
   );
