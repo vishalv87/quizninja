@@ -32,27 +32,36 @@ export interface UserStats {
 
 export interface Friend {
   id: string;
-  user_id: string;
-  friend_user_id: string;
-  friend: {
-    id: string;
-    full_name: string;
-    avatar_url?: string;
-    email?: string;
-  };
-  created_at: string;
+  name: string;
+  email: string;
+  avatar_url?: string;
+  level: number;
+  total_points: number;
+  current_streak: number;
+  best_streak: number;
+  total_quizzes_completed: number;
+  average_score: number;
+  is_online: boolean;
+  last_active: string;
+  friends_since: string;
 }
 
 export interface FriendRequest {
   id: string;
-  sender_id: string;
-  receiver_id: string;
-  status: "pending" | "accepted" | "declined";
-  sender: {
+  requester_id: string;
+  requested_id: string;
+  status: "pending" | "accepted" | "rejected";
+  message?: string;
+  requester: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+  };
+  requested: {
     id: string;
     full_name: string;
     avatar_url?: string;
   };
   created_at: string;
-  updated_at: string;
+  responded_at?: string;
 }

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { usePreferences, useUpdatePreferences } from "@/hooks/usePreferences";
-import { useCategories } from "@/hooks/useQuiz";
+import { useCategories } from "@/hooks/useCategories";
 import { preferencesSchema, type PreferencesFormData } from "@/schemas/preferences";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -190,7 +190,7 @@ export function PreferencesForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="theme">Theme</Label>
-            <Select value={theme} onValueChange={setTheme}>
+            <Select value={theme} onValueChange={(value) => setTheme(value as typeof theme)}>
               <SelectTrigger id="theme">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
