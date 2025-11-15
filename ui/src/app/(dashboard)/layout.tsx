@@ -3,6 +3,7 @@ import { AuthGuard } from '@/components/auth/AuthGuard'
 import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
+import { DashboardNotificationListener } from '@/components/notification/DashboardNotificationListener'
 
 export const metadata = {
   title: 'Dashboard | QuizNinja',
@@ -14,6 +15,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <AuthGuard requireAuth={true}>
+      {/* Notification Toast Listener - Shows toasts when new notifications arrive */}
+      <DashboardNotificationListener />
+
       <div className="flex min-h-screen flex-col">
         {/* Header */}
         <Header />
