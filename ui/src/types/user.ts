@@ -65,3 +65,22 @@ export interface FriendRequest {
   created_at: string;
   responded_at?: string;
 }
+
+export interface UserProfile {
+  id: string;
+  user_id: string;
+  name?: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  bio?: string;
+  created_at: string;
+  updated_at: string;
+  // Stats (privacy-aware, may be null if hidden)
+  stats?: UserStats | null;
+  // Privacy settings
+  preferences?: Pick<UserPreferences, 'profile_visibility' | 'show_achievements' | 'show_stats'>;
+  // Friendship status
+  is_friend?: boolean;
+  friend_request_status?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
+}

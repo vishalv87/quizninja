@@ -23,6 +23,7 @@ export const API_ENDPOINTS = {
 
   // Users
   USERS: {
+    PROFILE: (userId: string) => `/users/${userId}`,
     PREFERENCES: {
       GET: "/users/preferences",
       UPDATE: "/users/preferences",
@@ -34,7 +35,9 @@ export const API_ENDPOINTS = {
     QUIZZES: "/users/quizzes",
     QUIZ_ATTEMPT: (quizId: string) => `/users/quizzes/${quizId}/attempt`,
     STATS: "/users/stats",
+    USER_STATS: (userId: string) => `/users/${userId}/stats`,
     ATTEMPTS: "/users/attempts",
+    USER_ATTEMPTS: (userId: string) => `/users/${userId}/attempts`,
     ATTEMPT_DETAILS: (attemptId: string) => `/users/attempts/${attemptId}`,
     ACTIVE_SESSIONS: "/users/active-sessions",
     ACHIEVEMENTS: "/users/achievements",

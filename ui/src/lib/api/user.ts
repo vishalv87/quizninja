@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { UserStats } from '@/types/user'
+import type { UserStats, UserProfile } from '@/types/user'
 import type { QuizAttempt } from '@/types/quiz'
 import type { APIResponse, PaginatedResponse } from '@/types/api'
 import { API_ENDPOINTS } from './endpoints'
@@ -145,6 +145,48 @@ export async function getAttemptDetails(attemptId: string): Promise<APIResponse<
 }
 
 /**
+ * Get another user's profile by user ID
+ * Returns profile information respecting privacy settings
+ */
+export async function getUserProfile(userId: string): Promise<APIResponse<UserProfile>> {
+  try {
+    apiLogger.debug('[USER API] Fetching user profile', { userId })
+    const response = await apiClient.get<APIResponse<UserProfile>>(
+      API_ENDPOINTS.USERS.PROFILE(userId)
+    )
+    apiLogger.info('[USER API] User profile fetched successfully')
+    return response as any
+  } catch (error: any) {
+    apiLogger.error('[USER API] Failed to fetch user profile', {
+      message: error.message,
+      responseData: error.response?.data,
+    })
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch user profile')
+  }
+}
+
+/**
+ * Get another user's statistics by user ID
+ * Returns stats only if user's privacy settings allow it
+ */
+export async function getUserStatsById(userId: string): Promise<APIResponse<UserStats>> {
+  try {
+    apiLogger.debug('[USER API] Fetching user stats by ID', { userId })
+    const response = await apiClient.get<APIResponse<UserStats>>(
+      API_ENDPOINTS.USERS.USER_STATS(userId)
+    )
+    apiLogger.info('[USER API] User stats by ID fetched successfully')
+    return response as any
+  } catch (error: any) {
+    apiLogger.error('[USER API] Failed to fetch user stats by ID', {
+      message: error.message,
+      responseData: error.response?.data,
+    })
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch user stats')
+  }
+}
+
+/**
  * Export all user API functions
  */
 export const userApi = {
@@ -152,4 +194,6 @@ export const userApi = {
   getUserAttempts,
   getActiveSessions,
   getAttemptDetails,
+  getUserProfile,
+  getUserStatsById,
 }
