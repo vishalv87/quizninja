@@ -4,14 +4,20 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Quiz } from "@/types/quiz";
-import { BookOpen, Clock, Star, Trophy } from "lucide-react";
+import { BookOpen, Clock, Star, Trophy, Heart } from "lucide-react";
 import Link from "next/link";
+import { useIsFavorite, useToggleFavorite } from "@/hooks/useFavorites";
+import { cn } from "@/lib/utils";
 
 interface QuizCardProps {
   quiz: Quiz;
 }
 
 export function QuizCard({ quiz }: QuizCardProps) {
+  // Check if quiz is favorited
+  const { data: isFavorite, isLoading: isFavoriteLoading } = useIsFavorite(quiz.id);
+  const { toggle } = useToggleFavorite();
+
   // Determine difficulty color
   const difficultyColor = {
     easy: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
@@ -20,6 +26,13 @@ export function QuizCard({ quiz }: QuizCardProps) {
     hard: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   }[quiz.difficulty];
 
+  // Handle favorite toggle
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggle(quiz.id, isFavorite || false);
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
       <CardHeader className="space-y-2">
@@ -27,9 +40,28 @@ export function QuizCard({ quiz }: QuizCardProps) {
           <h3 className="text-xl font-bold line-clamp-2 flex-1">
             {quiz.title}
           </h3>
-          {quiz.is_featured && (
-            <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
-          )}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {quiz.is_featured && (
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={handleFavoriteClick}
+              disabled={isFavoriteLoading}
+              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  isFavorite
+                    ? "text-red-600 fill-red-600 dark:text-red-400 dark:fill-red-400"
+                    : "text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
+                )}
+              />
+            </Button>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">
           {quiz.description}

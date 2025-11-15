@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QuizList } from "@/components/quiz/QuizList";
 import { QuizFilters, QuizFilterValues } from "@/components/quiz/QuizFilters";
 import { QuizSearch } from "@/components/quiz/QuizSearch";
 import { useQuizzes } from "@/hooks/useQuizzes";
 import { useFeaturedQuizzes } from "@/hooks/useFeaturedQuizzes";
+import { useFavorites } from "@/hooks/useFavorites";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Quiz } from "@/types/quiz";
 import {
   Pagination,
   PaginationContent,
@@ -28,8 +30,10 @@ export default function QuizzesPage() {
     category: "",
     difficulty: "",
     isFeatured: false,
+    showFavoritesOnly: false,
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
 
   // Debounce search query to avoid excessive API calls
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -69,6 +73,21 @@ export default function QuizzesPage() {
     error: featuredError,
   } = useFeaturedQuizzes();
 
+  // Fetch favorites for filtering
+  const { data: favoriteIds } = useFavorites();
+
+  // Filter quizzes by favorites when showFavoritesOnly is true
+  useEffect(() => {
+    if (filters.showFavoritesOnly && favoriteIds && allQuizzes) {
+      const filtered = allQuizzes.filter((quiz) =>
+        favoriteIds.includes(quiz.id)
+      );
+      setFilteredQuizzes(filtered);
+    } else {
+      setFilteredQuizzes(allQuizzes || []);
+    }
+  }, [filters.showFavoritesOnly, favoriteIds, allQuizzes]);
+
   return (
     <div className="container py-8 space-y-6">
       {/* Page Header */}
@@ -101,13 +120,13 @@ export default function QuizzesPage() {
         {/* All Quizzes Tab */}
         <TabsContent value="all" className="mt-6 space-y-6">
           <QuizList
-            quizzes={allQuizzes || []}
+            quizzes={filteredQuizzes}
             isLoading={allQuizzesLoading}
             error={allQuizzesError}
           />
 
           {/* Pagination for All Quizzes */}
-          {allQuizzes && allQuizzes.length > 0 && (
+          {filteredQuizzes && filteredQuizzes.length > 0 && (
             <div className="flex justify-center">
               <Pagination>
                 <PaginationContent>
@@ -140,7 +159,7 @@ export default function QuizzesPage() {
                     <PaginationNext
                       onClick={() => setCurrentPage((p) => p + 1)}
                       className={
-                        allQuizzes.length < ITEMS_PER_PAGE
+                        filteredQuizzes.length < ITEMS_PER_PAGE
                           ? "pointer-events-none opacity-50"
                           : "cursor-pointer"
                       }

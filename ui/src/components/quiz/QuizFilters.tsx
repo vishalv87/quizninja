@@ -17,6 +17,7 @@ export interface QuizFilterValues {
   category: string;
   difficulty: string;
   isFeatured: boolean;
+  showFavoritesOnly?: boolean;
 }
 
 interface QuizFiltersProps {
@@ -48,9 +49,16 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
     });
   };
 
+  const handleFavoritesChange = (checked: boolean) => {
+    onFilterChange({
+      ...filters,
+      showFavoritesOnly: checked,
+    });
+  };
+
   return (
     <Card className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Category Filter */}
         <div className="space-y-2">
           <Label htmlFor="category-filter">Category</Label>
@@ -106,6 +114,21 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
             />
             <Label htmlFor="featured-filter" className="ml-3 cursor-pointer">
               {filters.isFeatured ? "Yes" : "No"}
+            </Label>
+          </div>
+        </div>
+
+        {/* Favorites Filter */}
+        <div className="space-y-2">
+          <Label htmlFor="favorites-filter">Favorites Only</Label>
+          <div className="flex items-center h-10 px-3 border rounded-md">
+            <Switch
+              id="favorites-filter"
+              checked={filters.showFavoritesOnly || false}
+              onCheckedChange={handleFavoritesChange}
+            />
+            <Label htmlFor="favorites-filter" className="ml-3 cursor-pointer">
+              {filters.showFavoritesOnly ? "Yes" : "No"}
             </Label>
           </div>
         </div>

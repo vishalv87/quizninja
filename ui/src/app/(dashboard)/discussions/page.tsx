@@ -15,25 +15,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { DiscussionList } from "@/components/discussion/DiscussionList";
 import { CreateDiscussionDialog } from "@/components/discussion/CreateDiscussionDialog";
 import { useDiscussions, useDiscussionStats } from "@/hooks/useDiscussions";
 import { useQuizzes } from "@/hooks/useQuizzes";
-import { MessageSquare, MessagesSquare, Users, TrendingUp } from "lucide-react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { MessageSquare, MessagesSquare, Users, TrendingUp, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DiscussionFilters } from "@/lib/api/discussions";
 
 export default function DiscussionsPage() {
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<DiscussionFilters>({
     sort: "recent",
   });
+
+  // Debounce search query
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Combine filters with debounced search
+  const apiFilters = {
+    ...filters,
+    search: debouncedSearch || undefined,
+  };
 
   const {
     data: discussions = [],
     isLoading,
     error,
-  } = useDiscussions(filters);
+  } = useDiscussions(apiFilters);
 
   const { data: stats } = useDiscussionStats();
   const { data: quizzes = [] } = useQuizzes();
@@ -113,10 +125,23 @@ export default function DiscussionsPage() {
         <CardHeader>
           <CardTitle>Filters</CardTitle>
           <CardDescription>
-            Filter discussions by quiz or sort by popularity
+            Search and filter discussions by quiz or sort by popularity
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Search Input */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search discussions by title or content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Quiz Filter */}
             <div className="flex-1">
@@ -160,8 +185,13 @@ export default function DiscussionsPage() {
           </div>
 
           {/* Active Filters Display */}
-          {(filters.quiz_id || filters.sort) && (
-            <div className="flex gap-2 mt-4">
+          {(filters.quiz_id || filters.sort || searchQuery) && (
+            <div className="flex gap-2 mt-4 flex-wrap">
+              {searchQuery && (
+                <Badge variant="secondary">
+                  Search: &quot;{searchQuery}&quot;
+                </Badge>
+              )}
               {filters.sort && (
                 <Badge variant="secondary">
                   Sort: {filters.sort === "recent" ? "Recent" : "Popular"}
@@ -177,9 +207,12 @@ export default function DiscussionsPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setFilters({ sort: "recent" })}
+                onClick={() => {
+                  setFilters({ sort: "recent" });
+                  setSearchQuery("");
+                }}
               >
-                Clear Filters
+                Clear All
               </Button>
             </div>
           )}

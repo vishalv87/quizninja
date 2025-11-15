@@ -13,6 +13,8 @@ import {
   Settings,
   Swords,
   BarChart3,
+  FolderOpen,
+  Heart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -28,6 +30,16 @@ const navigation = [
     name: 'Quizzes',
     href: '/quizzes',
     icon: FileQuestion,
+  },
+  {
+    name: 'Categories',
+    href: '/categories',
+    icon: FolderOpen,
+  },
+  {
+    name: 'Favorites',
+    href: '/favorites',
+    icon: Heart,
   },
   {
     name: 'Challenges',

@@ -16,6 +16,7 @@ import { apiLogger } from "@/lib/logger";
 export interface DiscussionFilters {
   quiz_id?: string;
   sort?: "recent" | "popular";
+  search?: string;
   limit?: number;
   offset?: number;
 }

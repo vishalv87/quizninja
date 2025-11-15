@@ -19,7 +19,11 @@ const protectedRoutes = [
   '/discussions',
   '/notifications',
   '/settings',
+  '/favorites',
 ]
+
+// Onboarding routes (require authentication)
+const onboardingRoutes = ['/welcome', '/preferences']
 
 // Routes that should redirect to dashboard if user is already authenticated
 const authRoutes = ['/login', '/register']
@@ -53,17 +57,23 @@ export async function middleware(req: NextRequest) {
       path.startsWith(route)
     )
 
+    // Check if the current path is an onboarding route
+    const isOnboardingRoute = onboardingRoutes.some((route) =>
+      path.startsWith(route)
+    )
+
     // Check if the current path is an auth route
     const isAuthRoute = authRoutes.some((route) => path.startsWith(route))
 
     console.log(`[MIDDLEWARE] Route type:`, {
       isProtectedRoute,
+      isOnboardingRoute,
       isAuthRoute,
     })
 
-    // If accessing a protected route without authentication
-    if (isProtectedRoute && !isAuthenticated) {
-      console.log(`[MIDDLEWARE] Redirecting to login (protected route, not authenticated)`)
+    // If accessing a protected or onboarding route without authentication
+    if ((isProtectedRoute || isOnboardingRoute) && !isAuthenticated) {
+      console.log(`[MIDDLEWARE] Redirecting to login (protected/onboarding route, not authenticated)`)
       const loginUrl = new URL('/login', req.url)
       // Store the intended destination to redirect after login
       if (path !== '/login') {
@@ -74,14 +84,16 @@ export async function middleware(req: NextRequest) {
 
     // If accessing auth routes while already authenticated
     if (isAuthRoute && isAuthenticated) {
-      console.log(`[MIDDLEWARE] Redirecting to dashboard (auth route, already authenticated)`)
+      console.log(`[MIDDLEWARE] Redirecting to welcome (auth route, already authenticated)`)
       // Check if there's a return URL
       const returnUrl = req.nextUrl.searchParams.get('returnUrl')
       if (returnUrl) {
         return NextResponse.redirect(new URL(returnUrl, req.url))
       }
-      // Otherwise redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', req.url))
+      // Redirect to welcome page (onboarding will be handled there)
+      // TODO: Check onboarding status and redirect accordingly
+      // For now, redirect to welcome - the page will handle skipping if already completed
+      return NextResponse.redirect(new URL('/welcome', req.url))
     }
 
     console.log(`[MIDDLEWARE] Allowing request to proceed`)

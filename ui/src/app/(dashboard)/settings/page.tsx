@@ -1,6 +1,8 @@
 'use client'
 
 import { Settings as SettingsIcon } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AccountSettingsForm } from '@/components/settings/AccountSettingsForm'
 import { PreferencesForm } from '@/components/settings/PreferencesForm'
 
 export default function SettingsPage() {
@@ -12,11 +14,24 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="text-muted-foreground mt-2">
-          Manage your preferences and customize your quiz experience
+          Manage your account, preferences, and customize your quiz experience
         </p>
       </div>
 
-      <PreferencesForm />
+      <Tabs defaultValue="account" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="account" className="mt-6">
+          <AccountSettingsForm />
+        </TabsContent>
+
+        <TabsContent value="preferences" className="mt-6">
+          <PreferencesForm />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
