@@ -14,30 +14,45 @@ function getOptionalEnvVar(key: string, defaultValue: string = ""): string {
   return process.env[key] || defaultValue;
 }
 
+// Use getters to defer environment variable access until actually used
 export const env = {
   // Supabase
   supabase: {
-    url: getEnvVar("NEXT_PUBLIC_SUPABASE_URL"),
-    anonKey: getEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    get url() {
+      return getEnvVar("NEXT_PUBLIC_SUPABASE_URL");
+    },
+    get anonKey() {
+      return getEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    },
   },
 
   // API
   api: {
-    baseUrl: getEnvVar("NEXT_PUBLIC_API_BASE_URL"),
+    get baseUrl() {
+      return getEnvVar("NEXT_PUBLIC_API_BASE_URL");
+    },
   },
 
   // App
   app: {
-    url: getEnvVar("NEXT_PUBLIC_APP_URL"),
-    name: getOptionalEnvVar("NEXT_PUBLIC_APP_NAME", "QuizNinja"),
+    get url() {
+      return getEnvVar("NEXT_PUBLIC_APP_URL");
+    },
+    get name() {
+      return getOptionalEnvVar("NEXT_PUBLIC_APP_NAME", "QuizNinja");
+    },
   },
 
   // Optional
   sentry: {
-    dsn: getOptionalEnvVar("NEXT_PUBLIC_SENTRY_DSN"),
+    get dsn() {
+      return getOptionalEnvVar("NEXT_PUBLIC_SENTRY_DSN");
+    },
   },
   analytics: {
-    gaTrackingId: getOptionalEnvVar("NEXT_PUBLIC_GA_TRACKING_ID"),
+    get gaTrackingId() {
+      return getOptionalEnvVar("NEXT_PUBLIC_GA_TRACKING_ID");
+    },
   },
 } as const;
 

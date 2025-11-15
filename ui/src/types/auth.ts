@@ -1,6 +1,8 @@
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  avatar_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -8,7 +10,9 @@ export interface User {
 export interface Profile {
   id: string;
   user_id: string;
-  full_name: string;
+  name?: string;
+  email: string;
+  full_name?: string;
   avatar_url?: string;
   bio?: string;
   created_at: string;
@@ -32,6 +36,12 @@ export interface RegisterCredentials {
   email: string;
   password: string;
   full_name: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
 }
 
 export interface AuthResponse {

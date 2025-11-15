@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { storeLogger } from "@/lib/logger";
 import type { User, Session } from "@/types/auth";
 
 interface AuthState {
@@ -11,6 +12,7 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setSession: (session: Session | null) => void;
   setLoading: (loading: boolean) => void;
+  clearAuth: () => void;
   logout: () => void;
 }
 
@@ -22,34 +24,72 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true,
       isAuthenticated: false,
 
-      setUser: (user) =>
+      setUser: (user) => {
+        storeLogger.debug('Setting user', { userId: user?.id, email: user?.email });
         set({
           user,
           isAuthenticated: !!user,
-        }),
+        });
+      },
 
-      setSession: (session) =>
+      setSession: (session) => {
+        storeLogger.info('Setting session', {
+          hasSession: !!session,
+          userId: session?.user?.id,
+        });
         set({
           session,
           user: session?.user || null,
           isAuthenticated: !!session,
-        }),
+        });
+      },
 
-      setLoading: (isLoading) => set({ isLoading }),
+      setLoading: (isLoading) => {
+        storeLogger.debug('Setting loading state', { isLoading });
+        set({ isLoading });
+      },
 
-      logout: () =>
+      clearAuth: () => {
+        storeLogger.warn('Clearing auth state (invalid/expired session)');
         set({
           user: null,
           session: null,
           isAuthenticated: false,
-        }),
+          isLoading: false,
+        });
+      },
+
+      logout: () => {
+        storeLogger.info('Logging out user');
+        set({
+          user: null,
+          session: null,
+          isAuthenticated: false,
+        });
+      },
     }),
     {
       name: "auth-storage",
+      // Only persist session data, not loading or auth state
+      // These should be computed fresh on each page load
       partialize: (state) => ({
-        user: state.user,
         session: state.session,
       }),
+      onRehydrateStorage: () => {
+        storeLogger.info('Rehydrating auth state from localStorage');
+        return (state, error) => {
+          if (error) {
+            storeLogger.error('Failed to rehydrate auth state', error);
+          } else if (state?.session) {
+            storeLogger.info('Auth state rehydrated', {
+              hasSession: !!state.session,
+              userId: state.session.user?.id,
+            });
+          } else {
+            storeLogger.debug('No stored session found');
+          }
+        };
+      },
     }
   )
 );

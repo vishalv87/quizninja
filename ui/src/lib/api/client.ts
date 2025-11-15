@@ -1,18 +1,29 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
-import { env } from "@/config/env";
 import { getSession } from "@/lib/supabase/client";
 import { API_ERROR_MESSAGES } from "@/lib/constants";
+import { apiLogger } from "@/lib/logger";
 import type { APIError } from "@/types/api";
 
 /**
  * Create Axios instance with base configuration
+ * Using a factory function to defer environment variable access
  */
+function getBaseURL(): string {
+  // Fallback to localhost if env var not available
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8080/api/v1";
+}
+
 export const apiClient = axios.create({
-  baseURL: env.api.baseUrl,
+  baseURL: getBaseURL(),
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+apiLogger.info('API client initialized', {
+  baseURL: getBaseURL(),
+  timeout: 30000,
 });
 
 /**
@@ -20,17 +31,26 @@ export const apiClient = axios.create({
  */
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    apiLogger.debug('API request starting', {
+      method: config.method,
+      url: config.url,
+    });
+
     try {
       const session = await getSession();
       if (session?.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
+        apiLogger.debug('Added auth token to request');
+      } else {
+        apiLogger.debug('No session token available');
       }
     } catch (error) {
-      console.error("Error getting session:", error);
+      apiLogger.error("Error getting session for API request", error);
     }
     return config;
   },
   (error) => {
+    apiLogger.error('Request interceptor error', error);
     return Promise.reject(error);
   }
 );
@@ -40,6 +60,10 @@ apiClient.interceptors.request.use(
  */
 apiClient.interceptors.response.use(
   (response) => {
+    apiLogger.debug('API response received', {
+      status: response.status,
+      url: response.config.url,
+    });
     // Return just the data for successful responses
     return response.data;
   },
@@ -49,8 +73,15 @@ apiClient.interceptors.response.use(
       const status = error.response.status;
       const errorData = error.response.data;
 
+      apiLogger.error('API response error', {
+        status,
+        url: error.config?.url,
+        errorData,
+      });
+
       switch (status) {
         case 401:
+          apiLogger.warn('Unauthorized - redirecting to login');
           // Unauthorized - redirect to login
           if (typeof window !== "undefined") {
             window.location.href = "/login";
@@ -100,12 +131,16 @@ apiClient.interceptors.response.use(
       }
     } else if (error.request) {
       // Network error
+      apiLogger.error('Network error - no response received', {
+        url: error.config?.url,
+      });
       return Promise.reject({
         message: API_ERROR_MESSAGES.NETWORK_ERROR,
         status: 0,
       });
     }
 
+    apiLogger.error('Unknown API error', error);
     return Promise.reject(error);
   }
 );
