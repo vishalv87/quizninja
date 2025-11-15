@@ -23,6 +23,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 	preferencesHandler := handlers.NewPreferencesHandler(cfg)
 	appSettingsHandler := handlers.NewAppSettingsHandler(cfg)
 	quizHandler := handlers.NewQuizHandler(cfg)
+	userHandler := handlers.NewUserHandler()
 	friendsHandler := handlers.NewFriendsHandler(cfg)
 	challengesHandler := handlers.NewChallengesHandler(cfg)
 	leaderboardHandler := handlers.NewLeaderboardHandler(cfg)
@@ -93,6 +94,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 
 			users := protected.Group("/users")
 			{
+				users.GET("/:userId", userHandler.GetUserProfile) // Get another user's profile
 				users.PUT("/preferences", preferencesHandler.UpdatePreferences)
 				users.GET("/preferences", preferencesHandler.GetPreferences)
 				users.POST("/onboarding/complete", preferencesHandler.CompleteOnboarding)
