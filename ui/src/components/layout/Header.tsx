@@ -41,28 +41,29 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="flex h-16 items-center px-4 sm:px-6">
-        {/* Mobile Menu Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="mr-2 md:hidden"
-          onClick={toggleSidebar}
-        >
-          <Menu className="h-5 w-5" />
-          <span className="sr-only">Toggle menu</span>
-        </Button>
+      <div className="grid grid-cols-[auto_1fr_auto] h-16 items-center px-4 sm:px-6 gap-4">
+        {/* Left Section: Mobile Menu + Logo */}
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="mr-2 md:hidden"
+            onClick={toggleSidebar}
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
 
-        {/* Logo */}
-        <Link href="/dashboard" className="flex items-center space-x-2">
-          <span className="hidden font-bold sm:inline-block md:text-xl">
-            QuizNinja
-          </span>
-          <span className="font-bold sm:hidden">QN</span>
-        </Link>
+          <Link href="/dashboard" className="flex items-center space-x-2">
+            <span className="hidden font-bold sm:inline-block md:text-xl">
+              QuizNinja
+            </span>
+            <span className="font-bold sm:hidden">QN</span>
+          </Link>
+        </div>
 
         {/* Search Button */}
-        <div className="flex-1 flex justify-center px-4 max-w-2xl">
+        <div className="flex justify-center">
           <Button
             variant="outline"
             className="w-full max-w-md justify-start text-muted-foreground hidden sm:flex"
