@@ -111,6 +111,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 			protectedQuizzes := protected.Group("/quizzes")
 			{
 				protectedQuizzes.GET("/:id", quizHandler.GetQuizByID)
+				protectedQuizzes.GET("/:id/questions", quizHandler.GetQuizQuestions)
 				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
 				protectedQuizzes.POST("/:id/attempts/:attemptId/submit", quizHandler.SubmitQuizAttempt)
 				protectedQuizzes.PUT("/:id/attempts/:attemptId", quizHandler.UpdateQuizAttempt)

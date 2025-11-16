@@ -924,7 +924,7 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 }
 
 // GetUserQuizAttemptWithDetails retrieves THE user's attempt for a specific quiz with quiz details
-// Since one-attempt-per-quiz policy is enforced, this returns a single result
+// Returns the most recent attempt (active or completed) - frontends can check is_completed field
 func (r *QuizRepository) GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error) {
 	query := `
 		SELECT
@@ -935,7 +935,8 @@ func (r *QuizRepository) GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID)
 			q.total_questions, q.points, q.is_featured, q.tags, q.thumbnail_url, q.created_at
 		FROM quiz_attempts qa
 		JOIN quizzes q ON qa.quiz_id = q.id
-		WHERE qa.user_id = $1 AND qa.quiz_id = $2 AND qa.is_completed = true
+		WHERE qa.user_id = $1 AND qa.quiz_id = $2
+		ORDER BY qa.created_at DESC
 		LIMIT 1`
 
 	var attempt models.QuizAttemptWithDetails

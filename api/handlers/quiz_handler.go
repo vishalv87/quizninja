@@ -115,6 +115,50 @@ func (h *QuizHandler) GetQuizByID(c *gin.Context) {
 	utils.SuccessResponse(c, response)
 }
 
+// GetQuizQuestions handles GET /api/v1/quizzes/{id}/questions
+func (h *QuizHandler) GetQuizQuestions(c *gin.Context) {
+	idParam := c.Param("id")
+	quizID, err := uuid.Parse(idParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+idParam)
+		return
+	}
+
+	// Get quiz with questions
+	quiz, err := h.repo.Quiz.GetQuizByIDWithQuestions(quizID)
+	if err != nil {
+		if err.Error() == "quiz not found" {
+			utils.ErrorResponse(c, http.StatusNotFound, "Quiz not found")
+			return
+		}
+		utils.HandleError(c, err)
+		return
+	}
+
+	// SECURITY CHECK: Verify access to private quizzes
+	userID, err := utils.GetUserIDFromContext(c)
+	if err != nil {
+		if utils.HandleAuthError(c, err) {
+			return
+		}
+	}
+
+	if !quiz.IsPublic && quiz.CreatedBy != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access denied to private quiz")
+		return
+	}
+
+	// Hide correct answers from questions unless user is the creator
+	if quiz.CreatedBy != userID && len(quiz.Questions) > 0 {
+		for i := range quiz.Questions {
+			quiz.Questions[i].CorrectAnswer = ""
+		}
+	}
+
+	// Return only the questions array
+	utils.SuccessResponse(c, quiz.Questions)
+}
+
 // GetFeaturedQuizzes handles GET /api/v1/quizzes/featured
 func (h *QuizHandler) GetFeaturedQuizzes(c *gin.Context) {
 	limitParam := c.DefaultQuery("limit", "10")
