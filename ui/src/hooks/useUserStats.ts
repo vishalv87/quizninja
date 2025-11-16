@@ -37,7 +37,8 @@ export function useUserAttempts(
     queryFn: async () => {
       const response = await getUserAttempts(filters);
       // Extract the data array from the PaginatedResponse wrapper
-      return response.data;
+      // Add safety fallback to ensure we never return undefined
+      return response?.data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,

@@ -15,7 +15,7 @@ export interface Quiz {
   title: string;
   description: string;
   category: string;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty: "beginner" | "intermediate" | "advanced";
   question_count: number;
   time_limit_minutes?: number;
   points_per_question: number;

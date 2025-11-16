@@ -1,7 +1,7 @@
 import { apiClient } from './client'
 import type { UserStats, UserProfile } from '@/types/user'
 import type { QuizAttempt } from '@/types/quiz'
-import type { APIResponse, PaginatedResponse } from '@/types/api'
+import type { APIResponse, PaginatedResponse, AttemptHistoryResponse } from '@/types/api'
 import { API_ENDPOINTS } from './endpoints'
 import { apiLogger } from '@/lib/logger'
 
@@ -81,13 +81,21 @@ export async function getUserAttempts(
 
     const url = `${API_ENDPOINTS.USERS.ATTEMPTS}${params.toString() ? '?' + params.toString() : ''}`
 
-    const response = await apiClient.get<APIResponse<PaginatedResponse<QuizAttempt>>>(url)
+    // The axios interceptor already unwraps response.data, so we get AttemptHistoryResponse directly
+    const response = await apiClient.get<AttemptHistoryResponse<QuizAttempt>>(url)
 
-    // Extract the paginated data from the API response wrapper
-    const paginatedData = (response as unknown as APIResponse<PaginatedResponse<QuizAttempt>>).data
+    // Transform backend response format to frontend PaginatedResponse format
+    const paginatedData: PaginatedResponse<QuizAttempt> = {
+      data: response.attempts || [],  // Map backend "attempts" field to frontend "data" field
+      total: response.total || 0,
+      limit: response.page_size || filters?.limit || 10,
+      offset: ((response.page || 1) - 1) * (response.page_size || filters?.limit || 10),
+      has_more: (response.page || 0) < (response.total_pages || 0)
+    }
 
     apiLogger.info('[USER API] User attempts fetched successfully', {
-      count: paginatedData?.data?.length || 0,
+      count: paginatedData.data.length,
+      total: paginatedData.total,
     })
 
     return paginatedData

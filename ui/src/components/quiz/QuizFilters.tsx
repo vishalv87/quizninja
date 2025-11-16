@@ -96,9 +96,9 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Difficulties</SelectItem>
-              <SelectItem value="easy">Easy</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="hard">Hard</SelectItem>
+              <SelectItem value="beginner">Beginner</SelectItem>
+              <SelectItem value="intermediate">Intermediate</SelectItem>
+              <SelectItem value="advanced">Advanced</SelectItem>
             </SelectContent>
           </Select>
         </div>

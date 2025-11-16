@@ -16,6 +16,18 @@ export interface PaginatedResponse<T> {
   has_more: boolean;
 }
 
+/**
+ * Backend response type for attempt history
+ * Matches the AttemptHistoryResponse struct from the Go backend
+ */
+export interface AttemptHistoryResponse<T = any> {
+  attempts: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 export interface APIError {
   error: string;
   message: string;
