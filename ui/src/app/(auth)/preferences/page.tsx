@@ -3,17 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, ArrowRight, Target, Check } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import { useUpdatePreferences } from "@/hooks/usePreferences";
 import { useCompleteOnboarding } from "@/hooks/useOnboarding";
@@ -69,133 +60,192 @@ export default function PreferencesPage() {
   const isLoading = updatePreferences.isPending || completeOnboarding.isPending;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <div className="max-w-3xl w-full space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-2xl mb-3">
-            <Sparkles className="w-8 h-8 text-primary-foreground" />
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto px-6 lg:px-8 py-12 max-w-7xl w-full">
+        <div className="space-y-16">
+          {/* Header */}
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-900 rounded-2xl mb-4">
+              <Target className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-6xl font-bold tracking-tight">
+              Customize Your <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">Experience</span>
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Select your preferred categories and difficulty level to get personalized quiz recommendations
+            </p>
           </div>
-          <h1 className="text-4xl font-bold">Customize Your Experience</h1>
-          <p className="text-muted-foreground">
-            Select your preferred categories and difficulty level to get personalized quiz recommendations
-          </p>
-        </div>
 
-        {/* Categories Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Favorite Categories</CardTitle>
-            <CardDescription>
-              Choose the topics you're most interested in (select at least one)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+          {/* Categories Selection */}
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight">Favorite Categories</h2>
+              <p className="text-gray-600 mt-2">
+                Choose the topics you're most interested in (select at least one)
+              </p>
+            </div>
+
             {categoriesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-12 w-full" />
+                  <Skeleton key={i} className="h-32 w-full" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {categories?.map((category) => (
-                  <div
-                    key={category.id}
-                    className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
-                    onClick={() => handleCategoryToggle(category.id)}
-                  >
-                    <Checkbox
-                      id={category.id}
-                      checked={selectedCategories.includes(category.id)}
-                      onCheckedChange={() => handleCategoryToggle(category.id)}
-                    />
-                    <Label
-                      htmlFor={category.id}
-                      className="flex-1 cursor-pointer font-medium"
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categories?.map((category, index) => {
+                  const colors = [
+                    { bg: "bg-blue-100", text: "text-blue-600", border: "border-blue-600" },
+                    { bg: "bg-green-100", text: "text-green-600", border: "border-green-600" },
+                    { bg: "bg-yellow-100", text: "text-yellow-600", border: "border-yellow-600" },
+                    { bg: "bg-purple-100", text: "text-purple-600", border: "border-purple-600" },
+                    { bg: "bg-pink-100", text: "text-pink-600", border: "border-pink-600" },
+                    { bg: "bg-indigo-100", text: "text-indigo-600", border: "border-indigo-600" },
+                  ];
+                  const colorScheme = colors[index % colors.length];
+                  const isSelected = selectedCategories.includes(category.id);
+
+                  return (
+                    <Card
+                      key={category.id}
+                      className={`cursor-pointer hover:shadow-md transition-all ${
+                        isSelected
+                          ? `bg-white border-2 ${colorScheme.border}`
+                          : "bg-white border border-gray-200"
+                      }`}
+                      onClick={() => handleCategoryToggle(category.id)}
                     >
-                      {category.display_name}
-                    </Label>
-                  </div>
-                ))}
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center gap-4 text-center">
+                          <div className={`flex items-center justify-center w-16 h-16 rounded-full ${colorScheme.bg}`}>
+                            {isSelected ? (
+                              <Check className={`w-8 h-8 ${colorScheme.text}`} />
+                            ) : (
+                              <span className={`text-2xl font-bold ${colorScheme.text}`}>
+                                {category.display_name.charAt(0)}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg">{category.display_name}</h3>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
+
             {selectedCategories.length > 0 && (
-              <p className="text-sm text-muted-foreground mt-4">
+              <p className="text-center text-sm text-gray-600">
                 {selectedCategories.length} {selectedCategories.length === 1 ? "category" : "categories"} selected
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Difficulty Level */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferred Difficulty</CardTitle>
-            <CardDescription>
-              Choose your preferred challenge level
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select value={difficulty} onValueChange={setDifficulty}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select difficulty level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="easy">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Easy</span>
-                    <span className="text-xs text-muted-foreground">
-                      Perfect for beginners and casual learning
-                    </span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="medium">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Medium</span>
-                    <span className="text-xs text-muted-foreground">
-                      Balanced challenge for most learners
-                    </span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="hard">
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium">Hard</span>
-                    <span className="text-xs text-muted-foreground">
-                      For experts seeking maximum challenge
-                    </span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+          {/* Difficulty Level */}
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight">Preferred Difficulty</h2>
+              <p className="text-gray-600 mt-2">
+                Choose your preferred challenge level
+              </p>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between pt-4">
-          <Button
-            size="lg"
-            variant="outline"
-            onClick={handleBack}
-            disabled={isLoading}
-          >
-            <ArrowLeft className="mr-2 h-5 w-5" />
-            Back
-          </Button>
-          <Button
-            size="lg"
-            onClick={handleComplete}
-            disabled={isLoading || selectedCategories.length === 0}
-            className="sm:w-auto"
-          >
-            {isLoading ? "Saving..." : "Complete Setup"}
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {[
+                {
+                  value: "easy",
+                  label: "Easy",
+                  description: "Perfect for beginners and casual learning",
+                  color: { bg: "bg-green-100", text: "text-green-600", border: "border-green-600" },
+                },
+                {
+                  value: "medium",
+                  label: "Medium",
+                  description: "Balanced challenge for most learners",
+                  color: { bg: "bg-yellow-100", text: "text-yellow-600", border: "border-yellow-600" },
+                },
+                {
+                  value: "hard",
+                  label: "Hard",
+                  description: "For experts seeking maximum challenge",
+                  color: { bg: "bg-red-100", text: "text-red-600", border: "border-red-600" },
+                },
+              ].map((level) => {
+                const isSelected = difficulty === level.value;
+                return (
+                  <Card
+                    key={level.value}
+                    className={`cursor-pointer hover:shadow-md transition-all ${
+                      isSelected
+                        ? `bg-white border-2 ${level.color.border}`
+                        : "bg-white border border-gray-200"
+                    }`}
+                    onClick={() => setDifficulty(level.value)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className={`flex items-center justify-center w-16 h-16 rounded-full ${level.color.bg}`}>
+                          {isSelected ? (
+                            <Check className={`w-8 h-8 ${level.color.text}`} />
+                          ) : (
+                            <span className={`text-2xl font-bold ${level.color.text}`}>
+                              {level.label.charAt(0)}
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xl mb-2">{level.label}</h3>
+                          <p className="text-sm text-gray-600">
+                            {level.description}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-900 border-0 h-14 px-8 rounded-lg"
+                onClick={handleBack}
+                disabled={isLoading}
+              >
+                <ArrowLeft className="mr-2 h-5 w-5" />
+                Back
+              </Button>
+              <Button
+                size="lg"
+                className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white h-14 px-8 rounded-lg"
+                onClick={handleComplete}
+                disabled={isLoading || selectedCategories.length === 0}
+              >
+                {isLoading ? "Saving..." : "Complete Setup"}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Helper Text */}
+            <p className="text-center text-sm text-gray-600">
+              You can always change these preferences later in your settings
+            </p>
+          </div>
         </div>
+      </div>
 
-        {/* Helper Text */}
-        <p className="text-center text-sm text-muted-foreground">
-          You can always change these preferences later in your settings
+      {/* Footer */}
+      <div className="mx-auto px-6 py-8 max-w-7xl w-full">
+        <p className="text-sm text-gray-500">
+          © 2024 QuizNinja. All rights reserved.
         </p>
       </div>
     </div>
