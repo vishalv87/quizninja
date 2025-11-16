@@ -43,9 +43,19 @@ type LeaderboardResponse struct {
 
 // UserRankInfo represents the current user's rank information
 type UserRankInfo struct {
-	UserID       uuid.UUID `json:"user_id"`
-	Rank         int       `json:"rank"`
-	Points       int       `json:"points"`
-	PointsToNext int       `json:"points_to_next"`
-	RankChange   int       `json:"rank_change"` // +/- change from previous period
+	Rank                 int       `json:"rank"`
+	TotalUsers           int       `json:"total_users"`
+	User                 UserInfo  `json:"user"`
+	TotalPoints          int       `json:"total_points"`
+	QuizzesCompleted     int       `json:"quizzes_completed"`
+	AchievementsUnlocked int       `json:"achievements_unlocked"`
+	PointsToNext         int       `json:"points_to_next"`
+	RankChange           int       `json:"rank_change"` // +/- change from previous period
+}
+
+// UserInfo represents user profile information in rank data
+type UserInfo struct {
+	ID        string  `json:"id"`
+	FullName  string  `json:"full_name"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
 }

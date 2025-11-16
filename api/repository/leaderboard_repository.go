@@ -164,12 +164,33 @@ func (lr *LeaderboardRepository) GetFriendsLeaderboard(userID uuid.UUID, period 
 
 // GetUserRank retrieves the current user's rank information
 func (lr *LeaderboardRepository) GetUserRank(userID uuid.UUID, period string) (*models.UserRankInfo, error) {
-	// Get user's current points
+	// Get user's profile and stats
 	var userPoints int
-	userQuery := "SELECT total_points FROM users WHERE id = $1"
-	err := lr.db.QueryRow(userQuery, userID).Scan(&userPoints)
+	var quizzesCompleted int
+	var fullName string
+	var avatarURL sql.NullString
+
+	userQuery := `
+		SELECT total_points, total_quizzes_completed, full_name, avatar_url
+		FROM users
+		WHERE id = $1
+	`
+	err := lr.db.QueryRow(userQuery, userID).Scan(&userPoints, &quizzesCompleted, &fullName, &avatarURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user points: %w", err)
+		return nil, fmt.Errorf("failed to get user data: %w", err)
+	}
+
+	// Get user's achievements count
+	var achievementsUnlocked int
+	achievementsQuery := `
+		SELECT COUNT(*)
+		FROM user_achievements
+		WHERE user_id = $1
+	`
+	err = lr.db.QueryRow(achievementsQuery, userID).Scan(&achievementsUnlocked)
+	if err != nil {
+		// Don't fail if achievements query fails, just set to 0
+		achievementsUnlocked = 0
 	}
 
 	// Calculate user's rank
@@ -190,6 +211,22 @@ func (lr *LeaderboardRepository) GetUserRank(userID uuid.UUID, period string) (*
 	err = lr.db.QueryRow(rankQuery, userPoints).Scan(&rank)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate user rank: %w", err)
+	}
+
+	// Get total users count
+	totalUsersQuery := `
+		SELECT COUNT(*)
+		FROM users
+		WHERE total_points > 0
+	`
+	if timeFilter != "" {
+		totalUsersQuery += " AND " + timeFilter
+	}
+
+	var totalUsers int
+	err = lr.db.QueryRow(totalUsersQuery).Scan(&totalUsers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total users: %w", err)
 	}
 
 	// Get points needed to reach next rank
@@ -218,12 +255,24 @@ func (lr *LeaderboardRepository) GetUserRank(userID uuid.UUID, period string) (*
 	// For now, set rank change to 0 (would need historical data to calculate)
 	rankChange := 0
 
+	// Build user info
+	userInfo := models.UserInfo{
+		ID:       userID.String(),
+		FullName: fullName,
+	}
+	if avatarURL.Valid {
+		userInfo.AvatarURL = &avatarURL.String
+	}
+
 	return &models.UserRankInfo{
-		UserID:       userID,
-		Rank:         rank,
-		Points:       userPoints,
-		PointsToNext: pointsToNext,
-		RankChange:   rankChange,
+		Rank:                 rank,
+		TotalUsers:           totalUsers,
+		User:                 userInfo,
+		TotalPoints:          userPoints,
+		QuizzesCompleted:     quizzesCompleted,
+		AchievementsUnlocked: achievementsUnlocked,
+		PointsToNext:         pointsToNext,
+		RankChange:           rankChange,
 	}, nil
 }
 

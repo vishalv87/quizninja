@@ -117,10 +117,7 @@ func (h *LeaderboardHandler) GetUserRank(c *gin.Context) {
 		return
 	}
 
-	utils.SuccessResponse(c, map[string]interface{}{
-		"user_rank": userRank,
-		"period":    period,
-	})
+	utils.SuccessResponse(c, userRank)
 }
 
 // UpdateUserScore updates user's score after quiz completion
@@ -207,25 +204,25 @@ func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
 	}
 
 	stats := map[string]interface{}{
-		"period":         period,
-		"total_users":    total,
-		"active_users":   len(leaderboard),
-		"total_points":   totalPoints,
-		"total_quizzes":  totalQuizzes,
-		"average_score":  averageScore,
-		"average_streak": float64(totalStreaks) / float64(len(leaderboard)),
-		"top_performer":  nil,
-		"most_active":    nil,
-		"longest_streak": 0,
+		"period":                   period,
+		"total_users":              total,
+		"active_users":             len(leaderboard),
+		"total_points_distributed": totalPoints,
+		"total_quizzes":            totalQuizzes,
+		"average_points":           averageScore,
+		"average_streak":           float64(totalStreaks) / float64(len(leaderboard)),
+		"top_user":                 nil,
+		"most_active":              nil,
+		"longest_streak":           0,
 	}
 
 	// Find top performers
 	if len(leaderboard) > 0 {
 		topPerformer := leaderboard[0]
-		stats["top_performer"] = map[string]interface{}{
-			"name":   topPerformer.Name,
-			"points": topPerformer.Points,
-			"level":  topPerformer.Level,
+		stats["top_user"] = map[string]interface{}{
+			"id":           topPerformer.UserID.String(),
+			"full_name":    topPerformer.Name,
+			"total_points": topPerformer.Points,
 		}
 
 		// Find most active user (most quizzes completed)
