@@ -31,6 +31,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 	favoritesHandler := handlers.NewFavoritesHandler(cfg)
 	discussionHandler := handlers.NewDiscussionHandler(cfg)
 	notificationHandler := handlers.NewNotificationHandler(cfg)
+	ratingHandler := handlers.NewRatingHandler()
 
 	api := r.Group("/api/v1")
 	{
@@ -121,6 +122,14 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				protectedQuizzes.POST("/:id/attempts/:attemptId/resume", quizHandler.ResumeQuizSession)
 				protectedQuizzes.PUT("/:id/attempts/:attemptId/save-progress", quizHandler.SaveQuizProgress)
 				protectedQuizzes.DELETE("/:id/attempts/:attemptId/abandon", quizHandler.AbandonQuizSession)
+
+				// Rating endpoints
+				protectedQuizzes.POST("/:id/ratings", ratingHandler.CreateRating)
+				protectedQuizzes.GET("/:id/ratings", ratingHandler.GetQuizRatings)
+				protectedQuizzes.GET("/:id/ratings/average", ratingHandler.GetAverageRating)
+				protectedQuizzes.GET("/:id/ratings/user", ratingHandler.GetUserRating)
+				protectedQuizzes.PUT("/:id/ratings/:ratingId", ratingHandler.UpdateRating)
+				protectedQuizzes.DELETE("/:id/ratings/:ratingId", ratingHandler.DeleteRating)
 			}
 
 			// Friends endpoints

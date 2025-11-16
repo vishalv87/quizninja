@@ -20,6 +20,8 @@
 # Build outputs
 /bin/
 /dist/
+/tmp/
+build-errors.log
 
 # Test coverage
 coverage.out

@@ -239,6 +239,7 @@ type Repository struct {
 	Achievement  AchievementRepositoryInterface
 	Notification NotificationRepositoryInterface
 	Discussion   DiscussionRepositoryInterface
+	Rating       *RatingRepository
 }
 
 // NewRepository creates a new repository instance
@@ -253,5 +254,6 @@ func NewRepository() *Repository {
 		Achievement:  NewAchievementRepository(),
 		Notification: NewNotificationRepository(),
 		Discussion:   NewDiscussionRepository(),
+		Rating:       NewRatingRepository(),
 	}
 }

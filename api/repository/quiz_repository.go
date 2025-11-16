@@ -78,6 +78,28 @@ func (r *QuizRepository) GetQuizByIDWithStatistics(id uuid.UUID) (*models.Quiz, 
 	}
 
 	quiz.Statistics = stats
+
+	// Get average rating and total ratings
+	ratingQuery := `
+		SELECT COALESCE(AVG(rating), 0), COUNT(*)
+		FROM quiz_ratings
+		WHERE quiz_id = $1`
+
+	var avgRating float64
+	var totalRatings int
+	err = r.db.QueryRow(ratingQuery, id).Scan(&avgRating, &totalRatings)
+	if err != nil && err != sql.ErrNoRows {
+		// Don't fail if there's an error getting ratings, just log it
+		// This makes ratings optional/non-blocking
+		fmt.Printf("Warning: failed to get ratings for quiz %s: %v\n", id, err)
+	} else if totalRatings > 0 {
+		// Only set rating fields if there are actual ratings
+		// Round to 1 decimal place
+		avgRating = float64(int(avgRating*10+0.5)) / 10
+		quiz.AverageRating = &avgRating
+		quiz.TotalRatings = &totalRatings
+	}
+
 	return quiz, nil
 }
 
@@ -442,6 +464,14 @@ func (r *QuizRepository) GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatis
 	// Set default values for fields not retrieved from database
 	stats.ID = stats.QuizID           // Use QuizID as ID since it's the primary key
 	stats.CreatedAt = stats.UpdatedAt // Use updated_at as created_at for now
+
+	// Calculate completion rate
+	if stats.TotalAttempts > 0 {
+		stats.CompletionRate = (float64(stats.CompletedAttempts) / float64(stats.TotalAttempts)) * 100
+	} else {
+		stats.CompletionRate = 0
+	}
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("quiz statistics not found")

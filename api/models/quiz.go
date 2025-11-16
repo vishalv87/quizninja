@@ -25,6 +25,8 @@ type Quiz struct {
 	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
 	Questions     []Question      `json:"questions,omitempty"`
 	Statistics    *QuizStatistics `json:"statistics,omitempty"`
+	AverageRating *float64        `json:"average_rating,omitempty"`
+	TotalRatings  *int            `json:"total_ratings,omitempty"`
 }
 
 // Question represents a quiz question
@@ -54,6 +56,7 @@ type QuizStatistics struct {
 	HighestScore      float64    `json:"highest_score" db:"highest_score"`
 	LowestScore       float64    `json:"lowest_score" db:"lowest_score"`
 	PopularityScore   int        `json:"popularity_score" db:"popularity_score"`
+	CompletionRate    float64    `json:"completion_rate"` // Computed: (completed_attempts / total_attempts) * 100
 	LastAttemptAt     *time.Time `json:"last_attempt_at,omitempty" db:"last_attempt_at"`
 	CreatedAt         time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at" db:"updated_at"`
