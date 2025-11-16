@@ -9,6 +9,13 @@ import type {
   Question,
   Category,
   QuizListResponse,
+  PauseSessionRequest,
+  SaveProgressRequest,
+  SessionActionResponse,
+  ResumeSessionResponse,
+  ActiveSessionsResponse,
+  SessionFilters,
+  QuizSession,
 } from "@/types/quiz";
 import { apiLogger } from "@/lib/logger";
 
@@ -242,27 +249,79 @@ export async function submitQuizAttempt(
   }
 }
 
+// ============ QUIZ SESSION MANAGEMENT (Pause/Resume) ============
+
 /**
- * Save quiz progress without submitting
+ * Pause quiz session - Saves current progress and sets state to paused
  */
-export async function saveQuizProgress(
+export async function pauseQuizSession(
   quizId: string,
   attemptId: string,
-  answers: QuizAnswer[]
-): Promise<void> {
+  pauseRequest: PauseSessionRequest
+): Promise<SessionActionResponse> {
   try {
-    apiLogger.debug("Saving quiz progress", {
+    apiLogger.debug("Pausing quiz session", { quizId, attemptId, pauseRequest });
+    const response = await apiClient.post<{ data: SessionActionResponse }>(
+      API_ENDPOINTS.QUIZ.PAUSE(quizId, attemptId),
+      pauseRequest
+    ) as unknown as { data: SessionActionResponse };
+    apiLogger.debug("Quiz session paused", { quizId, attemptId, response: response.data });
+    return response.data;
+  } catch (error) {
+    apiLogger.error("Error pausing quiz session", {
       quizId,
       attemptId,
-      answersCount: answers.length,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Resume quiz session - Restores paused session back to active
+ */
+export async function resumeQuizSession(
+  quizId: string,
+  attemptId: string
+): Promise<ResumeSessionResponse> {
+  try {
+    apiLogger.debug("Resuming quiz session", { quizId, attemptId });
+    const response = await apiClient.post<{ data: ResumeSessionResponse }>(
+      API_ENDPOINTS.QUIZ.RESUME(quizId, attemptId)
+    ) as unknown as { data: ResumeSessionResponse };
+    apiLogger.debug("Quiz session resumed", { quizId, attemptId, response: response.data });
+    return response.data;
+  } catch (error) {
+    apiLogger.error("Error resuming quiz session", {
+      quizId,
+      attemptId,
+      error,
+    });
+    throw error;
+  }
+}
+
+/**
+ * Save quiz progress without changing session state
+ */
+export async function saveSessionProgress(
+  quizId: string,
+  attemptId: string,
+  progressRequest: SaveProgressRequest
+): Promise<void> {
+  try {
+    apiLogger.debug("Saving session progress", {
+      quizId,
+      attemptId,
+      progressRequest,
     });
     await apiClient.put(
       API_ENDPOINTS.QUIZ.SAVE_PROGRESS(quizId, attemptId),
-      { answers }
+      progressRequest
     );
-    apiLogger.debug("Quiz progress saved", { quizId, attemptId });
+    apiLogger.debug("Session progress saved", { quizId, attemptId });
   } catch (error) {
-    apiLogger.error("Error saving quiz progress", {
+    apiLogger.error("Error saving session progress", {
       quizId,
       attemptId,
       error,
@@ -272,18 +331,21 @@ export async function saveQuizProgress(
 }
 
 /**
- * Pause quiz attempt
+ * Abandon quiz session - Marks attempt as abandoned
  */
-export async function pauseQuizAttempt(
+export async function abandonQuizSession(
   quizId: string,
   attemptId: string
-): Promise<void> {
+): Promise<SessionActionResponse> {
   try {
-    apiLogger.debug("Pausing quiz attempt", { quizId, attemptId });
-    await apiClient.post(API_ENDPOINTS.QUIZ.PAUSE(quizId, attemptId));
-    apiLogger.debug("Quiz attempt paused", { quizId, attemptId });
+    apiLogger.debug("Abandoning quiz session", { quizId, attemptId });
+    const response = await apiClient.delete<{ data: SessionActionResponse }>(
+      API_ENDPOINTS.QUIZ.ABANDON(quizId, attemptId)
+    ) as unknown as { data: SessionActionResponse };
+    apiLogger.debug("Quiz session abandoned", { quizId, attemptId, response: response.data });
+    return response.data;
   } catch (error) {
-    apiLogger.error("Error pausing quiz attempt", {
+    apiLogger.error("Error abandoning quiz session", {
       quizId,
       attemptId,
       error,
@@ -293,43 +355,48 @@ export async function pauseQuizAttempt(
 }
 
 /**
- * Resume quiz attempt
+ * Get user's active quiz sessions with optional filters
  */
-export async function resumeQuizAttempt(
-  quizId: string,
-  attemptId: string
-): Promise<void> {
+export async function getUserActiveSessions(
+  filters?: SessionFilters
+): Promise<ActiveSessionsResponse> {
   try {
-    apiLogger.debug("Resuming quiz attempt", { quizId, attemptId });
-    await apiClient.post(API_ENDPOINTS.QUIZ.RESUME(quizId, attemptId));
-    apiLogger.debug("Quiz attempt resumed", { quizId, attemptId });
-  } catch (error) {
-    apiLogger.error("Error resuming quiz attempt", {
-      quizId,
-      attemptId,
-      error,
+    apiLogger.debug("Fetching user active sessions", filters);
+    const response = await apiClient.get<{ data: ActiveSessionsResponse }>(
+      API_ENDPOINTS.USERS.ACTIVE_SESSIONS,
+      { params: filters }
+    ) as unknown as { data: ActiveSessionsResponse };
+    apiLogger.debug("Active sessions fetched", {
+      total: response.data.total,
+      active_count: response.data.active_count,
+      paused_count: response.data.paused_count
     });
+    return response.data;
+  } catch (error) {
+    apiLogger.error("Error fetching active sessions", error);
     throw error;
   }
 }
 
 /**
- * Abandon quiz attempt
+ * Get active session for a specific quiz (if exists)
  */
-export async function abandonQuizAttempt(
-  quizId: string,
-  attemptId: string
-): Promise<void> {
+export async function getQuizActiveSession(
+  quizId: string
+): Promise<QuizSession | null> {
   try {
-    apiLogger.debug("Abandoning quiz attempt", { quizId, attemptId });
-    await apiClient.post(API_ENDPOINTS.QUIZ.ABANDON(quizId, attemptId));
-    apiLogger.debug("Quiz attempt abandoned", { quizId, attemptId });
+    apiLogger.debug("Fetching active session for quiz", { quizId });
+    const filters: SessionFilters = {
+      quiz_id: quizId,
+      session_state: 'active',
+      page_size: 1
+    };
+    const response = await getUserActiveSessions(filters);
+    const session = response.sessions.length > 0 ? response.sessions[0] : null;
+    apiLogger.debug("Active session for quiz", { quizId, found: !!session });
+    return session;
   } catch (error) {
-    apiLogger.error("Error abandoning quiz attempt", {
-      quizId,
-      attemptId,
-      error,
-    });
+    apiLogger.error("Error fetching active session for quiz", { quizId, error });
     throw error;
   }
 }

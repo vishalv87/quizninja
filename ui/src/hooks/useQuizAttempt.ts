@@ -2,16 +2,30 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   startQuizAttempt,
   submitQuizAttempt,
-  saveQuizProgress,
   updateQuizAttempt,
   getAttemptDetails,
   getQuiz,
   getActiveAttemptForQuiz,
-  pauseQuizAttempt,
-  resumeQuizAttempt,
+  pauseQuizSession,
+  resumeQuizSession,
+  saveSessionProgress,
+  abandonQuizSession,
+  getUserActiveSessions,
+  getQuizActiveSession,
 } from "@/lib/api/quiz";
 import { toast } from "sonner";
-import type { QuizAnswer, QuizAttempt, QuizResults } from "@/types/quiz";
+import type {
+  QuizAnswer,
+  QuizAttempt,
+  QuizResults,
+  PauseSessionRequest,
+  SaveProgressRequest,
+  SessionActionResponse,
+  ResumeSessionResponse,
+  ActiveSessionsResponse,
+  SessionFilters,
+  QuizSession,
+} from "@/types/quiz";
 
 /**
  * Hook to start a quiz attempt
@@ -67,26 +81,22 @@ export function useSubmitQuizAttempt() {
 }
 
 /**
- * Hook to save quiz progress
+ * Hook to save quiz session progress (auto-save)
  */
-export function useSaveQuizProgress() {
+export function useSaveSessionProgress() {
   return useMutation({
     mutationFn: ({
       quizId,
       attemptId,
-      answers,
+      progressRequest,
     }: {
       quizId: string;
       attemptId: string;
-      answers: QuizAnswer[];
-    }) => saveQuizProgress(quizId, attemptId, answers),
-    onSuccess: () => {
-      toast.success("Progress saved");
-    },
+      progressRequest: SaveProgressRequest;
+    }) => saveSessionProgress(quizId, attemptId, progressRequest),
     onError: (error: any) => {
-      toast.error("Failed to save progress", {
-        description: error.message || "Could not save your progress.",
-      });
+      console.error("Failed to auto-save progress:", error);
+      // Don't show toast for auto-save errors to avoid annoying users
     },
   });
 }
@@ -157,19 +167,27 @@ export function useActiveAttempt(quizId: string) {
 }
 
 /**
- * Hook to pause a quiz attempt
+ * Hook to pause a quiz session
  */
-export function usePauseQuizAttempt() {
+export function usePauseQuizSession() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       quizId,
       attemptId,
+      pauseRequest,
     }: {
       quizId: string;
       attemptId: string;
-    }) => pauseQuizAttempt(quizId, attemptId),
-    onSuccess: () => {
-      toast.success("Quiz paused");
+      pauseRequest: PauseSessionRequest;
+    }) => pauseQuizSession(quizId, attemptId, pauseRequest),
+    onSuccess: (data: SessionActionResponse) => {
+      queryClient.invalidateQueries({ queryKey: ["active-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["quiz-session", data.session_id] });
+      toast.success("Quiz paused", {
+        description: "You can resume it later from where you left off.",
+      });
     },
     onError: (error: any) => {
       toast.error("Failed to pause quiz", {
@@ -180,9 +198,11 @@ export function usePauseQuizAttempt() {
 }
 
 /**
- * Hook to resume a quiz attempt
+ * Hook to resume a quiz session
  */
-export function useResumeQuizAttempt() {
+export function useResumeQuizSession() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       quizId,
@@ -190,14 +210,73 @@ export function useResumeQuizAttempt() {
     }: {
       quizId: string;
       attemptId: string;
-    }) => resumeQuizAttempt(quizId, attemptId),
-    onSuccess: () => {
-      toast.success("Quiz resumed");
+    }) => resumeQuizSession(quizId, attemptId),
+    onSuccess: (data: ResumeSessionResponse) => {
+      queryClient.invalidateQueries({ queryKey: ["active-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["quiz-session", data.session_id] });
+      toast.success("Quiz resumed", {
+        description: "Continuing from where you left off.",
+      });
     },
     onError: (error: any) => {
       toast.error("Failed to resume quiz", {
         description: error.message || "Could not resume the quiz.",
       });
     },
+  });
+}
+
+/**
+ * Hook to abandon a quiz session
+ */
+export function useAbandonQuizSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      quizId,
+      attemptId,
+    }: {
+      quizId: string;
+      attemptId: string;
+    }) => abandonQuizSession(quizId, attemptId),
+    onSuccess: (data: SessionActionResponse) => {
+      queryClient.invalidateQueries({ queryKey: ["active-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["quiz-session", data.session_id] });
+      queryClient.invalidateQueries({ queryKey: ["active-attempt"] });
+      toast.success("Quiz abandoned", {
+        description: "You can start a new attempt now.",
+      });
+    },
+    onError: (error: any) => {
+      toast.error("Failed to abandon quiz", {
+        description: error.message || "Could not abandon the quiz.",
+      });
+    },
+  });
+}
+
+/**
+ * Hook to get user's active quiz sessions
+ */
+export function useActiveSessions(filters?: SessionFilters) {
+  return useQuery<ActiveSessionsResponse>({
+    queryKey: ["active-sessions", filters],
+    queryFn: () => getUserActiveSessions(filters),
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Hook to get active session for a specific quiz
+ */
+export function useQuizActiveSession(quizId: string) {
+  return useQuery<QuizSession | null>({
+    queryKey: ["quiz-active-session", quizId],
+    queryFn: () => getQuizActiveSession(quizId),
+    enabled: !!quizId,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
   });
 }

@@ -9,10 +9,12 @@ import { useQuizStore } from "@/store/quizStore";
 import {
   useStartQuizAttempt,
   useSubmitQuizAttempt,
-  useSaveQuizProgress,
-  usePauseQuizAttempt,
-  useResumeQuizAttempt,
+  useSaveSessionProgress,
+  usePauseQuizSession,
+  useResumeQuizSession,
+  useAbandonQuizSession,
 } from "@/hooks/useQuizAttempt";
+import type { PauseSessionRequest, SaveProgressRequest, AttemptAnswer } from "@/types/quiz";
 import { useQuizTimer } from "@/hooks/useQuizTimer";
 import { QuestionCard } from "@/components/quiz/QuestionCard";
 import { QuizTimer } from "@/components/quiz/QuizTimer";
@@ -51,9 +53,10 @@ export default function QuizTakingPage() {
     useActiveAttempt(quizId);
   const startAttemptMutation = useStartQuizAttempt();
   const submitAttemptMutation = useSubmitQuizAttempt();
-  const saveProgressMutation = useSaveQuizProgress();
-  const pauseAttemptMutation = usePauseQuizAttempt();
-  const resumeAttemptMutation = useResumeQuizAttempt();
+  const saveProgressMutation = useSaveSessionProgress();
+  const pauseSessionMutation = usePauseQuizSession();
+  const resumeSessionMutation = useResumeQuizSession();
+  const abandonSessionMutation = useAbandonQuizSession();
 
   const {
     currentQuiz,
@@ -73,12 +76,14 @@ export default function QuizTakingPage() {
 
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [show409Dialog, setShow409Dialog] = useState(false);
+  const [existingAttemptId, setExistingAttemptId] = useState<string | null>(null);
 
-  // Initialize quiz
+  // Initialize quiz - Following Flutter app's pattern: Check session FIRST
   useEffect(() => {
     if (quiz && questions && !currentQuiz) {
+      // Case 1: User is resuming - Load the existing attempt
       if (isResuming && activeAttempt) {
-        // Resume existing attempt
         toast.info("Resuming quiz from where you left off");
         startQuiz(quiz, activeAttempt);
 
@@ -88,11 +93,38 @@ export default function QuizTakingPage() {
             setAnswer(answer.question_id, answer);
           });
         }
-      } else {
-        // Start a new quiz attempt
+        return;
+      }
+
+      // Case 2: Active attempt exists BUT user is not resuming (clicked "Start New Attempt")
+      // Show dialog immediately - don't try to start (following Flutter pattern)
+      if (activeAttempt && !isResuming) {
+        setExistingAttemptId(activeAttempt.id);
+        setShow409Dialog(true);
+        return;
+      }
+
+      // Case 3: No active attempt - Safe to start new quiz
+      if (!activeAttempt) {
         startAttemptMutation.mutate(quizId, {
           onSuccess: (attempt) => {
             startQuiz(quiz, attempt);
+          },
+          onError: (error: any) => {
+            // 409 error should be rare now (race condition fallback)
+            if (error.response?.status === 409 || error.status === 409) {
+              const errorData = error.response?.data || error.data;
+              const attemptId = errorData?.error?.details?.existing_attempt_id;
+              if (attemptId) {
+                setExistingAttemptId(attemptId);
+                setShow409Dialog(true);
+              } else {
+                toast.error("Active attempt exists", {
+                  description: "You have an active attempt for this quiz. Please resume it.",
+                });
+                router.push(`/quizzes/${quizId}`);
+              }
+            }
           },
         });
       }
@@ -105,16 +137,16 @@ export default function QuizTakingPage() {
     handleSubmit();
   });
 
-  // Auto-save progress every 30 seconds
+  // Auto-save progress every 10 seconds (like Flutter app)
   useEffect(() => {
-    if (!currentAttempt) return;
+    if (!currentAttempt || isPaused) return;
 
     const interval = setInterval(() => {
       handleSaveProgress();
-    }, 30000); // 30 seconds
+    }, 10000); // 10 seconds
 
     return () => clearInterval(interval);
-  }, [currentAttempt, answers]);
+  }, [currentAttempt, answers, isPaused]);
 
   // Prevent accidental page close
   useEffect(() => {
@@ -145,11 +177,25 @@ export default function QuizTakingPage() {
   const handleSaveProgress = () => {
     if (!currentAttempt) return;
 
-    const answersList = Object.values(answers);
+    const answersList: AttemptAnswer[] = Object.values(answers).map((answer: any) => ({
+      question_id: answer.question_id,
+      selected_answer: answer.selected_answer,
+      is_correct: answer.is_correct,
+      points_earned: answer.points_earned,
+    }));
+
+    const progressRequest: SaveProgressRequest = {
+      current_question_index: currentQuestionIndex,
+      current_answers: answersList,
+      time_spent_so_far: quiz?.time_limit_minutes ?
+        (quiz.time_limit_minutes * 60) - (timeRemaining || 0) : 0,
+      time_remaining: timeRemaining || undefined,
+    };
+
     saveProgressMutation.mutate({
       quizId,
       attemptId: currentAttempt.id,
-      answers: answersList,
+      progressRequest,
     });
   };
 
@@ -189,21 +235,77 @@ export default function QuizTakingPage() {
   const handlePause = () => {
     if (!currentAttempt) return;
 
-    setPaused(true);
-    pauseAttemptMutation.mutate({
-      quizId,
-      attemptId: currentAttempt.id,
-    });
+    const answersList: AttemptAnswer[] = Object.values(answers).map((answer: any) => ({
+      question_id: answer.question_id,
+      selected_answer: answer.selected_answer,
+      is_correct: answer.is_correct,
+      points_earned: answer.points_earned,
+    }));
+
+    const pauseRequest: PauseSessionRequest = {
+      current_question_index: currentQuestionIndex,
+      current_answers: answersList,
+      time_spent_so_far: quiz?.time_limit_minutes ?
+        (quiz.time_limit_minutes * 60) - (timeRemaining || 0) : 0,
+      time_remaining: timeRemaining || undefined,
+    };
+
+    pauseSessionMutation.mutate(
+      {
+        quizId,
+        attemptId: currentAttempt.id,
+        pauseRequest,
+      },
+      {
+        onSuccess: () => {
+          setPaused(true);
+          router.push(`/quizzes/${quizId}`);
+        },
+      }
+    );
   };
 
   const handleResume = () => {
     if (!currentAttempt) return;
 
     setPaused(false);
-    resumeAttemptMutation.mutate({
+    resumeSessionMutation.mutate({
       quizId,
       attemptId: currentAttempt.id,
     });
+  };
+
+  // Handle resuming from 409 conflict dialog
+  const handleResumeExisting = () => {
+    if (!existingAttemptId) return;
+    setShow409Dialog(false);
+    router.push(`/quizzes/${quizId}/take?resume=true`);
+  };
+
+  // Handle abandoning from 409 conflict dialog
+  const handleAbandonExisting = () => {
+    if (!existingAttemptId) return;
+
+    abandonSessionMutation.mutate(
+      {
+        quizId,
+        attemptId: existingAttemptId,
+      },
+      {
+        onSuccess: () => {
+          setShow409Dialog(false);
+          setExistingAttemptId(null);
+          // Retry starting the quiz
+          startAttemptMutation.mutate(quizId, {
+            onSuccess: (attempt) => {
+              if (quiz) {
+                startQuiz(quiz, attempt);
+              }
+            },
+          });
+        },
+      }
+    );
   };
 
   // Loading state
@@ -361,6 +463,34 @@ export default function QuizTakingPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmSubmit}>
               Submit Quiz
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 409 Conflict Dialog - Active Attempt Exists */}
+      <AlertDialog open={show409Dialog} onOpenChange={setShow409Dialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Active Quiz Attempt Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have an active attempt for this quiz. Would you like to resume your
+              existing attempt or abandon it to start fresh?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel onClick={() => router.push(`/quizzes/${quizId}`)}>
+              Go Back
+            </AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={handleAbandonExisting}
+              disabled={abandonSessionMutation.isPending}
+            >
+              {abandonSessionMutation.isPending ? "Abandoning..." : "Abandon & Start Fresh"}
+            </Button>
+            <AlertDialogAction onClick={handleResumeExisting}>
+              Resume Existing
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

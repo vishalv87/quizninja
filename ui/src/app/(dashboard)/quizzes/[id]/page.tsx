@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuiz } from "@/hooks/useQuiz";
-import { useActiveAttempt } from "@/hooks/useQuizAttempt";
+import { useQuizActiveSession } from "@/hooks/useQuizAttempt";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/useFavorites";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,8 @@ import {
   Users,
   RotateCcw,
   Heart,
+  Pause as PauseIcon,
+  PlayCircle,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -31,7 +33,7 @@ export default function QuizDetailPage() {
   const quizId = params.id as string;
 
   const { data: quiz, isLoading, error } = useQuiz(quizId);
-  const { data: activeAttempt, isLoading: attemptLoading } = useActiveAttempt(quizId);
+  const { data: activeSession, isLoading: sessionLoading } = useQuizActiveSession(quizId);
   const { data: isFavorite, isLoading: favoriteLoading } = useIsFavorite(quizId);
   const { toggle: toggleFavorite } = useToggleFavorite();
 
@@ -63,13 +65,13 @@ export default function QuizDetailPage() {
     );
   }
 
-  // Determine difficulty color
-  const difficultyColor = {
-    easy: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    medium:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-    hard: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-  }[quiz.difficulty];
+  // Determine difficulty color with fallback
+  const difficultyColor = quiz.difficulty ? {
+    beginner: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    intermediate: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    advanced: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  }[quiz.difficulty] || "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+    : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300";
 
   return (
     <div className="container py-8 space-y-6 max-w-5xl">
@@ -115,9 +117,11 @@ export default function QuizDetailPage() {
           <Badge variant="secondary" className="text-sm">
             {quiz.category}
           </Badge>
-          <Badge className={`${difficultyColor} text-sm`}>
-            {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
-          </Badge>
+          {quiz.difficulty && (
+            <Badge className={`${difficultyColor} text-sm`}>
+              {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -237,30 +241,87 @@ export default function QuizDetailPage() {
       <Separator />
 
       {/* Action Buttons */}
-      <div className="flex gap-4">
-        {activeAttempt ? (
-          <>
-            <Link href={`/quizzes/${quiz.id}/take?resume=true`} className="flex-1">
-              <Button size="lg" className="w-full">
-                <RotateCcw className="mr-2 h-5 w-5" />
-                Resume Quiz
-              </Button>
-            </Link>
-            <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-              <Button size="lg" variant="outline" className="w-full">
-                <Play className="mr-2 h-5 w-5" />
-                Start New Attempt
-              </Button>
-            </Link>
-          </>
-        ) : (
-          <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-            <Button size="lg" className="w-full" disabled={attemptLoading}>
-              <Play className="mr-2 h-5 w-5" />
-              {attemptLoading ? "Checking..." : "Start Quiz"}
-            </Button>
-          </Link>
+      <div className="space-y-4">
+        {/* Session Status Badge */}
+        {activeSession && (
+          <Card className="border-2 border-orange-200 dark:border-orange-900">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    activeSession.session_state === 'paused'
+                      ? 'bg-orange-100 dark:bg-orange-900'
+                      : 'bg-green-100 dark:bg-green-900'
+                  }`}>
+                    {activeSession.session_state === 'paused' ? (
+                      <PauseIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                    ) : (
+                      <PlayCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">
+                        {activeSession.session_state === 'paused' ? 'Quiz Paused' : 'Quiz In Progress'}
+                      </p>
+                      <Badge variant={activeSession.session_state === 'paused' ? 'secondary' : 'default'}>
+                        {activeSession.session_state.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Question {activeSession.current_question_index + 1} of {quiz.question_count}
+                      {activeSession.time_remaining && (
+                        <> · {Math.floor(activeSession.time_remaining / 60)} minutes remaining</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold">
+                    {Math.round(((activeSession.current_question_index + 1) / quiz.question_count) * 100)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Complete</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          {activeSession ? (
+            <>
+              <Link href={`/quizzes/${quiz.id}/take?resume=true`} className="flex-1">
+                <Button size="lg" className="w-full">
+                  {activeSession.session_state === 'paused' ? (
+                    <>
+                      <RotateCcw className="mr-2 h-5 w-5" />
+                      Resume Quiz
+                    </>
+                  ) : (
+                    <>
+                      <PlayCircle className="mr-2 h-5 w-5" />
+                      Continue Quiz
+                    </>
+                  )}
+                </Button>
+              </Link>
+              <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
+                <Button size="lg" variant="outline" className="w-full">
+                  <Play className="mr-2 h-5 w-5" />
+                  Start New Attempt
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
+              <Button size="lg" className="w-full" disabled={sessionLoading}>
+                <Play className="mr-2 h-5 w-5" />
+                {sessionLoading ? "Checking..." : "Start Quiz"}
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
