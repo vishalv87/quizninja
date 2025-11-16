@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { QuizList } from "@/components/quiz/QuizList";
 import { QuizFilters, QuizFilterValues } from "@/components/quiz/QuizFilters";
 import { QuizSearch } from "@/components/quiz/QuizSearch";
@@ -74,11 +74,17 @@ export default function QuizzesPage() {
   } = useFeaturedQuizzes();
 
   // Fetch favorites for filtering
-  const { data: favoriteIds } = useFavorites();
+  const { data: favoritesData } = useFavorites();
+
+  // Extract favorite quiz IDs from the favorites response (memoized to prevent infinite loops)
+  const favoriteIds = useMemo(
+    () => favoritesData?.favorites.map((fav) => fav.quiz_id) || [],
+    [favoritesData]
+  );
 
   // Filter quizzes by favorites when showFavoritesOnly is true
   useEffect(() => {
-    if (filters.showFavoritesOnly && favoriteIds && allQuizzes) {
+    if (filters.showFavoritesOnly && favoriteIds.length > 0 && allQuizzes) {
       const filtered = allQuizzes.filter((quiz) =>
         favoriteIds.includes(quiz.id)
       );

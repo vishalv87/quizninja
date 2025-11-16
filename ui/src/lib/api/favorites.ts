@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 import { apiLogger } from "@/lib/logger";
+import type { FavoritesApiResponse, FavoritesListResponse } from "@/types/favorites";
 
 /**
  * Favorites API Service
@@ -37,13 +38,14 @@ export async function removeFromFavorites(quizId: string): Promise<void> {
 
 /**
  * Get list of favorite quizzes
+ * Returns paginated favorites with full quiz details embedded
  */
-export async function getFavorites(): Promise<string[]> {
+export async function getFavorites(): Promise<FavoritesListResponse> {
   try {
     apiLogger.debug("Fetching favorites");
-    const response = await apiClient.get<string[]>(API_ENDPOINTS.FAVORITES.LIST) as unknown as string[];
-    apiLogger.debug("Favorites fetched", { count: response.length });
-    return response;
+    const response = await apiClient.get<FavoritesApiResponse>(API_ENDPOINTS.FAVORITES.LIST);
+    apiLogger.debug("Favorites fetched", { count: response.data.favorites.length });
+    return response.data;
   } catch (error) {
     apiLogger.error("Error fetching favorites", error);
     throw error;
@@ -56,14 +58,14 @@ export async function getFavorites(): Promise<string[]> {
 export async function checkIsFavorite(quizId: string): Promise<boolean> {
   try {
     apiLogger.debug("Checking if quiz is favorite", { quizId });
-    const response = await apiClient.get<{ is_favorite: boolean }>(
+    const response = await apiClient.get<{ data: { is_favorite: boolean } }>(
       API_ENDPOINTS.FAVORITES.CHECK(quizId)
-    ) as unknown as { is_favorite: boolean };
+    );
     apiLogger.debug("Favorite status checked", {
       quizId,
-      isFavorite: response.is_favorite,
+      isFavorite: response.data.is_favorite,
     });
-    return response.is_favorite;
+    return response.data.is_favorite;
   } catch (error) {
     apiLogger.error("Error checking favorite status", { quizId, error });
     throw error;

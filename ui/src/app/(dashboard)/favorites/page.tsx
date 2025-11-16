@@ -1,30 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { QuizList } from "@/components/quiz/QuizList";
 import { useFavorites } from "@/hooks/useFavorites";
-import { useQuizzes } from "@/hooks/useQuizzes";
 import { Separator } from "@/components/ui/separator";
 import { Heart } from "lucide-react";
 import type { Quiz } from "@/types/quiz";
 
 export default function FavoritesPage() {
-  const { data: favoriteIds, isLoading: favoritesLoading, error: favoritesError } = useFavorites();
-  const { data: allQuizzes, isLoading: quizzesLoading, error: quizzesError } = useQuizzes({});
-  const [favoriteQuizzes, setFavoriteQuizzes] = useState<Quiz[]>([]);
+  const { data: favoritesData, isLoading, error } = useFavorites();
 
-  // Filter quizzes that are in favorites
-  useEffect(() => {
-    if (favoriteIds && allQuizzes) {
-      const filtered = allQuizzes.filter((quiz) =>
-        favoriteIds.includes(quiz.id)
-      );
-      setFavoriteQuizzes(filtered);
-    }
-  }, [favoriteIds, allQuizzes]);
-
-  const isLoading = favoritesLoading || quizzesLoading;
-  const error = favoritesError || quizzesError;
+  // Extract quiz data from favorites response
+  // The API returns favorites with quiz objects already embedded
+  const favoriteQuizzes: Quiz[] = favoritesData?.favorites.map((favorite) => ({
+    id: favorite.quiz.id,
+    title: favorite.quiz.title,
+    description: favorite.quiz.description,
+    category: favorite.quiz.category,
+    difficulty: favorite.quiz.difficulty,
+    time_limit: favorite.quiz.time_limit,
+    question_count: favorite.quiz.question_count,
+    points: favorite.quiz.points,
+    is_featured: favorite.quiz.is_featured,
+    tags: favorite.quiz.tags,
+    thumbnail_url: favorite.quiz.thumbnail_url,
+    created_at: favorite.quiz.created_at,
+  })) || [];
 
   return (
     <div className="container py-8 space-y-6">

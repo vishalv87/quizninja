@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,17 +12,20 @@ interface CategoryCardProps {
 }
 
 export function CategoryCard({ category }: CategoryCardProps) {
+  const [imageError, setImageError] = useState(false);
+
   return (
     <Link href={`/quizzes/category/${category.id}`}>
       <Card className="hover:shadow-lg transition-all hover:scale-105 cursor-pointer h-full">
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
-            {category.icon_url ? (
+            {category.icon_url && !imageError ? (
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
                 <img
                   src={category.icon_url}
                   alt={category.display_name}
                   className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
                 />
               </div>
             ) : (
