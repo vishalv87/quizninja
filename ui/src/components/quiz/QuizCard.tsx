@@ -88,11 +88,11 @@ export function QuizCard({ quiz }: QuizCardProps) {
               </span>
             </div>
 
-            {quiz.time_limit_minutes && (
+            {quiz.time_limit && (
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">
-                  {quiz.time_limit_minutes} min
+                  {quiz.time_limit} min
                 </span>
               </div>
             )}
@@ -100,7 +100,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
             <div className="flex items-center gap-2 text-sm">
               <Trophy className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">
-                {quiz.total_points} points
+                {quiz.points} points
               </span>
             </div>
 

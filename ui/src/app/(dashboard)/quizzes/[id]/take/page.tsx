@@ -187,8 +187,8 @@ export default function QuizTakingPage() {
     const progressRequest: SaveProgressRequest = {
       current_question_index: currentQuestionIndex,
       current_answers: answersList,
-      time_spent_so_far: quiz?.time_limit_minutes ?
-        (quiz.time_limit_minutes * 60) - (timeRemaining || 0) : 0,
+      time_spent_so_far: quiz?.time_limit ?
+        (quiz.time_limit * 60) - (timeRemaining || 0) : 0,
       time_remaining: timeRemaining || undefined,
     };
 
@@ -245,8 +245,8 @@ export default function QuizTakingPage() {
     const pauseRequest: PauseSessionRequest = {
       current_question_index: currentQuestionIndex,
       current_answers: answersList,
-      time_spent_so_far: quiz?.time_limit_minutes ?
-        (quiz.time_limit_minutes * 60) - (timeRemaining || 0) : 0,
+      time_spent_so_far: quiz?.time_limit ?
+        (quiz.time_limit * 60) - (timeRemaining || 0) : 0,
       time_remaining: timeRemaining || undefined,
     };
 

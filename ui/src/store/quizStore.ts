@@ -113,8 +113,8 @@ export const useQuizStore = create<QuizState>((set, get) => ({
 
   // Start quiz - initialize all state
   startQuiz: (quiz, attempt) => {
-    const timeLimit = quiz.time_limit_minutes
-      ? quiz.time_limit_minutes * 60
+    const timeLimit = quiz.time_limit
+      ? quiz.time_limit * 60
       : null;
 
     set({

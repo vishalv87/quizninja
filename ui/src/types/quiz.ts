@@ -17,14 +17,31 @@ export interface Quiz {
   category: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   question_count: number;
-  time_limit_minutes?: number;
-  points_per_question: number;
-  total_points: number;
+  time_limit?: number; // Changed from time_limit_minutes to match backend
+  points: number; // Changed from points_per_question to match backend
   is_featured: boolean;
   created_at: string;
   updated_at: string;
+  created_by?: string; // UUID of user who created the quiz
+  tags?: string[]; // Array of tags for categorization
+  thumbnail_url?: string; // Optional thumbnail image for the quiz
   attempts_count?: number;
   average_score?: number;
+  article_summary?: string;
+  questions?: Question[];
+  user_best_score?: number;
+  user_has_attempted?: boolean;
+  average_rating?: number;
+  total_ratings?: number;
+  statistics?: QuizStatistics;
+}
+
+export interface QuizStatistics {
+  total_attempts: number;
+  completed_attempts: number;
+  average_score: number;
+  average_time: number;
+  completion_rate: number;
 }
 
 export interface QuizListResponse {
@@ -45,6 +62,7 @@ export interface Question {
   options?: QuestionOption[];
   correct_answer?: string;
   explanation?: string;
+  image_url?: string; // Optional image URL for questions (diagrams, charts, photos)
 }
 
 export interface QuestionOption {
@@ -179,4 +197,42 @@ export interface SessionFilters {
   page?: number;
   page_size?: number;
   sort_by?: 'last_activity_at' | 'created_at';
+}
+
+// Rating Types
+export interface QuizRating {
+  id: string;
+  quiz_id: string;
+  user_id: string;
+  user_name?: string;
+  rating: number; // 1-5
+  review?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface RatingListResponse {
+  ratings: QuizRating[];
+  average_rating: number;
+  total_ratings: number;
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+export interface AverageRatingResponse {
+  quiz_id: string;
+  average_rating: number;
+  total_ratings: number;
+}
+
+export interface CreateRatingRequest {
+  rating: number;
+  review?: string;
+}
+
+export interface UpdateRatingRequest {
+  rating?: number;
+  review?: string;
 }
