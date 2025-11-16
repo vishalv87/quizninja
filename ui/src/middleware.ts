@@ -23,7 +23,7 @@ const protectedRoutes = [
 ]
 
 // Onboarding routes (require authentication)
-const onboardingRoutes = ['/welcome', '/preferences']
+const onboardingRoutes = ['/preferences']
 
 // Routes that should redirect to dashboard if user is already authenticated
 const authRoutes = ['/login', '/register']
@@ -84,16 +84,14 @@ export async function middleware(req: NextRequest) {
 
     // If accessing auth routes while already authenticated
     if (isAuthRoute && isAuthenticated) {
-      console.log(`[MIDDLEWARE] Redirecting to welcome (auth route, already authenticated)`)
+      console.log(`[MIDDLEWARE] Redirecting to dashboard (auth route, already authenticated)`)
       // Check if there's a return URL
       const returnUrl = req.nextUrl.searchParams.get('returnUrl')
       if (returnUrl) {
         return NextResponse.redirect(new URL(returnUrl, req.url))
       }
-      // Redirect to welcome page (onboarding will be handled there)
-      // TODO: Check onboarding status and redirect accordingly
-      // For now, redirect to welcome - the page will handle skipping if already completed
-      return NextResponse.redirect(new URL('/welcome', req.url))
+      // Redirect to dashboard since user is already authenticated
+      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
     console.log(`[MIDDLEWARE] Allowing request to proceed`)

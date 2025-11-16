@@ -21,7 +21,6 @@ export const ROUTES = {
   DISCUSSION_DETAIL: (id: string) => `/discussions/${id}`,
   NOTIFICATIONS: "/notifications",
   SETTINGS: "/settings",
-  ONBOARDING_WELCOME: "/welcome",
   ONBOARDING_PREFERENCES: "/preferences",
 } as const;
 

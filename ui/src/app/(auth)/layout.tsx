@@ -16,7 +16,7 @@ import { SessionValidator } from '@/components/auth/SessionValidator'
  */
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isFullWidthPage = pathname === '/welcome' || pathname === '/preferences';
+  const isFullWidthPage = pathname === '/preferences';
 
   return (
     <div className="min-h-screen flex flex-col">

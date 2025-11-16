@@ -29,7 +29,7 @@ export default function PreferencesPage() {
   };
 
   const handleBack = () => {
-    router.push("/welcome");
+    router.push("/");
   };
 
   const handleComplete = async () => {
