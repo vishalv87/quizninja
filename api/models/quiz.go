@@ -39,7 +39,7 @@ type Question struct {
 	CorrectAnswer string      `json:"correct_answer" db:"correct_answer"`
 	Explanation   *string     `json:"explanation,omitempty" db:"explanation"`
 	Points        int         `json:"points" db:"points"`
-	Order         int         `json:"order" db:"order"`
+	Order         int         `json:"order" db:"order_index"`
 	ImageURL      *string     `json:"image_url,omitempty" db:"image_url"`
 	CreatedAt     time.Time   `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time   `json:"updated_at" db:"updated_at"`

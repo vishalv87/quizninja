@@ -408,7 +408,7 @@ func (r *QuizRepository) GetCompletedQuizzesByUser(userID uuid.UUID, offset, lim
 func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error) {
 	query := `
 		SELECT id, quiz_id, question_text, question_type, options, correct_answer,
-		       explanation, order_index, created_at
+		       explanation, points, order_index, image_url, created_at, updated_at
 		FROM questions
 		WHERE quiz_id = $1
 		ORDER BY order_index ASC`
@@ -426,19 +426,14 @@ func (r *QuizRepository) GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Questi
 
 		err := rows.Scan(
 			&question.ID, &question.QuizID, &question.QuestionText, &question.QuestionType,
-			&options, &question.CorrectAnswer, &question.Explanation, &question.Order, &question.CreatedAt,
+			&options, &question.CorrectAnswer, &question.Explanation, &question.Points,
+			&question.Order, &question.ImageURL, &question.CreatedAt, &question.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan question: %w", err)
 		}
 
 		question.Options = models.StringArray(options)
-
-		// Set default values for fields not in database
-		question.Points = 1                     // Default points per question
-		question.ImageURL = nil                 // No image URL in current schema
-		question.UpdatedAt = question.CreatedAt // Use created_at as default for updated_at
-
 		questions = append(questions, question)
 	}
 
