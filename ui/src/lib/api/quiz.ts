@@ -51,9 +51,11 @@ export async function getQuizzes(filters?: QuizFilters): Promise<Quiz[]> {
 export async function getQuiz(id: string): Promise<Quiz> {
   try {
     apiLogger.debug("Fetching quiz", { quizId: id });
-    const response = await apiClient.get<Quiz>(API_ENDPOINTS.QUIZ.GET(id)) as unknown as Quiz;
-    apiLogger.debug("Quiz fetched successfully", { quizId: id });
-    return response;
+    const response = await apiClient.get<{ data: { quiz: Quiz } }>(
+      API_ENDPOINTS.QUIZ.GET(id)
+    ) as unknown as { data: { quiz: Quiz } };
+    apiLogger.debug("Quiz fetched successfully", { quizId: id, quiz: response.data.quiz });
+    return response.data.quiz;
   } catch (error) {
     apiLogger.error("Error fetching quiz", { quizId: id, error });
     throw error;

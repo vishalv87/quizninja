@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
+import { RelatedQuizzesCard } from "@/components/quiz/RelatedQuizzesCard";
 import {
   BookOpen,
   Trophy,
@@ -25,9 +25,7 @@ import {
   PlayCircle,
   Lightbulb,
   AlertTriangle,
-  FileText,
   CheckCircle2,
-  HelpCircle,
   Clock,
   Users,
   TrendingUp,
@@ -139,7 +137,7 @@ export default function QuizDetailPage() {
   };
 
   return (
-    <div className="container py-8 space-y-6 max-w-5xl">
+    <div className="container py-8 space-y-6 max-w-7xl">
       {/* Back Button */}
       <Button variant="ghost" onClick={() => router.push("/quizzes")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -170,6 +168,20 @@ export default function QuizDetailPage() {
                     {activeSession.session_state.toUpperCase()}
                   </Badge>
                 )}
+                {/* Tags */}
+                {quiz.tags && quiz.tags.length > 0 && (
+                  <>
+                    {quiz.tags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="bg-white/10 text-white border-white/20 backdrop-blur-sm"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </>
+                )}
               </div>
 
               {/* Title and Description */}
@@ -187,7 +199,7 @@ export default function QuizDetailPage() {
 
               {/* Progress Bar for Active Session */}
               {activeSession && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Progress value={sessionProgress} className="h-2 bg-white/30" />
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
@@ -203,12 +215,35 @@ export default function QuizDetailPage() {
                       <p className="font-semibold">{formatTimeRemaining(activeSession.time_remaining)}</p>
                     </div>
                   </div>
+                  <div className="flex gap-3 pt-2">
+                    <Link href={`/quizzes/${quiz.id}/take?resume=true`} className="flex-1">
+                      <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90">
+                        {activeSession.session_state === 'paused' ? (
+                          <>
+                            <RotateCcw className="mr-2 h-5 w-5" />
+                            Resume Quiz
+                          </>
+                        ) : (
+                          <>
+                            <PlayCircle className="mr-2 h-5 w-5" />
+                            Continue Quiz
+                          </>
+                        )}
+                      </Button>
+                    </Link>
+                    <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
+                      <Button size="lg" variant="outline" className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20">
+                        <Play className="mr-2 h-5 w-5" />
+                        Start New
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               )}
 
               {/* Stats Row for Normal Flow */}
               {!activeSession && (
-                <div className="grid grid-cols-3 gap-6 pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-4">
                   <div className="space-y-1">
                     <p className="text-sm text-white/70 font-medium">Questions</p>
                     <p className="text-2xl font-bold text-white">{quiz.question_count}</p>
@@ -222,6 +257,14 @@ export default function QuizDetailPage() {
                   <div className="space-y-1">
                     <p className="text-sm text-white/70 font-medium">Points</p>
                     <p className="text-2xl font-bold text-white">{quiz.points}</p>
+                  </div>
+                  <div className="col-span-2 md:col-span-1 flex items-end">
+                    <Link href={`/quizzes/${quiz.id}/take`} className="w-full">
+                      <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90" disabled={sessionLoading}>
+                        <Play className="mr-2 h-5 w-5" />
+                        {sessionLoading ? "Checking..." : "Start Quiz"}
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               )}
@@ -251,261 +294,12 @@ export default function QuizDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Previous Attempt Card */}
-      {quiz.user_has_attempted && quiz.user_best_score !== undefined && (
-        <Card className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-lg">
-                <Trophy className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-amber-900 dark:text-amber-100">
-                  {quiz.user_best_score.toFixed(1)}%
-                </p>
-                <p className="text-sm text-amber-700 dark:text-amber-300">Your Best Score</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Desktop Grid Layout: Main Content + Sidebar */}
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Main Content Area (Left Side - 2/3 on desktop) */}
+        <div className="lg:col-span-2 space-y-6">
 
-      {/* Quiz Metadata */}
-      {(quiz.tags?.length || quiz.created_by || quiz.thumbnail_url || quiz.created_at) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Quiz Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-4">
-                {/* Tags */}
-                {quiz.tags && quiz.tags.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Tag className="h-4 w-4" />
-                      Tags
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {quiz.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Creator */}
-                {quiz.created_by && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <User className="h-4 w-4" />
-                      Created By
-                    </div>
-                    <p className="text-sm font-medium">{quiz.created_by}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-4">
-                {/* Timestamps */}
-                {quiz.created_at && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Created
-                    </div>
-                    <p className="text-sm font-medium">
-                      {new Date(quiz.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                )}
-
-                {quiz.updated_at && quiz.updated_at !== quiz.created_at && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      Last Updated
-                    </div>
-                    <p className="text-sm font-medium">
-                      {new Date(quiz.updated_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Thumbnail */}
-            {quiz.thumbnail_url && (
-              <div className="space-y-2 pt-2 border-t">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" />
-                  Quiz Thumbnail
-                </div>
-                <div className="relative w-full h-48 rounded-lg overflow-hidden bg-muted">
-                  <Image
-                    src={quiz.thumbnail_url}
-                    alt={quiz.title}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Community Statistics & Ratings */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Community Statistics */}
-        {quiz.statistics && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Community Statistics
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Users className="h-4 w-4" />
-                    Total Attempts
-                  </div>
-                  <p className="text-2xl font-bold">{quiz.statistics.total_attempts.toLocaleString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <TrendingUp className="h-4 w-4" />
-                    Avg Score
-                  </div>
-                  <p className="text-2xl font-bold">{quiz.statistics.average_score.toFixed(1)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Award className="h-4 w-4" />
-                    Completion Rate
-                  </div>
-                  <p className="text-2xl font-bold">{quiz.statistics.completion_rate.toFixed(1)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Clock className="h-4 w-4" />
-                    Avg Time
-                  </div>
-                  <p className="text-2xl font-bold">{Math.floor(quiz.statistics.average_time / 60)}m</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Rating Display */}
-        {(quiz.average_rating !== undefined && quiz.total_ratings !== undefined) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5" />
-                Community Rating
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-4xl font-bold">{quiz.average_rating.toFixed(1)}</p>
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          className={`h-5 w-5 ${
-                            star <= Math.round(quiz.average_rating!)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Based on {quiz.total_ratings} {quiz.total_ratings === 1 ? 'rating' : 'ratings'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Article Summary & Rules Tabs */}
-      <Tabs defaultValue="summary" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="summary" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Article Summary
-          </TabsTrigger>
-          <TabsTrigger value="rules" className="flex items-center gap-2">
-            <HelpCircle className="h-4 w-4" />
-            Rules
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="summary" className="space-y-4">
-          {quiz.article_summary ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Key Points to Remember
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-muted-foreground leading-relaxed">
-                    {quiz.article_summary}
-                  </p>
-
-                  {/* Pro Tip Callout */}
-                  <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                    <Lightbulb className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    <AlertDescription className="text-blue-900 dark:text-blue-100">
-                      <strong>Pro Tip:</strong> Review these key points before starting the quiz to refresh your knowledge and improve your score!
-                    </AlertDescription>
-                  </Alert>
-                </CardContent>
-              </Card>
-            </>
-          ) : (
-            <Card>
-              <CardContent className="pt-6">
-                <EmptyState
-                  icon={FileText}
-                  title="No Article Summary Available"
-                  description="This quiz doesn't have an article summary yet."
-                />
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="rules" className="space-y-4">
+          {/* Quiz Rules */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -540,129 +334,102 @@ export default function QuizDetailPage() {
               </Alert>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-
-      <Separator />
-
-      {/* Question Preview */}
-      {quiz.questions && quiz.questions.length > 0 && (
-        <>
-          <Card className="border-2 border-dashed">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Question Preview
-                </CardTitle>
-                <Badge variant="secondary">Sample Question</Badge>
-              </div>
-              <CardDescription>
-                Here's a sample question from this quiz (Question 1 of {quiz.question_count})
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Question Image */}
-              {quiz.questions[0].image_url && (
-                <div className="relative w-full h-64 rounded-lg overflow-hidden bg-muted">
-                  <Image
-                    src={quiz.questions[0].image_url}
-                    alt="Question visual"
-                    fill
-                    className="object-contain"
-                    unoptimized
-                  />
-                </div>
-              )}
-
-              {/* Question Text */}
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <p className="font-medium text-lg">
-                  {quiz.questions[0].question_text}
-                </p>
-              </div>
-
-              {/* Question Options */}
-              {quiz.questions[0].options && (
-                <div className="space-y-2">
-                  {quiz.questions[0].options.map((option, index) => (
-                    <div
-                      key={option.id}
-                      className="p-3 border rounded-lg bg-background cursor-not-allowed opacity-75"
-                    >
-                      <span className="font-medium mr-2">
-                        {String.fromCharCode(65 + index)}.
-                      </span>
-                      {option.option_text}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground italic">
-                  * This is just a preview. Actual answers are hidden until you start the quiz.
-                </p>
-                {quiz.questions[0].explanation && (
-                  <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
-                    <Lightbulb className="h-3 w-3" />
-                    <span className="font-medium">Detailed explanations available after quiz completion</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           <Separator />
-        </>
-      )}
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-4">
-        <div className="flex gap-4">
-          {activeSession ? (
+          {/* Question Preview */}
+          {quiz.questions && quiz.questions.length > 0 && (
             <>
-              <Link href={`/quizzes/${quiz.id}/take?resume=true`} className="flex-1">
-                <Button size="lg" className="w-full">
-                  {activeSession.session_state === 'paused' ? (
-                    <>
-                      <RotateCcw className="mr-2 h-5 w-5" />
-                      Resume Quiz
-                    </>
-                  ) : (
-                    <>
-                      <PlayCircle className="mr-2 h-5 w-5" />
-                      Continue Quiz
-                    </>
+              <Card className="border-2 border-dashed">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      Question Preview
+                    </CardTitle>
+                    <Badge variant="secondary">Sample Question</Badge>
+                  </div>
+                  <CardDescription>
+                    Here's a sample question from this quiz (Question 1 of {quiz.question_count})
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Question Image */}
+                  {quiz.questions[0].image_url && (
+                    <div className="relative w-full h-64 rounded-lg overflow-hidden bg-muted">
+                      <Image
+                        src={quiz.questions[0].image_url}
+                        alt="Question visual"
+                        fill
+                        className="object-contain"
+                        unoptimized
+                      />
+                    </div>
                   )}
-                </Button>
-              </Link>
-              <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-                <Button size="lg" variant="outline" className="w-full">
-                  <Play className="mr-2 h-5 w-5" />
-                  Start New Attempt
-                </Button>
-              </Link>
+
+                  {/* Question Text */}
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="font-medium text-lg">
+                      {quiz.questions[0].question_text}
+                    </p>
+                  </div>
+
+                  {/* Question Options */}
+                  {quiz.questions[0].options && (
+                    <div className="space-y-2">
+                      {quiz.questions[0].options.map((option, index) => (
+                        <div
+                          key={option.id}
+                          className="p-3 border rounded-lg bg-background cursor-not-allowed opacity-75"
+                        >
+                          <span className="font-medium mr-2">
+                            {String.fromCharCode(65 + index)}.
+                          </span>
+                          {option.option_text}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground italic">
+                      * This is just a preview. Actual answers are hidden until you start the quiz.
+                    </p>
+                    {quiz.questions[0].explanation && (
+                      <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
+                        <Lightbulb className="h-3 w-3" />
+                        <span className="font-medium">Detailed explanations available after quiz completion</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Separator />
             </>
-          ) : (
-            <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-              <Button size="lg" className="w-full" disabled={sessionLoading}>
-                <Play className="mr-2 h-5 w-5" />
-                {sessionLoading ? "Checking..." : "Start Quiz"}
+          )}
+
+          {/* View Results Button for completed quizzes */}
+          {quiz.user_has_attempted && !activeSession && (
+            <Link href={`/quizzes/${quiz.id}/results`} className="w-full">
+              <Button size="lg" variant="secondary" className="w-full">
+                <Trophy className="mr-2 h-5 w-5" />
+                View Results & History
               </Button>
             </Link>
           )}
         </div>
 
-        {/* View Results Button for completed quizzes */}
-        {quiz.user_has_attempted && !activeSession && (
-          <Link href={`/quizzes/${quiz.id}/results`} className="w-full">
-            <Button size="lg" variant="secondary" className="w-full">
-              <Trophy className="mr-2 h-5 w-5" />
-              View Results & History
-            </Button>
-          </Link>
-        )}
+        {/* Sidebar (Right Side - 1/3 on desktop) */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-6">
+            <RelatedQuizzesCard
+              currentQuizId={quiz.id}
+              category={quiz.category}
+              difficulty={quiz.difficulty}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
