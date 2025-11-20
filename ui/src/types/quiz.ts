@@ -197,6 +197,7 @@ export interface SessionFilters {
   page?: number;
   page_size?: number;
   sort_by?: 'last_activity_at' | 'created_at';
+  sort_order?: 'asc' | 'desc';
 }
 
 // Rating Types

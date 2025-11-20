@@ -364,10 +364,21 @@ export async function getUserActiveSessions(
 ): Promise<ActiveSessionsResponse> {
   try {
     apiLogger.debug("Fetching user active sessions", filters);
-    const response = await apiClient.get<{ data: ActiveSessionsResponse }>(
-      API_ENDPOINTS.USERS.ACTIVE_SESSIONS,
-      { params: filters }
-    ) as unknown as { data: ActiveSessionsResponse };
+
+    // Build query parameters manually to avoid Axios array serialization issues
+    const params = new URLSearchParams();
+    if (filters?.quiz_id) params.append('quiz_id', filters.quiz_id);
+    if (filters?.session_state) params.append('session_state', filters.session_state);
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters?.page) params.append('page', filters.page.toString());
+    if (filters?.page_size) params.append('page_size', filters.page_size.toString());
+    if (filters?.sort_by) params.append('sort_by', filters.sort_by);
+    if (filters?.sort_order) params.append('sort_order', filters.sort_order);
+
+    const url = `${API_ENDPOINTS.USERS.ACTIVE_SESSIONS}${params.toString() ? '?' + params.toString() : ''}`;
+
+    const response = await apiClient.get<{ data: ActiveSessionsResponse }>(url) as unknown as { data: ActiveSessionsResponse };
     apiLogger.debug("Active sessions fetched", {
       total: response.data.total,
       active_count: response.data.active_count,

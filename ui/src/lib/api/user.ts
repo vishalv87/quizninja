@@ -11,7 +11,7 @@ import { apiLogger } from '@/lib/logger'
  */
 
 /**
- * Active Session Response Type
+ * Active Session Response Type (Frontend)
  */
 export interface ActiveSession {
   id: string
@@ -24,6 +24,36 @@ export interface ActiveSession {
   questions_answered: number
   total_questions: number
   status: 'in_progress' | 'paused'
+}
+
+/**
+ * Backend Active Session Response Type
+ * Note: Backend sends 'active' instead of 'in_progress' for session_state
+ * Note: Backend sends 'time_spent_so_far' instead of 'time_elapsed_seconds'
+ */
+export interface BackendActiveSession {
+  id: string
+  quiz_id: string
+  quiz_title: string
+  quiz_category: string
+  quiz_difficulty: string
+  quiz_thumbnail?: string
+  total_questions: number
+  original_time_limit: number
+  session_state: 'active' | 'paused'
+  current_question_index: number
+  created_at: string
+  time_spent_so_far: number
+}
+
+/**
+ * Backend Active Sessions Response Wrapper
+ */
+export interface ActiveSessionsResponse {
+  sessions: BackendActiveSession[]
+  total: number
+  active_count: number
+  paused_count: number
 }
 
 /**
@@ -112,17 +142,20 @@ export async function getUserAttempts(
  * Get user's active quiz sessions
  * Returns all in-progress or paused quiz attempts
  */
-export async function getActiveSessions(): Promise<APIResponse<ActiveSession[]>> {
+export async function getActiveSessions(): Promise<ActiveSessionsResponse> {
   try {
     apiLogger.debug('[USER API] Fetching active sessions')
-    const response = await apiClient.get<APIResponse<ActiveSession[]>>(
+    const response = await apiClient.get<{ data: ActiveSessionsResponse }>(
       API_ENDPOINTS.USERS.ACTIVE_SESSIONS
-    ) as unknown as APIResponse<ActiveSession[]>
+    )
+
+    // For this endpoint, the interceptor doesn't unwrap the data wrapper
+    const activeSessions = (response as any).data || response
 
     apiLogger.info('[USER API] Active sessions fetched successfully', {
-      count: response?.data?.length || 0,
+      count: activeSessions?.sessions?.length || 0,
     })
-    return response
+    return activeSessions
   } catch (error: any) {
     apiLogger.error('[USER API] Failed to fetch active sessions', {
       message: error.message,

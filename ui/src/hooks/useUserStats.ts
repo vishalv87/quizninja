@@ -1,10 +1,10 @@
 "use client";
 
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { getUserStats, getUserAttempts, getActiveSessions, type UserAttemptFilters, type ActiveSession } from "@/lib/api/user";
+import { getUserStats, getUserAttempts, getActiveSessions, type UserAttemptFilters, type ActiveSession, type BackendActiveSession } from "@/lib/api/user";
 import type { UserStats } from "@/types/user";
 import type { QuizAttempt } from "@/types/quiz";
-import type { APIResponse, PaginatedResponse } from "@/types/api";
+import type { APIResponse } from "@/types/api";
 
 /**
  * Hook to fetch current user's statistics
@@ -57,9 +57,23 @@ export function useActiveSessions(): UseQueryResult<ActiveSession[], Error> {
     queryKey: ["user", "active-sessions"],
     queryFn: async () => {
       const response = await getActiveSessions();
-      // Extract the array from the APIResponse wrapper
-      // Ensure we always return an array
-      return Array.isArray(response.data) ? response.data : [];
+      const backendSessions = response?.sessions || [];
+
+      // Transform backend session format to frontend ActiveSession format
+      const transformedSessions: ActiveSession[] = backendSessions.map((session: BackendActiveSession): ActiveSession => ({
+        id: session.id,
+        quiz_id: session.quiz_id,
+        quiz_title: session.quiz_title,
+        category: session.quiz_category,
+        difficulty: session.quiz_difficulty,
+        started_at: session.created_at,
+        time_elapsed_seconds: session.time_spent_so_far,
+        questions_answered: session.current_question_index,
+        total_questions: session.total_questions,
+        status: session.session_state === 'active' ? 'in_progress' : session.session_state,
+      }));
+
+      return transformedSessions;
     },
     staleTime: 1 * 60 * 1000, // 1 minute - active sessions change frequently
     refetchOnWindowFocus: true, // Refetch when user comes back
