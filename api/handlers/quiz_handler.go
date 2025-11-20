@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -1086,35 +1087,55 @@ func (h *QuizHandler) ResumeQuizSession(c *gin.Context) {
 func (h *QuizHandler) GetUserActiveSessions(c *gin.Context) {
 	userID := getUserIDFromContext(c)
 
+	// Parse filters manually to handle UUID strings properly (Gin has a bug with *uuid.UUID query binding)
 	var filters models.SessionFilters
-	if err := c.ShouldBindQuery(&filters); err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid query parameters", err.Error())
-		return
+
+	// Parse quiz_id if provided
+	if quizIDStr := c.Query("quiz_id"); quizIDStr != "" {
+		if quizID, err := uuid.Parse(quizIDStr); err == nil {
+			filters.QuizID = &quizID
+		} else {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz_id format")
+			return
+		}
 	}
 
-	// Set defaults for pagination
-	if filters.Page <= 0 {
+	// Parse other string parameters
+	filters.SessionState = c.Query("session_state")
+	filters.Category = c.Query("category")
+	filters.Difficulty = c.Query("difficulty")
+	filters.SortBy = c.DefaultQuery("sort_by", "last_activity_at")
+	filters.SortOrder = c.DefaultQuery("sort_order", "desc")
+
+	// Parse pagination parameters with defaults
+	if page, err := strconv.Atoi(c.DefaultQuery("page", "1")); err == nil && page > 0 {
+		filters.Page = page
+	} else {
 		filters.Page = 1
 	}
-	if filters.PageSize <= 0 {
+
+	if pageSize, err := strconv.Atoi(c.DefaultQuery("page_size", "10")); err == nil && pageSize > 0 {
+		filters.PageSize = pageSize
+	} else {
 		filters.PageSize = 10
 	}
+
+	// Cap page size
 	if filters.PageSize > 50 {
 		filters.PageSize = 50
-	}
-
-	// Set defaults for sorting
-	if filters.SortBy == "" {
-		filters.SortBy = "last_activity_at"
-	}
-	if filters.SortOrder == "" {
-		filters.SortOrder = "desc"
 	}
 
 	sessions, total, err := h.repo.QuizSession.GetUserActiveSessions(userID, &filters)
 	if err != nil {
 		utils.HandleError(c, err)
 		return
+	}
+
+	// DEBUG: Log the sessions retrieved
+	log.Printf("[DEBUG] Active Sessions - UserID: %s, Total: %d, Sessions Count: %d", userID, total, len(sessions))
+	for i, session := range sessions {
+		log.Printf("[DEBUG] Session %d: ID=%s, State=%s, Quiz=%s, TimeSpent=%d",
+			i, session.ID, session.SessionState, session.QuizTitle, session.TimeSpentSoFar)
 	}
 
 	// Count active and paused sessions
