@@ -39,7 +39,6 @@ export const API_ENDPOINTS = {
     ATTEMPTS: "/users/attempts",
     USER_ATTEMPTS: (userId: string) => `/users/${userId}/attempts`,
     ATTEMPT_DETAILS: (attemptId: string) => `/users/attempts/${attemptId}`,
-    ACTIVE_SESSIONS: "/users/active-sessions",
     ACHIEVEMENTS: "/users/achievements",
     ACHIEVEMENTS_BY_USER: (userId: string) => `/users/${userId}/achievements`,
   },

@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RecentActivity } from '@/components/dashboard/RecentActivity'
-import { ActiveSessions } from '@/components/dashboard/ActiveSessions'
 import { FeaturedQuizzesDashboard } from '@/components/dashboard/FeaturedQuizzesDashboard'
 
 export default function DashboardPage() {
@@ -168,9 +167,6 @@ export default function DashboardPage() {
           })}
         </div>
       </div>
-
-      {/* Active Sessions */}
-      <ActiveSessions />
 
       {/* Recent Activity */}
       <RecentActivity />

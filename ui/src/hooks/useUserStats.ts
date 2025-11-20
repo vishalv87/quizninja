@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
-import { getUserStats, getUserAttempts, getActiveSessions, type UserAttemptFilters, type ActiveSession, type BackendActiveSession } from "@/lib/api/user";
+import { getUserStats, getUserAttempts, type UserAttemptFilters } from "@/lib/api/user";
 import type { UserStats } from "@/types/user";
 import type { QuizAttempt } from "@/types/quiz";
 import type { APIResponse } from "@/types/api";
@@ -42,41 +42,5 @@ export function useUserAttempts(
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
-  });
-}
-
-/**
- * Hook to fetch user's active quiz sessions
- * Returns all in-progress or paused quiz attempts
- * Note: Each user has only ONE attempt per quiz (can be in_progress, paused, completed, or abandoned)
- *
- * @returns React Query result with active sessions data
- */
-export function useActiveSessions(): UseQueryResult<ActiveSession[], Error> {
-  return useQuery({
-    queryKey: ["user", "active-sessions"],
-    queryFn: async () => {
-      const response = await getActiveSessions();
-      const backendSessions = response?.sessions || [];
-
-      // Transform backend session format to frontend ActiveSession format
-      const transformedSessions: ActiveSession[] = backendSessions.map((session: BackendActiveSession): ActiveSession => ({
-        id: session.id,
-        quiz_id: session.quiz_id,
-        quiz_title: session.quiz_title,
-        category: session.quiz_category,
-        difficulty: session.quiz_difficulty,
-        started_at: session.created_at,
-        time_elapsed_seconds: session.time_spent_so_far,
-        questions_answered: session.current_question_index,
-        total_questions: session.total_questions,
-        status: session.session_state === 'active' ? 'in_progress' : session.session_state,
-      }));
-
-      return transformedSessions;
-    },
-    staleTime: 1 * 60 * 1000, // 1 minute - active sessions change frequently
-    refetchOnWindowFocus: true, // Refetch when user comes back
-    refetchInterval: 60 * 1000, // Auto-refetch every minute
   });
 }

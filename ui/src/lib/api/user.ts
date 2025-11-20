@@ -7,54 +7,8 @@ import { apiLogger } from '@/lib/logger'
 
 /**
  * User API Service
- * Handles user-related operations like stats, attempts, and active sessions
+ * Handles user-related operations like stats and attempts
  */
-
-/**
- * Active Session Response Type (Frontend)
- */
-export interface ActiveSession {
-  id: string
-  quiz_id: string
-  quiz_title: string
-  category: string
-  difficulty: string
-  started_at: string
-  time_elapsed_seconds: number
-  questions_answered: number
-  total_questions: number
-  status: 'in_progress' | 'paused'
-}
-
-/**
- * Backend Active Session Response Type
- * Note: Backend sends 'active' instead of 'in_progress' for session_state
- * Note: Backend sends 'time_spent_so_far' instead of 'time_elapsed_seconds'
- */
-export interface BackendActiveSession {
-  id: string
-  quiz_id: string
-  quiz_title: string
-  quiz_category: string
-  quiz_difficulty: string
-  quiz_thumbnail?: string
-  total_questions: number
-  original_time_limit: number
-  session_state: 'active' | 'paused'
-  current_question_index: number
-  created_at: string
-  time_spent_so_far: number
-}
-
-/**
- * Backend Active Sessions Response Wrapper
- */
-export interface ActiveSessionsResponse {
-  sessions: BackendActiveSession[]
-  total: number
-  active_count: number
-  paused_count: number
-}
 
 /**
  * User Attempt Filters
@@ -139,33 +93,6 @@ export async function getUserAttempts(
 }
 
 /**
- * Get user's active quiz sessions
- * Returns all in-progress or paused quiz attempts
- */
-export async function getActiveSessions(): Promise<ActiveSessionsResponse> {
-  try {
-    apiLogger.debug('[USER API] Fetching active sessions')
-    const response = await apiClient.get<{ data: ActiveSessionsResponse }>(
-      API_ENDPOINTS.USERS.ACTIVE_SESSIONS
-    )
-
-    // For this endpoint, the interceptor doesn't unwrap the data wrapper
-    const activeSessions = (response as any).data || response
-
-    apiLogger.info('[USER API] Active sessions fetched successfully', {
-      count: activeSessions?.sessions?.length || 0,
-    })
-    return activeSessions
-  } catch (error: any) {
-    apiLogger.error('[USER API] Failed to fetch active sessions', {
-      message: error.message,
-      responseData: error.response?.data,
-    })
-    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch active sessions')
-  }
-}
-
-/**
  * Get details of a specific attempt
  */
 export async function getAttemptDetails(attemptId: string): Promise<APIResponse<QuizAttempt>> {
@@ -233,7 +160,6 @@ export async function getUserStatsById(userId: string): Promise<APIResponse<User
 export const userApi = {
   getUserStats,
   getUserAttempts,
-  getActiveSessions,
   getAttemptDetails,
   getUserProfile,
   getUserStatsById,
