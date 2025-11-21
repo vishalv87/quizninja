@@ -62,7 +62,9 @@ export async function getUserAttempts(
     const url = `${API_ENDPOINTS.USERS.ATTEMPTS}${params.toString() ? '?' + params.toString() : ''}`
 
     // The axios interceptor already unwraps response.data, so we get AttemptHistoryResponse directly
-    const response = await apiClient.get<AttemptHistoryResponse<QuizAttempt>>(url)
+    // Cast through unknown because TypeScript types don't reflect the interceptor behavior
+    const apiResponse = await apiClient.get<AttemptHistoryResponse<QuizAttempt>>(url)
+    const response = apiResponse as unknown as AttemptHistoryResponse<QuizAttempt>
 
     // Transform backend response format to frontend PaginatedResponse format
     const paginatedData: PaginatedResponse<QuizAttempt> = {

@@ -158,7 +158,7 @@ export function isNotificationExpired(expiresAt?: string): boolean {
 /**
  * Group notifications by date (Today, Yesterday, This Week, Earlier)
  */
-export function groupNotificationsByDate(notifications: Array<{ created_at: string; [key: string]: any }>) {
+export function groupNotificationsByDate<T extends { created_at: string }>(notifications: T[]) {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
@@ -167,10 +167,10 @@ export function groupNotificationsByDate(notifications: Array<{ created_at: stri
   thisWeek.setDate(thisWeek.getDate() - 7);
 
   const groups = {
-    today: [] as typeof notifications,
-    yesterday: [] as typeof notifications,
-    thisWeek: [] as typeof notifications,
-    earlier: [] as typeof notifications,
+    today: [] as T[],
+    yesterday: [] as T[],
+    thisWeek: [] as T[],
+    earlier: [] as T[],
   };
 
   notifications.forEach((notification) => {

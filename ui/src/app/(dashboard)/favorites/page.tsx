@@ -16,7 +16,7 @@ export default function FavoritesPage() {
     title: favorite.quiz.title,
     description: favorite.quiz.description,
     category: favorite.quiz.category,
-    difficulty: favorite.quiz.difficulty,
+    difficulty: favorite.quiz.difficulty as Quiz["difficulty"],
     time_limit: favorite.quiz.time_limit,
     question_count: favorite.quiz.question_count,
     points: favorite.quiz.points,
@@ -24,6 +24,7 @@ export default function FavoritesPage() {
     tags: favorite.quiz.tags,
     thumbnail_url: favorite.quiz.thumbnail_url,
     created_at: favorite.quiz.created_at,
+    updated_at: favorite.quiz.created_at, // Use created_at as fallback since QuizSummary doesn't have updated_at
   })) || [];
 
   return (

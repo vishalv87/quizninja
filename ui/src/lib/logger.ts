@@ -19,12 +19,10 @@ class Logger {
     return `[${timestamp}] [${level.toUpperCase()}] [${this.prefix}] ${message}`;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   debug(_message: string, _data?: any) {
     // Disabled - only warn and error logs are enabled
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   info(_message: string, _data?: any) {
     // Disabled - only warn and error logs are enabled
   }

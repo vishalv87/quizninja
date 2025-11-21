@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { BookOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,12 +21,14 @@ export function CategoryCard({ category }: CategoryCardProps) {
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
             {category.icon_url && !imageError ? (
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                <img
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden relative">
+                <Image
                   src={category.icon_url}
                   alt={category.display_name}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
                   onError={() => setImageError(true)}
+                  unoptimized
                 />
               </div>
             ) : (

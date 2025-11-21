@@ -38,8 +38,11 @@ export async function removeFromFavorites(quizId: string): Promise<void> {
  */
 export async function getFavorites(): Promise<FavoritesListResponse> {
   try {
+    // The apiClient interceptor unwraps axios response, returning backend payload directly
+    // Backend wraps response in { data: ... }, so the actual response is FavoritesApiResponse
+    // We cast through unknown because TypeScript types don't reflect the interceptor behavior
     const response = await apiClient.get<FavoritesApiResponse>(API_ENDPOINTS.FAVORITES.LIST);
-    return response.data;
+    return (response as unknown as FavoritesApiResponse).data;
   } catch (error) {
     apiLogger.error("Error fetching favorites", error);
     throw error;
@@ -54,7 +57,8 @@ export async function checkIsFavorite(quizId: string): Promise<boolean> {
     const response = await apiClient.get<{ data: { is_favorite: boolean } }>(
       API_ENDPOINTS.FAVORITES.CHECK(quizId)
     );
-    return response.data.is_favorite;
+    // Cast through unknown because TypeScript types don't reflect the interceptor behavior
+    return (response as unknown as { data: { is_favorite: boolean } }).data.is_favorite;
   } catch (error) {
     apiLogger.error("Error checking favorite status", { quizId, error });
     throw error;

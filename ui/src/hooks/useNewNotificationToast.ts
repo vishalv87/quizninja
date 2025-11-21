@@ -69,7 +69,7 @@ export function useNewNotificationToast() {
 
     // Update previous count for next comparison
     prevUnreadCountRef.current = stats?.unread_notifications;
-  }, [stats?.unread_notifications, notifications]);
+  }, [stats, notifications]);
 
   // This hook doesn't return anything - it just shows toasts as a side effect
 }

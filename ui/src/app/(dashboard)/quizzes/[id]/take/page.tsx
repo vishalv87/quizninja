@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuiz } from "@/hooks/useQuiz";
 import { useQuizQuestions } from "@/hooks/useQuizQuestions";
@@ -129,7 +129,34 @@ export default function QuizTakingPage() {
         });
       }
     }
-  }, [quiz, questions, currentQuiz, quizId, isResuming, activeAttempt]);
+  }, [quiz, questions, currentQuiz, quizId, isResuming, activeAttempt, router, setAnswer, startAttemptMutation, startQuiz]);
+
+  // Save progress handler - defined before useEffect that uses it
+  const handleSaveProgress = useCallback(() => {
+    // Guard against race condition: ensure attemptId exists before saving
+    if (!currentAttempt || !currentAttempt.id) return;
+
+    const answersList: AttemptAnswer[] = Object.values(answers).map((answer: any) => ({
+      question_id: answer.question_id,
+      selected_answer: answer.selected_answer,
+      is_correct: answer.is_correct,
+      points_earned: answer.points_earned,
+    }));
+
+    const progressRequest: SaveProgressRequest = {
+      current_question_index: currentQuestionIndex,
+      current_answers: answersList,
+      time_spent_so_far: quiz?.time_limit ?
+        (quiz.time_limit * 60) - (timeRemaining || 0) : 0,
+      time_remaining: timeRemaining || undefined,
+    };
+
+    saveProgressMutation.mutate({
+      quizId,
+      attemptId: currentAttempt.id,
+      progressRequest,
+    });
+  }, [currentAttempt, answers, currentQuestionIndex, quiz?.time_limit, timeRemaining, saveProgressMutation, quizId]);
 
   // Setup quiz timer
   useQuizTimer(() => {
@@ -146,7 +173,7 @@ export default function QuizTakingPage() {
     }, 10000); // 10 seconds
 
     return () => clearInterval(interval);
-  }, [currentAttempt, answers, isPaused]);
+  }, [currentAttempt, isPaused, handleSaveProgress]);
 
   // Prevent accidental page close
   useEffect(() => {
@@ -179,32 +206,6 @@ export default function QuizTakingPage() {
       selected_option_index: selectedOptionIndex,
       is_correct: false, // Will be determined on backend
       points_earned: 0, // Will be determined on backend
-    });
-  };
-
-  const handleSaveProgress = () => {
-    // Guard against race condition: ensure attemptId exists before saving
-    if (!currentAttempt || !currentAttempt.id) return;
-
-    const answersList: AttemptAnswer[] = Object.values(answers).map((answer: any) => ({
-      question_id: answer.question_id,
-      selected_answer: answer.selected_answer,
-      is_correct: answer.is_correct,
-      points_earned: answer.points_earned,
-    }));
-
-    const progressRequest: SaveProgressRequest = {
-      current_question_index: currentQuestionIndex,
-      current_answers: answersList,
-      time_spent_so_far: quiz?.time_limit ?
-        (quiz.time_limit * 60) - (timeRemaining || 0) : 0,
-      time_remaining: timeRemaining || undefined,
-    };
-
-    saveProgressMutation.mutate({
-      quizId,
-      attemptId: currentAttempt.id,
-      progressRequest,
     });
   };
 

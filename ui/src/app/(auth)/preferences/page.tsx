@@ -42,8 +42,8 @@ export default function PreferencesPage() {
     // Update preferences first
     try {
       await updatePreferences.mutateAsync({
-        category_preferences: selectedCategories,
-        difficulty_level: difficulty,
+        preferred_categories: selectedCategories,
+        preferred_difficulty: difficulty,
       });
 
       // Then mark onboarding as complete
