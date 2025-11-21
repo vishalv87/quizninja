@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
     ATTEMPT_DETAILS: (attemptId: string) => `/users/attempts/${attemptId}`,
     ACHIEVEMENTS: "/users/achievements",
     ACHIEVEMENTS_BY_USER: (userId: string) => `/users/${userId}/achievements`,
+    ACTIVE_SESSIONS: "/users/active-sessions",
   },
 
   // Quizzes (Public)
