@@ -17,14 +17,10 @@ import { apiLogger } from '@/lib/logger'
  */
 export async function getNotifications(filters?: NotificationFilter): Promise<NotificationListResponse> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Fetching notifications', { filters })
     const response = await apiClient.get<NotificationListResponse>(
       API_ENDPOINTS.NOTIFICATIONS.LIST,
       { params: filters }
     )
-    apiLogger.info('[NOTIFICATIONS API] Notifications fetched successfully', {
-      count: Array.isArray(response) ? response.length : 0
-    })
 
     // Handle both array and object responses
     if (Array.isArray(response)) {
@@ -53,11 +49,9 @@ export async function getNotifications(filters?: NotificationFilter): Promise<No
  */
 export async function getNotificationStats(): Promise<NotificationStats> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Fetching notification stats')
     const response = await apiClient.get<APIResponse<NotificationStats>>(
       API_ENDPOINTS.NOTIFICATIONS.STATS
     )
-    apiLogger.info('[NOTIFICATIONS API] Stats fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to fetch stats', {
@@ -75,11 +69,9 @@ export async function getNotificationStats(): Promise<NotificationStats> {
  */
 export async function getNotification(id: string): Promise<Notification> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Fetching notification', { id })
     const response = await apiClient.get<APIResponse<Notification>>(
       API_ENDPOINTS.NOTIFICATIONS.GET(id)
     )
-    apiLogger.info('[NOTIFICATIONS API] Notification fetched successfully', { id })
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to fetch notification', {
@@ -98,11 +90,9 @@ export async function getNotification(id: string): Promise<Notification> {
  */
 export async function markNotificationAsRead(id: string): Promise<Notification> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Marking notification as read', { id })
     const response = await apiClient.put<APIResponse<Notification>>(
       API_ENDPOINTS.NOTIFICATIONS.MARK_READ(id)
     )
-    apiLogger.info('[NOTIFICATIONS API] Notification marked as read', { id })
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to mark notification as read', {
@@ -121,11 +111,9 @@ export async function markNotificationAsRead(id: string): Promise<Notification> 
  */
 export async function markNotificationAsUnread(id: string): Promise<Notification> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Marking notification as unread', { id })
     const response = await apiClient.put<APIResponse<Notification>>(
       API_ENDPOINTS.NOTIFICATIONS.MARK_UNREAD(id)
     )
-    apiLogger.info('[NOTIFICATIONS API] Notification marked as unread', { id })
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to mark notification as unread', {
@@ -143,11 +131,9 @@ export async function markNotificationAsUnread(id: string): Promise<Notification
  */
 export async function markAllNotificationsAsRead(): Promise<APIResponse<void>> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Marking all notifications as read')
     const response = await apiClient.put<APIResponse<void>>(
       API_ENDPOINTS.NOTIFICATIONS.MARK_ALL_READ
     )
-    apiLogger.info('[NOTIFICATIONS API] All notifications marked as read')
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to mark all notifications as read', {
@@ -165,11 +151,9 @@ export async function markAllNotificationsAsRead(): Promise<APIResponse<void>> {
  */
 export async function deleteNotification(id: string): Promise<APIResponse<void>> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Deleting notification', { id })
     const response = await apiClient.delete<APIResponse<void>>(
       API_ENDPOINTS.NOTIFICATIONS.DELETE(id)
     )
-    apiLogger.info('[NOTIFICATIONS API] Notification deleted successfully', { id })
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to delete notification', {
@@ -188,12 +172,10 @@ export async function deleteNotification(id: string): Promise<APIResponse<void>>
  */
 export async function createNotification(data: Partial<Notification>): Promise<Notification> {
   try {
-    apiLogger.debug('[NOTIFICATIONS API] Creating notification', { data })
     const response = await apiClient.post<APIResponse<Notification>>(
       API_ENDPOINTS.NOTIFICATIONS.CREATE,
       data
     )
-    apiLogger.info('[NOTIFICATIONS API] Notification created successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[NOTIFICATIONS API] Failed to create notification', {

@@ -15,11 +15,9 @@ import { apiLogger } from '@/lib/logger'
  */
 export async function getPreferences(): Promise<APIResponse<UserPreferences>> {
   try {
-    apiLogger.debug('[PREFERENCES API] Fetching user preferences')
     const response = await apiClient.get<APIResponse<UserPreferences>>(
       API_ENDPOINTS.USERS.PREFERENCES.GET
     )
-    apiLogger.info('[PREFERENCES API] User preferences fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[PREFERENCES API] Failed to fetch user preferences', {
@@ -38,12 +36,10 @@ export async function updatePreferences(
   data: Partial<UserPreferences>
 ): Promise<APIResponse<UserPreferences>> {
   try {
-    apiLogger.debug('[PREFERENCES API] Updating user preferences', { data })
     const response = await apiClient.put<APIResponse<UserPreferences>>(
       API_ENDPOINTS.USERS.PREFERENCES.UPDATE,
       data
     )
-    apiLogger.info('[PREFERENCES API] User preferences updated successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[PREFERENCES API] Failed to update user preferences', {

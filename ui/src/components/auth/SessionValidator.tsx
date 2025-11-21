@@ -17,27 +17,17 @@ export function SessionValidator() {
     const validateSession = async () => {
       // If there's a stored session, validate it with Supabase
       if (session) {
-        authLogger.info('[SESSION VALIDATOR] Found stored session, validating...', {
-          userId: session.user?.id,
-        })
-
         try {
           const currentSession = await getSession()
 
           if (!currentSession) {
             authLogger.warn('[SESSION VALIDATOR] Session expired, clearing auth state')
             clearAuth()
-          } else {
-            authLogger.info('[SESSION VALIDATOR] Session is valid', {
-              userId: currentSession.user?.id,
-            })
           }
         } catch (error) {
           authLogger.error('[SESSION VALIDATOR] Error validating session, clearing', error)
           clearAuth()
         }
-      } else {
-        authLogger.debug('[SESSION VALIDATOR] No stored session found')
       }
     }
 

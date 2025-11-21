@@ -35,8 +35,6 @@ export async function middleware(req: NextRequest) {
   // Get current path
   const path = req.nextUrl.pathname
 
-  console.log(`[MIDDLEWARE] Processing request: ${path}`)
-
   try {
     // Refresh session to ensure we have the latest state
     const {
@@ -44,13 +42,6 @@ export async function middleware(req: NextRequest) {
     } = await supabase.auth.getSession()
 
     const isAuthenticated = !!session
-
-    console.log(`[MIDDLEWARE] Auth status:`, {
-      path,
-      isAuthenticated,
-      userId: session?.user?.id,
-      hasAccessToken: !!session?.access_token,
-    })
 
     // Check if the current path is a protected route
     const isProtectedRoute = protectedRoutes.some((route) =>
@@ -65,15 +56,8 @@ export async function middleware(req: NextRequest) {
     // Check if the current path is an auth route
     const isAuthRoute = authRoutes.some((route) => path.startsWith(route))
 
-    console.log(`[MIDDLEWARE] Route type:`, {
-      isProtectedRoute,
-      isOnboardingRoute,
-      isAuthRoute,
-    })
-
     // If accessing a protected or onboarding route without authentication
     if ((isProtectedRoute || isOnboardingRoute) && !isAuthenticated) {
-      console.log(`[MIDDLEWARE] Redirecting to login (protected/onboarding route, not authenticated)`)
       const loginUrl = new URL('/login', req.url)
       // Store the intended destination to redirect after login
       if (path !== '/login') {
@@ -84,7 +68,6 @@ export async function middleware(req: NextRequest) {
 
     // If accessing auth routes while already authenticated
     if (isAuthRoute && isAuthenticated) {
-      console.log(`[MIDDLEWARE] Redirecting to dashboard (auth route, already authenticated)`)
       // Check if there's a return URL
       const returnUrl = req.nextUrl.searchParams.get('returnUrl')
       if (returnUrl) {
@@ -94,7 +77,6 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
-    console.log(`[MIDDLEWARE] Allowing request to proceed`)
     // Allow the request to proceed
     return res
   } catch (error) {

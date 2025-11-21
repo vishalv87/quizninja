@@ -11,8 +11,6 @@ export const metadata = {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  console.log('[DASHBOARD LAYOUT] Rendering dashboard layout')
-
   return (
     <AuthGuard requireAuth={true}>
       {/* Notification Toast Listener - Shows toasts when new notifications arrive */}

@@ -40,32 +40,21 @@ export function LoginForm() {
   const rememberMe = watch('rememberMe')
 
   const onSubmit = async (data: LoginFormData) => {
-    authLogger.info('Login form submitted', { email: data.email })
     setIsLoading(true)
 
     try {
-      authLogger.debug('Calling authApi.login')
       const response = await authApi.login({
         email: data.email,
         password: data.password,
       })
 
-      authLogger.debug('Login response received', {
-        hasUser: !!response.user,
-        userEmail: response.user?.email,
-      })
-
       if (response.user) {
         // Update auth store
-        authLogger.debug('Updating auth store with user data')
         setUser(response.user)
 
         toast.success('Login successful!', {
           description: `Welcome back, ${response.user.name || response.user.email}!`,
         })
-
-        // With cookie-based auth, session is immediately available
-        authLogger.info('Session persisted to cookies, redirecting to dashboard')
 
         // Use window.location for full page reload to ensure middleware picks up cookies
         window.location.href = '/dashboard'
@@ -78,7 +67,6 @@ export function LoginForm() {
       })
     } finally {
       setIsLoading(false)
-      authLogger.debug('Login attempt completed')
     }
   }
 

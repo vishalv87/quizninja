@@ -31,28 +31,15 @@ export const apiClient = axiosInstance as typeof axiosInstance & {
   delete: <T = any>(url: string, config?: any) => Promise<T>;
 };
 
-apiLogger.info('API client initialized', {
-  baseURL: getBaseURL(),
-  timeout: 30000,
-});
-
 /**
  * Request interceptor to add auth token
  */
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    apiLogger.debug('API request starting', {
-      method: config.method,
-      url: config.url,
-    });
-
     try {
       const session = await getSession();
       if (session?.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
-        apiLogger.debug('Added auth token to request');
-      } else {
-        apiLogger.debug('No session token available');
       }
     } catch (error) {
       apiLogger.error("Error getting session for API request", error);
@@ -70,10 +57,6 @@ apiClient.interceptors.request.use(
  */
 apiClient.interceptors.response.use(
   (response) => {
-    apiLogger.debug('API response received', {
-      status: response.status,
-      url: response.config.url,
-    });
     // Return just the data for successful responses
     return response.data;
   },

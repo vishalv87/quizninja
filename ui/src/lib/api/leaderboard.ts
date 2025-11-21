@@ -55,11 +55,9 @@ export interface LeaderboardStats {
  */
 export async function getLeaderboard(limit: number = 100): Promise<LeaderboardResponse> {
   try {
-    apiLogger.debug('[LEADERBOARD API] Fetching leaderboard', { limit })
     const response = await apiClient.get<LeaderboardResponse>(
       `${API_ENDPOINTS.LEADERBOARD.GET}?limit=${limit}`
     )
-    apiLogger.info('[LEADERBOARD API] Leaderboard fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[LEADERBOARD API] Failed to fetch leaderboard', {
@@ -77,11 +75,9 @@ export async function getLeaderboard(limit: number = 100): Promise<LeaderboardRe
  */
 export async function getLeaderboardWithAchievements(limit: number = 100): Promise<LeaderboardResponse> {
   try {
-    apiLogger.debug('[LEADERBOARD API] Fetching leaderboard with achievements', { limit })
     const response = await apiClient.get<LeaderboardResponse>(
       `${API_ENDPOINTS.LEADERBOARD.WITH_ACHIEVEMENTS}?limit=${limit}`
     )
-    apiLogger.info('[LEADERBOARD API] Leaderboard with achievements fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[LEADERBOARD API] Failed to fetch leaderboard with achievements', {
@@ -98,11 +94,9 @@ export async function getLeaderboardWithAchievements(limit: number = 100): Promi
  */
 export async function getUserRank(): Promise<APIResponse<UserRankResponse>> {
   try {
-    apiLogger.debug('[LEADERBOARD API] Fetching user rank')
     const response = await apiClient.get<APIResponse<UserRankResponse>>(
       API_ENDPOINTS.LEADERBOARD.RANK
     )
-    apiLogger.info('[LEADERBOARD API] User rank fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[LEADERBOARD API] Failed to fetch user rank', {
@@ -119,11 +113,9 @@ export async function getUserRank(): Promise<APIResponse<UserRankResponse>> {
  */
 export async function getLeaderboardStats(): Promise<APIResponse<LeaderboardStats>> {
   try {
-    apiLogger.debug('[LEADERBOARD API] Fetching leaderboard statistics')
     const response = await apiClient.get<APIResponse<LeaderboardStats>>(
       API_ENDPOINTS.LEADERBOARD.STATS
     )
-    apiLogger.info('[LEADERBOARD API] Leaderboard stats fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[LEADERBOARD API] Failed to fetch leaderboard stats', {

@@ -40,11 +40,9 @@ export interface UserAchievementsResponse {
  */
 export async function getAchievements(): Promise<AchievementsListResponse> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Fetching all achievements')
     const response = await apiClient.get<AchievementsListResponse>(
       API_ENDPOINTS.ACHIEVEMENTS.LIST
     )
-    apiLogger.info('[ACHIEVEMENTS API] Achievements fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to fetch achievements', {
@@ -61,11 +59,9 @@ export async function getAchievements(): Promise<AchievementsListResponse> {
  */
 export async function getAchievementsByCategory(category: string): Promise<AchievementsListResponse> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Fetching achievements by category', { category })
     const response = await apiClient.get<AchievementsListResponse>(
       API_ENDPOINTS.ACHIEVEMENTS.BY_CATEGORY(category)
     )
-    apiLogger.info('[ACHIEVEMENTS API] Achievements by category fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to fetch achievements by category', {
@@ -82,11 +78,9 @@ export async function getAchievementsByCategory(category: string): Promise<Achie
  */
 export async function getAchievementProgress(): Promise<AchievementProgressResponse> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Fetching achievement progress')
     const response = await apiClient.get<AchievementProgressResponse>(
       API_ENDPOINTS.ACHIEVEMENTS.PROGRESS
     )
-    apiLogger.info('[ACHIEVEMENTS API] Achievement progress fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to fetch achievement progress', {
@@ -103,11 +97,9 @@ export async function getAchievementProgress(): Promise<AchievementProgressRespo
  */
 export async function getAchievementStats(): Promise<APIResponse<AchievementStats>> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Fetching achievement statistics')
     const response = await apiClient.get<APIResponse<AchievementStats>>(
       API_ENDPOINTS.ACHIEVEMENTS.STATS
     )
-    apiLogger.info('[ACHIEVEMENTS API] Achievement stats fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to fetch achievement stats', {
@@ -124,11 +116,9 @@ export async function getAchievementStats(): Promise<APIResponse<AchievementStat
  */
 export async function getUserAchievements(): Promise<UserAchievementsResponse> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Fetching user achievements')
     const response = await apiClient.get<UserAchievementsResponse>(
       API_ENDPOINTS.USERS.ACHIEVEMENTS
     )
-    apiLogger.info('[ACHIEVEMENTS API] User achievements fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to fetch user achievements', {
@@ -145,11 +135,9 @@ export async function getUserAchievements(): Promise<UserAchievementsResponse> {
  */
 export async function getUserAchievementsById(userId: string): Promise<UserAchievementsResponse> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Fetching achievements for user', { userId })
     const response = await apiClient.get<UserAchievementsResponse>(
       API_ENDPOINTS.USERS.ACHIEVEMENTS_BY_USER(userId)
     )
-    apiLogger.info('[ACHIEVEMENTS API] User achievements fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to fetch user achievements', {
@@ -167,11 +155,9 @@ export async function getUserAchievementsById(userId: string): Promise<UserAchie
  */
 export async function checkAchievements(): Promise<APIResponse<UserAchievement[]>> {
   try {
-    apiLogger.debug('[ACHIEVEMENTS API] Checking for new achievements')
     const response = await apiClient.post<APIResponse<UserAchievement[]>>(
       API_ENDPOINTS.ACHIEVEMENTS.CHECK
     )
-    apiLogger.info('[ACHIEVEMENTS API] Achievement check completed successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[ACHIEVEMENTS API] Failed to check achievements', {

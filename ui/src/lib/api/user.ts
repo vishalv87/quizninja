@@ -29,11 +29,9 @@ export interface UserAttemptFilters {
  */
 export async function getUserStats(): Promise<APIResponse<UserStats>> {
   try {
-    apiLogger.debug('[USER API] Fetching user stats')
     const response = await apiClient.get<APIResponse<UserStats>>(
       API_ENDPOINTS.USERS.STATS
     )
-    apiLogger.info('[USER API] User stats fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[USER API] Failed to fetch user stats', {
@@ -52,8 +50,6 @@ export async function getUserAttempts(
   filters?: UserAttemptFilters
 ): Promise<PaginatedResponse<QuizAttempt>> {
   try {
-    apiLogger.debug('[USER API] Fetching user attempts', { filters })
-
     const params = new URLSearchParams()
     if (filters?.limit) params.append('limit', filters.limit.toString())
     if (filters?.offset) params.append('offset', filters.offset.toString())
@@ -77,11 +73,6 @@ export async function getUserAttempts(
       has_more: (response.page || 0) < (response.total_pages || 0)
     }
 
-    apiLogger.info('[USER API] User attempts fetched successfully', {
-      count: paginatedData.data.length,
-      total: paginatedData.total,
-    })
-
     return paginatedData
   } catch (error: any) {
     apiLogger.error('[USER API] Failed to fetch user attempts', {
@@ -97,11 +88,9 @@ export async function getUserAttempts(
  */
 export async function getAttemptDetails(attemptId: string): Promise<APIResponse<QuizAttempt>> {
   try {
-    apiLogger.debug('[USER API] Fetching attempt details', { attemptId })
     const response = await apiClient.get<APIResponse<QuizAttempt>>(
       API_ENDPOINTS.USERS.ATTEMPT_DETAILS(attemptId)
     )
-    apiLogger.info('[USER API] Attempt details fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[USER API] Failed to fetch attempt details', {
@@ -118,11 +107,9 @@ export async function getAttemptDetails(attemptId: string): Promise<APIResponse<
  */
 export async function getUserProfile(userId: string): Promise<APIResponse<UserProfile>> {
   try {
-    apiLogger.debug('[USER API] Fetching user profile', { userId })
     const response = await apiClient.get<APIResponse<UserProfile>>(
       API_ENDPOINTS.USERS.PROFILE(userId)
     )
-    apiLogger.info('[USER API] User profile fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[USER API] Failed to fetch user profile', {
@@ -139,11 +126,9 @@ export async function getUserProfile(userId: string): Promise<APIResponse<UserPr
  */
 export async function getUserStatsById(userId: string): Promise<APIResponse<UserStats>> {
   try {
-    apiLogger.debug('[USER API] Fetching user stats by ID', { userId })
     const response = await apiClient.get<APIResponse<UserStats>>(
       API_ENDPOINTS.USERS.USER_STATS(userId)
     )
-    apiLogger.info('[USER API] User stats by ID fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[USER API] Failed to fetch user stats by ID', {

@@ -18,11 +18,8 @@ import { apiLogger } from '@/lib/logger'
  * Backend returns: { user: User, message?: string }
  */
 export async function login(credentials: LoginCredentials): Promise<{ user: User; message?: string }> {
-  apiLogger.info('[AUTH API] Starting login flow', { email: credentials.email })
-
   try {
     // Step 1: Authenticate with Supabase
-    apiLogger.debug('[AUTH API] Step 1: Authenticating with Supabase')
     const authResult = await supabaseSignIn(
       credentials.email,
       credentials.password
@@ -32,11 +29,6 @@ export async function login(credentials: LoginCredentials): Promise<{ user: User
       apiLogger.error('[AUTH API] Supabase authentication failed - no user returned')
       throw new Error('Authentication failed')
     }
-
-    apiLogger.info('[AUTH API] Supabase authentication successful', {
-      userId: authResult.user.id,
-      email: authResult.user.email,
-    })
 
     // Extract user metadata
     const supabaseUser = authResult.user
@@ -48,12 +40,6 @@ export async function login(credentials: LoginCredentials): Promise<{ user: User
     // Step 2: Call backend API login endpoint
     // Send Supabase user ID and name to sync with backend
     // Note: apiClient response interceptor already unwraps response.data
-    apiLogger.debug('[AUTH API] Step 2: Calling backend login endpoint', {
-      supabaseUserId: supabaseUser.id,
-      userName,
-      email: supabaseUser.email,
-    })
-
     const response = await apiClient.post<APIResponse<{ user: User; profile: Profile }>>(
       API_ENDPOINTS.AUTH.LOGIN,
       {
@@ -62,11 +48,6 @@ export async function login(credentials: LoginCredentials): Promise<{ user: User
         email: supabaseUser.email,
       }
     )
-
-    apiLogger.info('[AUTH API] Backend login successful', {
-      hasResponse: !!response,
-      hasUser: !!(response as any)?.user,
-    })
 
     // Response is already unwrapped by the interceptor
     return response as any
@@ -128,9 +109,8 @@ export async function logout(): Promise<void> {
     // Call backend API logout endpoint (optional, for logging/cleanup)
     try {
       await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT)
-    } catch (error) {
+    } catch {
       // Continue with logout even if backend call fails
-      console.warn('Backend logout failed:', error)
     }
 
     // Sign out from Supabase

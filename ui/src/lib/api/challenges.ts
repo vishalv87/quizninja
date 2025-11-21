@@ -31,11 +31,9 @@ export interface ChallengesListResponse {
  */
 export async function getChallenges(): Promise<ChallengesListResponse> {
   try {
-    apiLogger.debug('[CHALLENGES API] Fetching all challenges')
     const response = await apiClient.get<ChallengesListResponse>(
       API_ENDPOINTS.CHALLENGES.LIST
     )
-    apiLogger.info('[CHALLENGES API] Challenges fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to fetch challenges', {
@@ -52,11 +50,9 @@ export async function getChallenges(): Promise<ChallengesListResponse> {
  */
 export async function getChallengeStats(): Promise<APIResponse<ChallengeStats>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Fetching challenge statistics')
     const response = await apiClient.get<APIResponse<ChallengeStats>>(
       API_ENDPOINTS.CHALLENGES.STATS
     )
-    apiLogger.info('[CHALLENGES API] Challenge stats fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to fetch challenge stats', {
@@ -73,11 +69,9 @@ export async function getChallengeStats(): Promise<APIResponse<ChallengeStats>> 
  */
 export async function getPendingChallenges(): Promise<ChallengesListResponse> {
   try {
-    apiLogger.debug('[CHALLENGES API] Fetching pending challenges')
     const response = await apiClient.get<ChallengesListResponse>(
       API_ENDPOINTS.CHALLENGES.PENDING
     )
-    apiLogger.info('[CHALLENGES API] Pending challenges fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to fetch pending challenges', {
@@ -94,11 +88,9 @@ export async function getPendingChallenges(): Promise<ChallengesListResponse> {
  */
 export async function getActiveChallenges(): Promise<ChallengesListResponse> {
   try {
-    apiLogger.debug('[CHALLENGES API] Fetching active challenges')
     const response = await apiClient.get<ChallengesListResponse>(
       API_ENDPOINTS.CHALLENGES.ACTIVE
     )
-    apiLogger.info('[CHALLENGES API] Active challenges fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to fetch active challenges', {
@@ -115,11 +107,9 @@ export async function getActiveChallenges(): Promise<ChallengesListResponse> {
  */
 export async function getCompletedChallenges(): Promise<ChallengesListResponse> {
   try {
-    apiLogger.debug('[CHALLENGES API] Fetching completed challenges')
     const response = await apiClient.get<ChallengesListResponse>(
       API_ENDPOINTS.CHALLENGES.COMPLETED
     )
-    apiLogger.info('[CHALLENGES API] Completed challenges fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to fetch completed challenges', {
@@ -136,11 +126,9 @@ export async function getCompletedChallenges(): Promise<ChallengesListResponse> 
  */
 export async function getChallenge(challengeId: string): Promise<APIResponse<Challenge>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Fetching challenge details', { challengeId })
     const response = await apiClient.get<APIResponse<Challenge>>(
       API_ENDPOINTS.CHALLENGES.GET(challengeId)
     )
-    apiLogger.info('[CHALLENGES API] Challenge details fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to fetch challenge details', {
@@ -157,12 +145,10 @@ export async function getChallenge(challengeId: string): Promise<APIResponse<Cha
  */
 export async function createChallenge(data: CreateChallengeRequest): Promise<APIResponse<Challenge>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Creating challenge', data)
     const response = await apiClient.post<APIResponse<Challenge>>(
       API_ENDPOINTS.CHALLENGES.CREATE,
       data
     )
-    apiLogger.info('[CHALLENGES API] Challenge created successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to create challenge', {
@@ -179,11 +165,9 @@ export async function createChallenge(data: CreateChallengeRequest): Promise<API
  */
 export async function acceptChallenge(challengeId: string): Promise<APIResponse<Challenge>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Accepting challenge', { challengeId })
     const response = await apiClient.put<APIResponse<Challenge>>(
       API_ENDPOINTS.CHALLENGES.ACCEPT(challengeId)
     )
-    apiLogger.info('[CHALLENGES API] Challenge accepted successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to accept challenge', {
@@ -200,11 +184,9 @@ export async function acceptChallenge(challengeId: string): Promise<APIResponse<
  */
 export async function declineChallenge(challengeId: string): Promise<APIResponse<Challenge>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Declining challenge', { challengeId })
     const response = await apiClient.put<APIResponse<Challenge>>(
       API_ENDPOINTS.CHALLENGES.DECLINE(challengeId)
     )
-    apiLogger.info('[CHALLENGES API] Challenge declined successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to decline challenge', {
@@ -222,12 +204,10 @@ export async function declineChallenge(challengeId: string): Promise<APIResponse
  */
 export async function linkAttempt(challengeId: string, attemptId: string): Promise<APIResponse<Challenge>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Linking attempt to challenge', { challengeId, attemptId })
     const response = await apiClient.post<APIResponse<Challenge>>(
       API_ENDPOINTS.CHALLENGES.LINK_ATTEMPT(challengeId),
       { attempt_id: attemptId }
     )
-    apiLogger.info('[CHALLENGES API] Attempt linked successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to link attempt', {
@@ -244,11 +224,9 @@ export async function linkAttempt(challengeId: string, attemptId: string): Promi
  */
 export async function completeChallenge(challengeId: string): Promise<APIResponse<Challenge>> {
   try {
-    apiLogger.debug('[CHALLENGES API] Completing challenge', { challengeId })
     const response = await apiClient.put<APIResponse<Challenge>>(
       API_ENDPOINTS.CHALLENGES.COMPLETE(challengeId)
     )
-    apiLogger.info('[CHALLENGES API] Challenge completed successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[CHALLENGES API] Failed to complete challenge', {

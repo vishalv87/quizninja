@@ -17,13 +17,6 @@ export default function DashboardPage() {
 
   const stats = statsData?.data
 
-  authLogger.info('DashboardPage rendering', {
-    isLoading,
-    hasUser: !!user,
-    userEmail: user?.email,
-    hasStats: !!stats,
-  })
-
   if (isLoading) {
     return (
       <div className="space-y-6">

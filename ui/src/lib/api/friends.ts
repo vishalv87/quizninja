@@ -43,11 +43,9 @@ export interface FriendsListResponse {
  */
 export async function getFriends(): Promise<FriendsListResponse> {
   try {
-    apiLogger.debug('[FRIENDS API] Fetching friends list')
     const response = await apiClient.get<FriendsListResponse>(
       API_ENDPOINTS.FRIENDS.LIST
     )
-    apiLogger.info('[FRIENDS API] Friends list fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to fetch friends list', {
@@ -64,11 +62,9 @@ export async function getFriends(): Promise<FriendsListResponse> {
  */
 export async function getFriendRequests(): Promise<APIResponse<FriendRequest[]>> {
   try {
-    apiLogger.debug('[FRIENDS API] Fetching friend requests')
     const response = await apiClient.get<APIResponse<FriendRequest[]>>(
       API_ENDPOINTS.FRIENDS.REQUESTS.LIST
     )
-    apiLogger.info('[FRIENDS API] Friend requests fetched successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to fetch friend requests', {
@@ -85,12 +81,10 @@ export async function getFriendRequests(): Promise<APIResponse<FriendRequest[]>>
  */
 export async function sendFriendRequest(userId: string): Promise<APIResponse<FriendRequest>> {
   try {
-    apiLogger.debug('[FRIENDS API] Sending friend request', { userId })
     const response = await apiClient.post<APIResponse<FriendRequest>>(
       API_ENDPOINTS.FRIENDS.REQUESTS.SEND,
       { requested_user_id: userId }
     )
-    apiLogger.info('[FRIENDS API] Friend request sent successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to send friend request', {
@@ -107,12 +101,10 @@ export async function sendFriendRequest(userId: string): Promise<APIResponse<Fri
  */
 export async function acceptFriendRequest(requestId: string): Promise<APIResponse<Friend>> {
   try {
-    apiLogger.debug('[FRIENDS API] Accepting friend request', { requestId })
     const response = await apiClient.put<APIResponse<Friend>>(
       API_ENDPOINTS.FRIENDS.REQUESTS.RESPOND(requestId),
       { status: 'accepted' }
     )
-    apiLogger.info('[FRIENDS API] Friend request accepted successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to accept friend request', {
@@ -129,12 +121,10 @@ export async function acceptFriendRequest(requestId: string): Promise<APIRespons
  */
 export async function declineFriendRequest(requestId: string): Promise<APIResponse<null>> {
   try {
-    apiLogger.debug('[FRIENDS API] Declining friend request', { requestId })
     const response = await apiClient.put<APIResponse<null>>(
       API_ENDPOINTS.FRIENDS.REQUESTS.RESPOND(requestId),
       { status: 'rejected' }
     )
-    apiLogger.info('[FRIENDS API] Friend request declined successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to decline friend request', {
@@ -151,11 +141,9 @@ export async function declineFriendRequest(requestId: string): Promise<APIRespon
  */
 export async function cancelFriendRequest(requestId: string): Promise<APIResponse<null>> {
   try {
-    apiLogger.debug('[FRIENDS API] Canceling friend request', { requestId })
     const response = await apiClient.delete<APIResponse<null>>(
       API_ENDPOINTS.FRIENDS.REQUESTS.CANCEL(requestId)
     )
-    apiLogger.info('[FRIENDS API] Friend request canceled successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to cancel friend request', {
@@ -172,11 +160,9 @@ export async function cancelFriendRequest(requestId: string): Promise<APIRespons
  */
 export async function removeFriend(friendId: string): Promise<APIResponse<null>> {
   try {
-    apiLogger.debug('[FRIENDS API] Removing friend', { friendId })
     const response = await apiClient.delete<APIResponse<null>>(
       API_ENDPOINTS.FRIENDS.REMOVE(friendId)
     )
-    apiLogger.info('[FRIENDS API] Friend removed successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to remove friend', {
@@ -193,8 +179,6 @@ export async function removeFriend(friendId: string): Promise<APIResponse<null>>
  */
 export async function searchUsers(query: string): Promise<APIResponse<UserSearchResult[]>> {
   try {
-    apiLogger.debug('[FRIENDS API] Searching users', { query })
-
     const params = new URLSearchParams()
     params.append('q', query)
 
@@ -202,7 +186,6 @@ export async function searchUsers(query: string): Promise<APIResponse<UserSearch
 
     const response = await apiClient.get<APIResponse<UserSearchResult[]>>(url)
 
-    apiLogger.info('[FRIENDS API] User search completed successfully')
     return response as any
   } catch (error: any) {
     apiLogger.error('[FRIENDS API] Failed to search users', {

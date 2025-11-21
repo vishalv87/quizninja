@@ -28,24 +28,9 @@ export function AuthGuard({
   const pathname = usePathname()
   const { user, isLoading } = useAuth()
 
-  authLogger.info('AuthGuard rendering', {
-    pathname,
-    requireAuth,
-    isLoading,
-    hasUser: !!user,
-    userEmail: user?.email,
-  })
-
   useEffect(() => {
-    authLogger.debug('AuthGuard useEffect triggered', {
-      isLoading,
-      hasUser: !!user,
-      requireAuth,
-    })
-
     // Wait for auth state to load
     if (isLoading) {
-      authLogger.debug('AuthGuard: Still loading, waiting...')
       return
     }
 
@@ -57,7 +42,6 @@ export function AuthGuard({
       const returnUrl = pathname !== '/login' && pathname !== '/register'
         ? `?returnUrl=${encodeURIComponent(pathname)}`
         : ''
-      authLogger.info('AuthGuard: Redirecting to', { path: `${loginPath}${returnUrl}` })
       router.push(`${loginPath}${returnUrl}`)
       return
     }
@@ -65,35 +49,28 @@ export function AuthGuard({
     // If authentication is NOT required but user IS authenticated
     // (e.g., login/register pages when already logged in)
     if (!requireAuth && user) {
-      authLogger.info('AuthGuard: No auth required but user exists, redirecting to dashboard')
       const dashboardPath = redirectTo || '/dashboard'
       router.push(dashboardPath)
       return
     }
-
-    authLogger.info('AuthGuard: Auth requirements met, rendering children')
   }, [user, isLoading, requireAuth, redirectTo, router, pathname])
 
   // Show loading state while checking authentication
   if (isLoading) {
-    authLogger.debug('AuthGuard: Showing loading page (auth state loading)')
     return <LoadingPage text="Loading..." />
   }
 
   // If requireAuth is true and no user, show loading (will redirect via useEffect)
   if (requireAuth && !user) {
-    authLogger.debug('AuthGuard: Showing loading page (will redirect to login)')
     return <LoadingPage text="Redirecting to login..." />
   }
 
   // If requireAuth is false and user exists, show loading (will redirect via useEffect)
   if (!requireAuth && user) {
-    authLogger.debug('AuthGuard: Showing loading page (will redirect to dashboard)')
     return <LoadingPage text="Redirecting..." />
   }
 
   // Render children if auth requirements are met
-  authLogger.info('AuthGuard: Rendering protected content')
   return <>{children}</>
 }
 

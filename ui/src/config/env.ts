@@ -73,8 +73,6 @@ export function validateEnv() {
         `Missing required environment variables:\n${missing.map((k) => `  - ${k}`).join("\n")}`
       );
     }
-
-    console.log("✅ Environment variables validated successfully");
   } catch (error) {
     console.error("❌ Environment validation failed:", error);
     throw error;

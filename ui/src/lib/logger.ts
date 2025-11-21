@@ -19,14 +19,14 @@ class Logger {
     return `[${timestamp}] [${level.toUpperCase()}] [${this.prefix}] ${message}`;
   }
 
-  debug(message: string, data?: any) {
-    if (isDevelopment) {
-      console.log(this.formatMessage('debug', message), data || '');
-    }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  debug(_message: string, _data?: any) {
+    // Disabled - only warn and error logs are enabled
   }
 
-  info(message: string, data?: any) {
-    console.log(this.formatMessage('info', message), data || '');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  info(_message: string, _data?: any) {
+    // Disabled - only warn and error logs are enabled
   }
 
   warn(message: string, data?: any) {
