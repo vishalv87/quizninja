@@ -61,12 +61,28 @@ export async function getQuiz(id: string): Promise<Quiz> {
  */
 export async function getQuizQuestions(quizId: string): Promise<Question[]> {
   try {
-    const response = await apiClient.get<Question[]>(
+    const response = await apiClient.get<{ data: Question[] }>(
       API_ENDPOINTS.QUIZ.QUESTIONS(quizId)
-    ) as unknown as Question[];
-    return response;
+    );
+    console.log("[DEBUGGG] getQuizQuestions - Raw response:", response);
+    console.log("[DEBUGGG] getQuizQuestions - Response type:", typeof response);
+    console.log("[DEBUGGG] getQuizQuestions - Response keys:", response ? Object.keys(response) : "null");
+
+    // Try to extract data - handle both wrapped and unwrapped responses
+    const questions = (response as any)?.data ?? response;
+    console.log("[DEBUGGG] getQuizQuestions - Extracted questions:", questions);
+    console.log("[DEBUGGG] getQuizQuestions - Questions is array:", Array.isArray(questions));
+    console.log("[DEBUGGG] getQuizQuestions - Questions length:", Array.isArray(questions) ? questions.length : "N/A");
+
+    if (Array.isArray(questions) && questions.length > 0) {
+      console.log("[DEBUGGG] getQuizQuestions - First question:", questions[0]);
+      console.log("[DEBUGGG] getQuizQuestions - First question options:", questions[0]?.options);
+    }
+
+    return questions as Question[];
   } catch (error) {
     apiLogger.error("Error fetching quiz questions", { quizId, error });
+    console.log("[DEBUGGG] getQuizQuestions - ERROR:", error);
     throw error;
   }
 }
@@ -186,9 +202,19 @@ export async function submitQuizAttempt(
   answers: QuizAnswer[]
 ): Promise<QuizResults> {
   try {
+    // Transform answers to match backend expected format (camelCase)
+    const formattedAnswers = answers.map((answer) => ({
+      questionId: answer.question_id,
+      selectedOption: answer.selected_answer,
+      selectedOptionIndex: answer.selected_option_index,
+    }));
+
     const response = await apiClient.post<QuizResults>(
       API_ENDPOINTS.QUIZ.SUBMIT_ATTEMPT(quizId, attemptId),
-      { answers }
+      {
+        attemptId,
+        answers: formattedAnswers,
+      }
     ) as unknown as QuizResults;
     return response;
   } catch (error) {
@@ -257,6 +283,12 @@ export async function saveSessionProgress(
   attemptId: string,
   progressRequest: SaveProgressRequest
 ): Promise<void> {
+  // Guard against undefined attemptId to prevent invalid API calls
+  if (!attemptId) {
+    apiLogger.warn("Skipping save progress - attemptId is undefined", { quizId });
+    return;
+  }
+
   try {
     await apiClient.put(
       API_ENDPOINTS.QUIZ.SAVE_PROGRESS(quizId, attemptId),

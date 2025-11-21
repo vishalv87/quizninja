@@ -166,16 +166,25 @@ export default function QuizTakingPage() {
     const question = questions[currentQuestionIndex];
     if (!question) return;
 
+    // Calculate the selected option index for backend submission
+    let selectedOptionIndex: number | undefined;
+    if (question.options && question.question_type === "multiple_choice") {
+      selectedOptionIndex = question.options.indexOf(answer);
+      if (selectedOptionIndex === -1) selectedOptionIndex = undefined;
+    }
+
     setAnswer(question.id, {
       question_id: question.id,
       selected_answer: answer,
+      selected_option_index: selectedOptionIndex,
       is_correct: false, // Will be determined on backend
       points_earned: 0, // Will be determined on backend
     });
   };
 
   const handleSaveProgress = () => {
-    if (!currentAttempt) return;
+    // Guard against race condition: ensure attemptId exists before saving
+    if (!currentAttempt || !currentAttempt.id) return;
 
     const answersList: AttemptAnswer[] = Object.values(answers).map((answer: any) => ({
       question_id: answer.question_id,
@@ -214,7 +223,7 @@ export default function QuizTakingPage() {
         answers: answersList,
       },
       {
-        onSuccess: (results) => {
+        onSuccess: () => {
           resetQuiz();
           router.push(`/quizzes/${quizId}/results/${currentAttempt.id}`);
         },
@@ -364,7 +373,18 @@ export default function QuizTakingPage() {
     );
   }
 
+  // DEBUG: Log the questions data
+  console.log("[DEBUGGG] Take Page - questions from hook:", questions);
+  console.log("[DEBUGGG] Take Page - questions type:", typeof questions);
+  console.log("[DEBUGGG] Take Page - questions is array:", Array.isArray(questions));
+  console.log("[DEBUGGG] Take Page - questions length:", questions?.length);
+  console.log("[DEBUGGG] Take Page - currentQuestionIndex:", currentQuestionIndex);
+
   const currentQuestion = questions[currentQuestionIndex];
+  console.log("[DEBUGGG] Take Page - currentQuestion:", currentQuestion);
+  console.log("[DEBUGGG] Take Page - currentQuestion?.question_text:", currentQuestion?.question_text);
+  console.log("[DEBUGGG] Take Page - currentQuestion?.options:", currentQuestion?.options);
+
   const currentAnswer = currentQuestion ? getAnswer(currentQuestion.id) : undefined;
   const answeredCount = Object.keys(answers).length;
 

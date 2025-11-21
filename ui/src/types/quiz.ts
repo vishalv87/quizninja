@@ -59,16 +59,10 @@ export interface Question {
   question_type: "multiple_choice" | "true_false" | "short_answer";
   points: number;
   order_index: number;
-  options?: QuestionOption[];
+  options?: string[]; // Array of option strings (e.g., ["Paris", "London", "Berlin"])
   correct_answer?: string;
   explanation?: string;
   image_url?: string; // Optional image URL for questions (diagrams, charts, photos)
-}
-
-export interface QuestionOption {
-  id: string;
-  option_text: string;
-  is_correct: boolean;
 }
 
 export interface QuizAttempt {
@@ -88,6 +82,7 @@ export interface QuizAttempt {
 export interface QuizAnswer {
   question_id: string;
   selected_answer: string;
+  selected_option_index?: number; // Index in the options array (used for submission)
   is_correct: boolean;
   points_earned: number;
   time_spent_seconds?: number;
@@ -116,6 +111,7 @@ export type SessionState = 'active' | 'paused' | 'completed' | 'abandoned';
 export interface AttemptAnswer {
   question_id: string;
   selected_answer: string;
+  selected_option_index?: number; // Index in the options array (used for submission)
   is_correct?: boolean;
   points_earned?: number;
 }

@@ -377,15 +377,15 @@ export default function QuizDetailPage() {
                   {/* Question Options */}
                   {quiz.questions[0].options && (
                     <div className="space-y-2">
-                      {quiz.questions[0].options.map((option, index) => (
+                      {quiz.questions[0].options.map((optionText, index) => (
                         <div
-                          key={option.id}
+                          key={`option-${index}`}
                           className="p-3 border rounded-lg bg-background cursor-not-allowed opacity-75"
                         >
                           <span className="font-medium mr-2">
                             {String.fromCharCode(65 + index)}.
                           </span>
-                          {option.option_text}
+                          {optionText}
                         </div>
                       ))}
                     </div>

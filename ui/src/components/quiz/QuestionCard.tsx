@@ -23,8 +23,14 @@ export function QuestionCard({
   onAnswerChange,
   disabled = false,
 }: QuestionCardProps) {
+  // Normalize question type to handle both camelCase and snake_case from backend
+  const questionType = question.question_type?.toLowerCase().replace(/_/g, '');
+  const isMultipleChoice = questionType === "multiplechoice";
+  const isTrueFalse = questionType === "truefalse";
+  const isShortAnswer = questionType === "shortanswer";
+
   // Render multiple choice question
-  if (question.question_type === "multiple_choice" && question.options) {
+  if (isMultipleChoice && question.options) {
     return (
       <Card>
         <CardHeader>
@@ -49,25 +55,28 @@ export function QuestionCard({
             disabled={disabled}
             className="space-y-3"
           >
-            {question.options.map((option) => (
-              <div
-                key={option.id}
-                className={cn(
-                  "flex items-center space-x-3 p-4 rounded-lg border-2 transition-all",
-                  selectedAnswer === option.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                )}
-              >
-                <RadioGroupItem value={option.id} id={option.id} />
-                <Label
-                  htmlFor={option.id}
-                  className="flex-1 cursor-pointer text-base"
+            {question.options.map((optionText, index) => {
+              const optionId = `${question.id}-option-${index}`;
+              return (
+                <div
+                  key={optionId}
+                  className={cn(
+                    "flex items-center space-x-3 p-4 rounded-lg border-2 transition-all",
+                    selectedAnswer === optionText
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  )}
                 >
-                  {option.option_text}
-                </Label>
-              </div>
-            ))}
+                  <RadioGroupItem value={optionText} id={optionId} />
+                  <Label
+                    htmlFor={optionId}
+                    className="flex-1 cursor-pointer text-base"
+                  >
+                    {optionText}
+                  </Label>
+                </div>
+              );
+            })}
           </RadioGroup>
         </CardContent>
       </Card>
@@ -75,7 +84,7 @@ export function QuestionCard({
   }
 
   // Render true/false question
-  if (question.question_type === "true_false") {
+  if (isTrueFalse) {
     return (
       <Card>
         <CardHeader>
@@ -136,7 +145,7 @@ export function QuestionCard({
   }
 
   // Render short answer question
-  if (question.question_type === "short_answer") {
+  if (isShortAnswer) {
     return (
       <Card>
         <CardHeader>
