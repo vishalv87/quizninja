@@ -290,13 +290,55 @@ func (lr *LeaderboardRepository) UpdateUserScore(userID uuid.UUID, points int, q
 		return fmt.Errorf("failed to update user score: %w", err)
 	}
 
+	// Recalculate user level after points update
+	if err := lr.RecalculateUserLevel(userID); err != nil {
+		return fmt.Errorf("failed to recalculate user level: %w", err)
+	}
+
 	return nil
+}
+
+// calculateUserLevel determines the level based on total points
+// Mirrors the logic from the removed database trigger
+func calculateUserLevel(points int) string {
+	switch {
+	case points < 100:
+		return "Beginner"
+	case points < 300:
+		return "Novice"
+	case points < 600:
+		return "Intermediate"
+	case points < 1000:
+		return "Advanced"
+	case points < 1500:
+		return "Expert"
+	case points < 2000:
+		return "Master"
+	default:
+		return "Legend"
+	}
 }
 
 // RecalculateUserLevel updates user's level based on their total points
 func (lr *LeaderboardRepository) RecalculateUserLevel(userID uuid.UUID) error {
-	// The level is automatically updated by the database trigger when total_points changes
-	// This method is kept for compatibility and future enhancements
+	// Get current total points
+	var totalPoints int
+	getPointsQuery := `SELECT total_points FROM users WHERE id = $1`
+	err := lr.db.QueryRow(getPointsQuery, userID).Scan(&totalPoints)
+	if err != nil {
+		return fmt.Errorf("failed to get user points: %w", err)
+	}
+
+	// Calculate new level
+	newLevel := calculateUserLevel(totalPoints)
+
+	// Update level
+	updateQuery := `UPDATE users SET level = $1, updated_at = NOW() WHERE id = $2`
+	_, err = lr.db.Exec(updateQuery, newLevel, userID)
+	if err != nil {
+		return fmt.Errorf("failed to update user level: %w", err)
+	}
+
 	return nil
 }
 

@@ -92,6 +92,24 @@ func (h *FriendsHandler) SendFriendRequest(c *gin.Context) {
 		return
 	}
 
+	// Create notification for the recipient
+	requesterUser, _ := h.repo.User.GetUserByID(requesterID)
+	notificationMessage := "wants to be your friend"
+	if requesterUser != nil {
+		notificationMessage = requesterUser.Name + " wants to be your friend"
+	}
+	entityType := "friend_request"
+	notificationReq := &models.CreateNotificationRequest{
+		UserID:            req.RequestedUserID,
+		Type:              models.NotificationTypeFriendRequest,
+		Title:             "New Friend Request",
+		Message:           &notificationMessage,
+		RelatedUserID:     &requesterID,
+		RelatedEntityID:   &friendRequest.ID,
+		RelatedEntityType: &entityType,
+	}
+	h.repo.Notification.CreateNotification(notificationReq)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Friend request sent successfully",
 		"request": friendRequest,
@@ -175,6 +193,47 @@ func (h *FriendsHandler) RespondToFriendRequest(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to respond to friend request")
 		return
 	}
+
+	// If accepted, create the friendship
+	if req.Status == "accepted" {
+		_, err = h.repo.Friends.CreateFriendship(friendRequest.RequesterID, currentUserID)
+		if err != nil {
+			// Log but don't fail - the request was accepted successfully
+			// Friendship creation failure shouldn't undo the acceptance
+		}
+	}
+
+	// Create notification for the requester
+	currentUser, _ := h.repo.User.GetUserByID(currentUserID)
+	var notificationType, notificationTitle, notificationMessage string
+	if req.Status == "accepted" {
+		notificationType = models.NotificationTypeFriendAccepted
+		notificationTitle = "Friend Request Accepted"
+		if currentUser != nil {
+			notificationMessage = currentUser.Name + " accepted your friend request"
+		} else {
+			notificationMessage = "Your friend request was accepted"
+		}
+	} else {
+		notificationType = models.NotificationTypeFriendRejected
+		notificationTitle = "Friend Request Declined"
+		if currentUser != nil {
+			notificationMessage = currentUser.Name + " declined your friend request"
+		} else {
+			notificationMessage = "Your friend request was declined"
+		}
+	}
+	entityType := "friend_request"
+	notificationReq := &models.CreateNotificationRequest{
+		UserID:            friendRequest.RequesterID,
+		Type:              notificationType,
+		Title:             notificationTitle,
+		Message:           &notificationMessage,
+		RelatedUserID:     &currentUserID,
+		RelatedEntityID:   &requestID,
+		RelatedEntityType: &entityType,
+	}
+	h.repo.Notification.CreateNotification(notificationReq)
 
 	var message string
 	if req.Status == "accepted" {

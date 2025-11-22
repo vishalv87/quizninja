@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"quizninja-api/config"
@@ -111,6 +112,24 @@ func (h *ChallengesHandler) CreateChallenge(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve challenge details")
 		return
 	}
+
+	// Create notification for the challengee
+	challengerUser, _ := h.repo.User.GetUserByID(challengerID)
+	notificationMessage := "You have been challenged!"
+	if challengerUser != nil {
+		notificationMessage = challengerUser.Name + " challenged you to a quiz!"
+	}
+	entityType := "challenge"
+	notificationReq := &models.CreateNotificationRequest{
+		UserID:            req.ChallengeeUserID,
+		Type:              models.NotificationTypeChallengeReceived,
+		Title:             "New Challenge",
+		Message:           &notificationMessage,
+		RelatedUserID:     &challengerID,
+		RelatedEntityID:   &challenge.ID,
+		RelatedEntityType: &entityType,
+	}
+	h.repo.Notification.CreateNotification(notificationReq)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":   "Challenge created successfully",
@@ -234,6 +253,24 @@ func (h *ChallengesHandler) AcceptChallenge(c *gin.Context) {
 		return
 	}
 
+	// Create notification for the challenger
+	currentUser, _ := h.repo.User.GetUserByID(currentUserID)
+	notificationMessage := "Your challenge was accepted!"
+	if currentUser != nil {
+		notificationMessage = currentUser.Name + " accepted your challenge!"
+	}
+	entityType := "challenge"
+	notificationReq := &models.CreateNotificationRequest{
+		UserID:            challenge.ChallengerID,
+		Type:              models.NotificationTypeChallengeAccepted,
+		Title:             "Challenge Accepted",
+		Message:           &notificationMessage,
+		RelatedUserID:     &currentUserID,
+		RelatedEntityID:   &challengeID,
+		RelatedEntityType: &entityType,
+	}
+	h.repo.Notification.CreateNotification(notificationReq)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":   "Challenge accepted successfully",
 		"challenge": challenge,
@@ -258,6 +295,13 @@ func (h *ChallengesHandler) DeclineChallenge(c *gin.Context) {
 		return
 	}
 
+	// Get challenge details before declining (need challenger ID for notification)
+	challenge, err := h.repo.Challenges.GetChallengeWithDetails(challengeID)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusNotFound, "Challenge not found")
+		return
+	}
+
 	// Decline the challenge
 	if err := h.repo.Challenges.DeclineChallenge(challengeID, currentUserID); err != nil {
 		if err.Error() == "challenge not found or cannot be declined" {
@@ -267,6 +311,24 @@ func (h *ChallengesHandler) DeclineChallenge(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to decline challenge")
 		return
 	}
+
+	// Create notification for the challenger
+	currentUser, _ := h.repo.User.GetUserByID(currentUserID)
+	notificationMessage := "Your challenge was declined"
+	if currentUser != nil {
+		notificationMessage = currentUser.Name + " declined your challenge"
+	}
+	entityType := "challenge"
+	notificationReq := &models.CreateNotificationRequest{
+		UserID:            challenge.ChallengerID,
+		Type:              models.NotificationTypeChallengeDeclined,
+		Title:             "Challenge Declined",
+		Message:           &notificationMessage,
+		RelatedUserID:     &currentUserID,
+		RelatedEntityID:   &challengeID,
+		RelatedEntityType: &entityType,
+	}
+	h.repo.Notification.CreateNotification(notificationReq)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Challenge declined successfully",
@@ -572,6 +634,88 @@ func (h *ChallengesHandler) CompleteChallengeAttempt(c *gin.Context) {
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve updated challenge")
 		return
+	}
+
+	// Check if both players have completed - if so, send completion notifications
+	if challenge.ChallengerCompletedAt != nil && challenge.ChallengeeCompletedAt != nil {
+		entityType := "challenge"
+
+		// Determine winner
+		var winnerID, loserID uuid.UUID
+		var winnerScore, loserScore float64
+		isTie := false
+
+		if challenge.ChallengerScore != nil && challenge.ChallengeeScore != nil {
+			if *challenge.ChallengerScore > *challenge.ChallengeeScore {
+				winnerID = challenge.ChallengerID
+				loserID = challenge.ChallengeeID
+				winnerScore = *challenge.ChallengerScore
+				loserScore = *challenge.ChallengeeScore
+			} else if *challenge.ChallengeeScore > *challenge.ChallengerScore {
+				winnerID = challenge.ChallengeeID
+				loserID = challenge.ChallengerID
+				winnerScore = *challenge.ChallengeeScore
+				loserScore = *challenge.ChallengerScore
+			} else {
+				isTie = true
+			}
+		}
+
+		if isTie {
+			// Notify both of tie
+			tieMessage := "The challenge ended in a tie!"
+			for _, userID := range []uuid.UUID{challenge.ChallengerID, challenge.ChallengeeID} {
+				otherUserID := challenge.ChallengerID
+				if userID == challenge.ChallengerID {
+					otherUserID = challenge.ChallengeeID
+				}
+				notificationReq := &models.CreateNotificationRequest{
+					UserID:            userID,
+					Type:              models.NotificationTypeChallengeCompleted,
+					Title:             "Challenge Complete - Tie!",
+					Message:           &tieMessage,
+					RelatedUserID:     &otherUserID,
+					RelatedEntityID:   &challengeID,
+					RelatedEntityType: &entityType,
+				}
+				h.repo.Notification.CreateNotification(notificationReq)
+			}
+		} else {
+			// Notify winner
+			winnerUser, _ := h.repo.User.GetUserByID(winnerID)
+			loserUser, _ := h.repo.User.GetUserByID(loserID)
+
+			winMessage := "Congratulations! You won the challenge!"
+			if loserUser != nil {
+				winMessage = "You beat " + loserUser.Name + " with a score of " + fmt.Sprintf("%.0f", winnerScore) + " to " + fmt.Sprintf("%.0f", loserScore) + "!"
+			}
+			winNotification := &models.CreateNotificationRequest{
+				UserID:            winnerID,
+				Type:              models.NotificationTypeChallengeCompleted,
+				Title:             "Challenge Won!",
+				Message:           &winMessage,
+				RelatedUserID:     &loserID,
+				RelatedEntityID:   &challengeID,
+				RelatedEntityType: &entityType,
+			}
+			h.repo.Notification.CreateNotification(winNotification)
+
+			// Notify loser
+			loseMessage := "You lost the challenge. Better luck next time!"
+			if winnerUser != nil {
+				loseMessage = winnerUser.Name + " won with a score of " + fmt.Sprintf("%.0f", winnerScore) + " to " + fmt.Sprintf("%.0f", loserScore)
+			}
+			loseNotification := &models.CreateNotificationRequest{
+				UserID:            loserID,
+				Type:              models.NotificationTypeChallengeCompleted,
+				Title:             "Challenge Complete",
+				Message:           &loseMessage,
+				RelatedUserID:     &winnerID,
+				RelatedEntityID:   &challengeID,
+				RelatedEntityType: &entityType,
+			}
+			h.repo.Notification.CreateNotification(loseNotification)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{

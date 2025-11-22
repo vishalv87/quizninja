@@ -10,6 +10,7 @@ import (
 	"quizninja-api/models"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type FriendsRepository struct {
@@ -519,35 +520,43 @@ func (r *FriendsRepository) SearchUsers(searchQuery string, currentUserID uuid.U
 	return users, total, nil
 }
 
-// GetFriendNotifications retrieves friend notifications for a user
+// GetFriendNotifications retrieves friend notifications for a user from the unified notifications table
 func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offset int) ([]models.FriendNotification, int, error) {
 	log.Printf("GetFriendNotifications called: userID=%s, limit=%d, offset=%d", userID, limit, offset)
-	// Count query
+
+	// Friend notification types
+	friendTypes := []string{"friend_request", "friend_accepted", "friend_rejected"}
+
+	// Count query - using unified notifications table
 	countQuery := `
 		SELECT COUNT(*)
-		FROM friend_notifications
+		FROM notifications
 		WHERE user_id = $1
+		AND type = ANY($2)
+		AND is_deleted = false
 	`
 
 	var total int
-	err := r.db.QueryRow(countQuery, userID).Scan(&total)
+	err := r.db.QueryRow(countQuery, userID, pq.Array(friendTypes)).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count notifications: %w", err)
 	}
 
-	// Main query
+	// Main query - using unified notifications table
 	query := `
-		SELECT fn.id, fn.user_id, fn.type, fn.title, fn.message, fn.related_user_id,
-			   fn.friend_request_id, fn.is_read, fn.created_at, fn.read_at,
+		SELECT n.id, n.user_id, n.type, n.title, n.message, n.related_user_id,
+			   n.related_entity_id, n.is_read, n.created_at, n.read_at,
 			   u.id, u.name, u.email, u.avatar_url, u.level, u.total_points, u.is_online, u.last_active
-		FROM friend_notifications fn
-		LEFT JOIN users u ON fn.related_user_id = u.id
-		WHERE fn.user_id = $1
-		ORDER BY fn.created_at DESC
-		LIMIT $2 OFFSET $3
+		FROM notifications n
+		LEFT JOIN users u ON n.related_user_id = u.id
+		WHERE n.user_id = $1
+		AND n.type = ANY($2)
+		AND n.is_deleted = false
+		ORDER BY n.created_at DESC
+		LIMIT $3 OFFSET $4
 	`
 
-	rows, err := r.db.Query(query, userID, limit, offset)
+	rows, err := r.db.Query(query, userID, pq.Array(friendTypes), limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get friend notifications: %w", err)
 	}
@@ -566,7 +575,7 @@ func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offs
 			&notification.Title,
 			&notification.Message,
 			&notification.RelatedUserID,
-			&notification.FriendRequestID,
+			&notification.FriendRequestID, // Maps to related_entity_id
 			&notification.IsRead,
 			&notification.CreatedAt,
 			&notification.ReadAt,
@@ -600,16 +609,21 @@ func (r *FriendsRepository) GetFriendNotifications(userID uuid.UUID, limit, offs
 	return notifications, total, nil
 }
 
-// MarkNotificationAsRead marks a specific notification as read
+// MarkNotificationAsRead marks a specific notification as read (uses unified notifications table)
 func (r *FriendsRepository) MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error {
 	log.Printf("MarkNotificationAsRead called: notificationID=%s, userID=%s", notificationID, userID)
+
+	// Friend notification types
+	friendTypes := []string{"friend_request", "friend_accepted", "friend_rejected"}
+
 	query := `
-		UPDATE friend_notifications
+		UPDATE notifications
 		SET is_read = true, read_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND user_id = $2 AND is_read = false
+		AND type = ANY($3)
 	`
 
-	result, err := r.db.Exec(query, notificationID, userID)
+	result, err := r.db.Exec(query, notificationID, userID, pq.Array(friendTypes))
 	if err != nil {
 		return fmt.Errorf("failed to mark notification as read: %w", err)
 	}
@@ -626,16 +640,21 @@ func (r *FriendsRepository) MarkNotificationAsRead(notificationID uuid.UUID, use
 	return nil
 }
 
-// MarkAllNotificationsAsRead marks all notifications as read for a user
+// MarkAllNotificationsAsRead marks all friend notifications as read for a user (uses unified notifications table)
 func (r *FriendsRepository) MarkAllNotificationsAsRead(userID uuid.UUID) error {
 	log.Printf("MarkAllNotificationsAsRead called: userID=%s", userID)
+
+	// Friend notification types
+	friendTypes := []string{"friend_request", "friend_accepted", "friend_rejected"}
+
 	query := `
-		UPDATE friend_notifications
+		UPDATE notifications
 		SET is_read = true, read_at = CURRENT_TIMESTAMP
 		WHERE user_id = $1 AND is_read = false
+		AND type = ANY($2)
 	`
 
-	_, err := r.db.Exec(query, userID)
+	_, err := r.db.Exec(query, userID, pq.Array(friendTypes))
 	if err != nil {
 		return fmt.Errorf("failed to mark all notifications as read: %w", err)
 	}
@@ -643,17 +662,23 @@ func (r *FriendsRepository) MarkAllNotificationsAsRead(userID uuid.UUID) error {
 	return nil
 }
 
-// GetUnreadNotificationCount gets the count of unread notifications for a user
+// GetUnreadNotificationCount gets the count of unread friend notifications for a user (uses unified notifications table)
 func (r *FriendsRepository) GetUnreadNotificationCount(userID uuid.UUID) (int, error) {
 	log.Printf("GetUnreadNotificationCount called: userID=%s", userID)
+
+	// Friend notification types
+	friendTypes := []string{"friend_request", "friend_accepted", "friend_rejected"}
+
 	query := `
 		SELECT COUNT(*)
-		FROM friend_notifications
+		FROM notifications
 		WHERE user_id = $1 AND is_read = false
+		AND type = ANY($2)
+		AND is_deleted = false
 	`
 
 	var count int
-	err := r.db.QueryRow(query, userID).Scan(&count)
+	err := r.db.QueryRow(query, userID, pq.Array(friendTypes)).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get unread notification count: %w", err)
 	}

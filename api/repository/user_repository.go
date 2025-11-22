@@ -103,7 +103,8 @@ func (ur *UserRepository) UpdateUser(user *models.User) error {
 		UPDATE users SET
 			email = $2, name = $3, level = $4, total_points = $5,
 			current_streak = $6, best_streak = $7, total_quizzes_completed = $8,
-			average_score = $9, is_online = $10, last_active = $11, avatar_url = $12
+			average_score = $9, is_online = $10, last_active = $11, avatar_url = $12,
+			updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1
 	`
 	_, err := ur.db.Exec(query, user.ID, user.Email, user.Name, user.Level,
@@ -296,14 +297,14 @@ func (ur *UserRepository) GetUserWithPreferences(userID uuid.UUID) (*models.User
 
 // UpdateUserOnlineStatus updates user's online status
 func (ur *UserRepository) UpdateUserOnlineStatus(userID uuid.UUID, isOnline bool) error {
-	query := `UPDATE users SET is_online = $2 WHERE id = $1`
+	query := `UPDATE users SET is_online = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := ur.db.Exec(query, userID, isOnline)
 	return err
 }
 
 // UpdateUserLastActive updates user's last active timestamp
 func (ur *UserRepository) UpdateUserLastActive(userID uuid.UUID) error {
-	query := `UPDATE users SET last_active = CURRENT_TIMESTAMP WHERE id = $1`
+	query := `UPDATE users SET last_active = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1`
 	_, err := ur.db.Exec(query, userID)
 	return err
 }

@@ -91,6 +91,7 @@ type FriendsRepositoryInterface interface {
 	// Friendship operations
 	GetFriends(userID uuid.UUID) ([]models.Friend, error)
 	GetFriendship(user1ID, user2ID uuid.UUID) (*models.Friendship, error)
+	CreateFriendship(user1ID, user2ID uuid.UUID) (*models.Friendship, error)
 	RemoveFriend(userID, friendID uuid.UUID) error
 	AreFriends(user1ID, user2ID uuid.UUID) (bool, error)
 
