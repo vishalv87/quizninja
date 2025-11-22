@@ -3,17 +3,17 @@ import { useQuizStore } from "@/store/quizStore";
 
 /**
  * Hook to manage quiz timer
- * Automatically decrements time every second when not paused
+ * Automatically decrements time every second
  *
  * @param onTimeUp - Callback when time runs out
  */
 export function useQuizTimer(onTimeUp?: () => void) {
-  const { timeRemaining, isPaused, decrementTime } = useQuizStore();
+  const { timeRemaining, decrementTime } = useQuizStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Don't start timer if no time limit or paused
-    if (timeRemaining === null || isPaused) {
+    // Don't start timer if no time limit
+    if (timeRemaining === null) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -42,10 +42,9 @@ export function useQuizTimer(onTimeUp?: () => void) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [timeRemaining, isPaused, decrementTime, onTimeUp]);
+  }, [timeRemaining, decrementTime, onTimeUp]);
 
   return {
     timeRemaining,
-    isPaused,
   };
 }

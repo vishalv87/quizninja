@@ -2,14 +2,12 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useQuiz } from "@/hooks/useQuiz";
-import { useQuizActiveSession } from "@/hooks/useQuizAttempt";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/useFavorites";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
 import { RelatedQuizzesCard } from "@/components/quiz/RelatedQuizzesCard";
@@ -20,21 +18,10 @@ import {
   ArrowLeft,
   Play,
   Target,
-  RotateCcw,
   Heart,
-  PlayCircle,
   Lightbulb,
   AlertTriangle,
   CheckCircle2,
-  Clock,
-  Users,
-  TrendingUp,
-  Award,
-  BarChart3,
-  Calendar,
-  User,
-  Tag,
-  Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -70,7 +57,6 @@ export default function QuizDetailPage() {
   const quizId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const { data: quiz, isLoading, error } = useQuiz(quizId);
-  const { data: activeSession, isLoading: sessionLoading } = useQuizActiveSession(quizId);
   const { data: isFavorite, isLoading: favoriteLoading } = useIsFavorite(quizId);
   const { toggle: toggleFavorite } = useToggleFavorite();
 
@@ -123,19 +109,6 @@ export default function QuizDetailPage() {
     return category ? (gradients[category.toLowerCase()] || "from-gray-500 to-gray-700") : "from-gray-500 to-gray-700";
   };
 
-  // Calculate progress for active session
-  const sessionProgress = activeSession
-    ? Math.round(((activeSession.current_question_index + 1) / quiz.question_count) * 100)
-    : 0;
-
-  // Format time remaining
-  const formatTimeRemaining = (seconds?: number) => {
-    if (!seconds) return "N/A";
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="container py-8 space-y-6 max-w-7xl">
       {/* Back Button */}
@@ -157,15 +130,6 @@ export default function QuizDetailPage() {
                 {quiz.difficulty && (
                   <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
                     {quiz.difficulty.toUpperCase()}
-                  </Badge>
-                )}
-                {activeSession && (
-                  <Badge className={`${
-                    activeSession.session_state === 'paused'
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-green-500 text-white'
-                  } border-0`}>
-                    {activeSession.session_state.toUpperCase()}
                   </Badge>
                 )}
                 {/* Tags */}
@@ -197,77 +161,31 @@ export default function QuizDetailPage() {
                 <p className="text-white/90 text-base md:text-lg">{quiz.description}</p>
               </div>
 
-              {/* Progress Bar for Active Session */}
-              {activeSession && (
-                <div className="space-y-3">
-                  <Progress value={sessionProgress} className="h-2 bg-white/30" />
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <p className="text-white/70">Answered</p>
-                      <p className="font-semibold">{activeSession.current_question_index + 1}</p>
-                    </div>
-                    <div>
-                      <p className="text-white/70">Remaining</p>
-                      <p className="font-semibold">{quiz.question_count - (activeSession.current_question_index + 1)}</p>
-                    </div>
-                    <div>
-                      <p className="text-white/70">Time Left</p>
-                      <p className="font-semibold">{formatTimeRemaining(activeSession.time_remaining)}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 pt-2">
-                    <Link href={`/quizzes/${quiz.id}/take?resume=true`} className="flex-1">
-                      <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90">
-                        {activeSession.session_state === 'paused' ? (
-                          <>
-                            <RotateCcw className="mr-2 h-5 w-5" />
-                            Resume Quiz
-                          </>
-                        ) : (
-                          <>
-                            <PlayCircle className="mr-2 h-5 w-5" />
-                            Continue Quiz
-                          </>
-                        )}
-                      </Button>
-                    </Link>
-                    <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-                      <Button size="lg" variant="outline" className="w-full bg-white/10 border-white/30 text-white hover:bg-white/20">
-                        <Play className="mr-2 h-5 w-5" />
-                        Start New
-                      </Button>
-                    </Link>
-                  </div>
+              {/* Stats Row */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-4">
+                <div className="space-y-1">
+                  <p className="text-sm text-white/70 font-medium">Questions</p>
+                  <p className="text-2xl font-bold text-white">{quiz.question_count}</p>
                 </div>
-              )}
-
-              {/* Stats Row for Normal Flow */}
-              {!activeSession && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-4">
-                  <div className="space-y-1">
-                    <p className="text-sm text-white/70 font-medium">Questions</p>
-                    <p className="text-2xl font-bold text-white">{quiz.question_count}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-white/70 font-medium">Time Limit</p>
-                    <p className="text-2xl font-bold text-white">
-                      {quiz.time_limit ? `${quiz.time_limit} min` : 'No limit'}
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm text-white/70 font-medium">Points</p>
-                    <p className="text-2xl font-bold text-white">{quiz.points}</p>
-                  </div>
-                  <div className="col-span-2 md:col-span-1 flex items-end">
-                    <Link href={`/quizzes/${quiz.id}/take`} className="w-full">
-                      <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90" disabled={sessionLoading}>
-                        <Play className="mr-2 h-5 w-5" />
-                        {sessionLoading ? "Checking..." : "Start Quiz"}
-                      </Button>
-                    </Link>
-                  </div>
+                <div className="space-y-1">
+                  <p className="text-sm text-white/70 font-medium">Time Limit</p>
+                  <p className="text-2xl font-bold text-white">
+                    {quiz.time_limit ? `${quiz.time_limit} min` : 'No limit'}
+                  </p>
                 </div>
-              )}
+                <div className="space-y-1">
+                  <p className="text-sm text-white/70 font-medium">Points</p>
+                  <p className="text-2xl font-bold text-white">{quiz.points}</p>
+                </div>
+                <div className="col-span-2 md:col-span-1 flex items-end">
+                  <Link href={`/quizzes/${quiz.id}/take`} className="w-full">
+                    <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90">
+                      <Play className="mr-2 h-5 w-5" />
+                      Start Quiz
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
 
             {/* Favorite Button */}
@@ -410,7 +328,7 @@ export default function QuizDetailPage() {
           )}
 
           {/* View Results Button for completed quizzes */}
-          {quiz.user_has_attempted && !activeSession && (
+          {quiz.user_has_attempted && (
             <Link href={`/quizzes/${quiz.id}/results`} className="w-full">
               <Button size="lg" variant="secondary" className="w-full">
                 <Trophy className="mr-2 h-5 w-5" />

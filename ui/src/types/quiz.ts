@@ -69,7 +69,7 @@ export interface QuizAttempt {
   id: string;
   quiz_id: string;
   user_id: string;
-  status: "in_progress" | "completed" | "abandoned" | "paused";
+  status: "in_progress" | "completed" | "abandoned";
   score?: number;
   total_questions: number;
   correct_answers: number;
@@ -105,95 +105,13 @@ export interface QuizResults {
   rank?: number;
 }
 
-// Quiz Session Types for Pause/Resume functionality
-export type SessionState = 'active' | 'paused' | 'completed' | 'abandoned';
-
+// Answer type for quiz taking (before submission/grading)
 export interface AttemptAnswer {
   question_id: string;
   selected_answer: string;
   selected_option_index?: number; // Index in the options array (used for submission)
   is_correct?: boolean;
   points_earned?: number;
-}
-
-export interface QuizSession {
-  id: string;
-  attempt_id: string;
-  user_id: string;
-  quiz_id: string;
-  current_question_index: number;
-  current_answers: AttemptAnswer[];
-  session_state: SessionState;
-  time_remaining?: number; // in seconds
-  time_spent_so_far: number; // in seconds
-  last_activity_at: string;
-  paused_at?: string;
-  created_at: string;
-  updated_at: string;
-  quiz?: Quiz; // Optional quiz details
-}
-
-export interface QuizSessionWithDetails extends QuizSession {
-  quiz_title: string;
-  quiz_category: string;
-  quiz_difficulty: string;
-  total_questions: number;
-  original_time_limit?: number; // in seconds
-  progress: number; // percentage 0-100
-}
-
-export interface PauseSessionRequest {
-  current_question_index: number;
-  current_answers: AttemptAnswer[];
-  time_spent_so_far: number;
-  time_remaining?: number;
-}
-
-export interface SaveProgressRequest {
-  current_question_index: number;
-  current_answers: AttemptAnswer[];
-  time_spent_so_far: number;
-  time_remaining?: number;
-}
-
-export interface SessionActionResponse {
-  session_id: string;
-  action: string;
-  session_state: SessionState;
-  message: string;
-  time_remaining?: number;
-  progress?: number;
-}
-
-export interface ResumeSessionResponse {
-  session_id: string;
-  action: string;
-  session_state: SessionState;
-  message: string;
-  quiz: Quiz & { questions: Question[] };
-  current_question_index: number;
-  current_answers: AttemptAnswer[];
-  time_remaining?: number;
-  time_spent_so_far: number;
-  progress?: number;
-}
-
-export interface ActiveSessionsResponse {
-  sessions: QuizSessionWithDetails[];
-  total: number;
-  active_count: number;
-  paused_count: number;
-}
-
-export interface SessionFilters {
-  session_state?: SessionState;
-  quiz_id?: string;
-  category?: string;
-  difficulty?: string;
-  page?: number;
-  page_size?: number;
-  sort_by?: 'last_activity_at' | 'created_at';
-  sort_order?: 'asc' | 'desc';
 }
 
 // Rating Types

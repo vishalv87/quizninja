@@ -6,10 +6,9 @@ import { cn } from "@/lib/utils";
 
 interface QuizTimerProps {
   timeRemaining: number | null; // in seconds
-  isPaused?: boolean;
 }
 
-export function QuizTimer({ timeRemaining, isPaused = false }: QuizTimerProps) {
+export function QuizTimer({ timeRemaining }: QuizTimerProps) {
   // No time limit
   if (timeRemaining === null) {
     return (
@@ -42,23 +41,20 @@ export function QuizTimer({ timeRemaining, isPaused = false }: QuizTimerProps) {
     <Card
       className={cn(
         "p-4 transition-colors",
-        isCritical &&
-          !isPaused &&
-          "border-red-500 bg-red-50 dark:bg-red-950/20",
+        isCritical && "border-red-500 bg-red-50 dark:bg-red-950/20",
         isUrgent &&
           !isCritical &&
-          !isPaused &&
           "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20"
       )}
     >
       <div className="flex items-center gap-3">
-        {isCritical && !isPaused ? (
+        {isCritical ? (
           <AlertCircle className="h-5 w-5 text-red-500 animate-pulse" />
         ) : (
           <Clock
             className={cn(
               "h-5 w-5",
-              isUrgent && !isPaused
+              isUrgent
                 ? "text-yellow-600 dark:text-yellow-400"
                 : "text-muted-foreground"
             )}
@@ -68,18 +64,13 @@ export function QuizTimer({ timeRemaining, isPaused = false }: QuizTimerProps) {
           <p
             className={cn(
               "text-2xl font-bold font-mono",
-              isCritical && !isPaused && "text-red-600 dark:text-red-400",
-              isUrgent &&
-                !isCritical &&
-                !isPaused &&
-                "text-yellow-600 dark:text-yellow-400"
+              isCritical && "text-red-600 dark:text-red-400",
+              isUrgent && !isCritical && "text-yellow-600 dark:text-yellow-400"
             )}
           >
             {formattedTime}
           </p>
-          <p className="text-xs text-muted-foreground">
-            {isPaused ? "Paused" : "Time Remaining"}
-          </p>
+          <p className="text-xs text-muted-foreground">Time Remaining</p>
         </div>
       </div>
     </Card>

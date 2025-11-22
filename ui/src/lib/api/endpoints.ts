@@ -41,7 +41,6 @@ export const API_ENDPOINTS = {
     ATTEMPT_DETAILS: (attemptId: string) => `/users/attempts/${attemptId}`,
     ACHIEVEMENTS: "/users/achievements",
     ACHIEVEMENTS_BY_USER: (userId: string) => `/users/${userId}/achievements`,
-    ACTIVE_SESSIONS: "/users/active-sessions",
   },
 
   // Quizzes (Public)
@@ -59,9 +58,6 @@ export const API_ENDPOINTS = {
     START_ATTEMPT: (id: string) => `/quizzes/${id}/attempts`,
     SUBMIT_ATTEMPT: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}/submit`,
     UPDATE_ATTEMPT: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}`,
-    PAUSE: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}/pause`,
-    RESUME: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}/resume`,
-    SAVE_PROGRESS: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}/save-progress`,
     ABANDON: (id: string, attemptId: string) => `/quizzes/${id}/attempts/${attemptId}/abandon`,
   },
 

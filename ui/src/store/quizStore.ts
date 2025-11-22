@@ -10,7 +10,6 @@ interface QuizState {
   currentQuestionIndex: number;
   answers: Record<string, QuizAnswer>; // keyed by question_id
   timeRemaining: number | null; // seconds
-  isPaused: boolean;
   startTime: number | null;
 
   // Actions
@@ -29,7 +28,6 @@ interface QuizState {
   // Timer management
   setTimeRemaining: (seconds: number) => void;
   decrementTime: () => void;
-  setPaused: (paused: boolean) => void;
 
   // Quiz lifecycle
   startQuiz: (quiz: Quiz, attempt: QuizAttempt) => void;
@@ -43,7 +41,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
   currentQuestionIndex: 0,
   answers: {},
   timeRemaining: null,
-  isPaused: false,
   startTime: null,
 
   // Set current quiz
@@ -108,9 +105,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     }
   },
 
-  // Set paused state
-  setPaused: (paused) => set({ isPaused: paused }),
-
   // Start quiz - initialize all state
   startQuiz: (quiz, attempt) => {
     const timeLimit = quiz.time_limit
@@ -123,7 +117,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       currentQuestionIndex: 0,
       answers: {},
       timeRemaining: timeLimit,
-      isPaused: false,
       startTime: Date.now(),
     });
   },
@@ -136,7 +129,6 @@ export const useQuizStore = create<QuizState>((set, get) => ({
       currentQuestionIndex: 0,
       answers: {},
       timeRemaining: null,
-      isPaused: false,
       startTime: null,
     });
   },

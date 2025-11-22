@@ -51,15 +51,6 @@ export const submitQuizAttemptSchema = z.object({
 
 export type SubmitQuizAttemptInput = z.infer<typeof submitQuizAttemptSchema>;
 
-// ============ SAVE QUIZ PROGRESS ============
-
-export const saveQuizProgressSchema = z.object({
-  answers: quizAnswersSchema,
-  current_question_index: z.number().min(0),
-});
-
-export type SaveQuizProgressInput = z.infer<typeof saveQuizProgressSchema>;
-
 // ============ VALIDATORS ============
 
 /**
@@ -88,11 +79,4 @@ export function validateQuizAnswer(answer: unknown) {
  */
 export function validateQuizSubmission(data: unknown) {
   return submitQuizAttemptSchema.safeParse(data);
-}
-
-/**
- * Validate save quiz progress data
- */
-export function validateSaveProgress(data: unknown) {
-  return saveQuizProgressSchema.safeParse(data);
 }
