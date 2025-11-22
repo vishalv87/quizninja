@@ -740,7 +740,7 @@ func (r *QuizRepository) DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
 func (r *QuizRepository) AbandonQuizAttempt(attemptID uuid.UUID) error {
 	query := `
 		UPDATE quiz_attempts
-		SET status = 'abandoned', is_completed = true, updated_at = CURRENT_TIMESTAMP
+		SET status = 'abandoned', is_completed = true, completed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
 		WHERE id = $1 AND is_completed = false`
 
 	result, err := r.db.Exec(query, attemptID)

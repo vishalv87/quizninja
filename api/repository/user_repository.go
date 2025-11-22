@@ -568,7 +568,7 @@ func (ur *UserRepository) getRecentActivity(userID uuid.UUID) ([]models.RecentAc
 			q.difficulty
 		FROM quiz_attempts qa
 		JOIN quizzes q ON qa.quiz_id = q.id
-		WHERE qa.user_id = $1 AND qa.is_completed = true
+		WHERE qa.user_id = $1 AND qa.is_completed = true AND qa.completed_at IS NOT NULL
 		ORDER BY qa.completed_at DESC
 		LIMIT 10
 	`

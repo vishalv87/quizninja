@@ -398,6 +398,10 @@ func (ah *AuthHandler) GetUserStats(c *gin.Context) {
 
 	stats, err := ah.userRepo.GetUserStatistics(userID.(uuid.UUID))
 	if err != nil {
+		utils.WithFields(logrus.Fields{
+			"user_id": userID,
+			"error":   err.Error(),
+		}).Error("Failed to retrieve user statistics")
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to retrieve user statistics",
 		})
