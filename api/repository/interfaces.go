@@ -62,6 +62,7 @@ type QuizRepositoryInterface interface {
 	GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models.QuizAttempt, error)
 	GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models.QuizAttempt, error)
 	DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
+	AbandonQuizAttempt(attemptID uuid.UUID) error
 	HasUserCompletedQuiz(userID, quizID uuid.UUID) (bool, error)
 
 	// Attempt history operations
@@ -198,41 +199,10 @@ type NotificationRepositoryInterface interface {
 	GetFriendUnreadNotificationCount(userID uuid.UUID) (int, error)
 }
 
-// QuizSessionRepositoryInterface defines the contract for quiz session data operations
-type QuizSessionRepositoryInterface interface {
-	// Session CRUD operations
-	CreateSession(session *models.QuizSession) error
-	UpdateSession(session *models.QuizSession) error
-	GetSessionByID(id uuid.UUID) (*models.QuizSession, error)
-	GetSessionByAttemptID(attemptID uuid.UUID) (*models.QuizSession, error)
-	DeleteSession(id uuid.UUID) error
-
-	// Session state operations
-	PauseSession(attemptID uuid.UUID, pauseData *models.PauseSessionRequest) error
-	ResumeSession(attemptID uuid.UUID) error
-	AbandonSession(attemptID uuid.UUID) error
-	CompleteSession(attemptID uuid.UUID) error
-
-	// Session queries
-	GetActiveSession(userID, quizID uuid.UUID) (*models.QuizSession, error)
-	GetUserActiveSessions(userID uuid.UUID, filters *models.SessionFilters) ([]models.QuizSessionWithDetails, int, error)
-	GetSessionWithDetails(sessionID uuid.UUID) (*models.QuizSessionWithDetails, error)
-
-	// Session management
-	SaveSessionProgress(attemptID uuid.UUID, updateData *models.UpdateQuizSessionRequest) error
-	UpdateSessionActivity(sessionID uuid.UUID) error
-	CleanupExpiredSessions() (int, error)
-
-	// Session validation
-	HasActiveSession(userID, quizID uuid.UUID) (bool, error)
-	CanResumeSession(attemptID uuid.UUID, userID uuid.UUID) (bool, error)
-}
-
 // Repository aggregates all repository interfaces
 type Repository struct {
 	User         UserRepositoryInterface
 	Quiz         QuizRepositoryInterface
-	QuizSession  QuizSessionRepositoryInterface
 	Friends      FriendsRepositoryInterface
 	Challenges   ChallengesRepositoryInterface
 	Leaderboard  LeaderboardRepositoryInterface
@@ -247,7 +217,6 @@ func NewRepository() *Repository {
 	return &Repository{
 		User:         NewUserRepository(),
 		Quiz:         NewQuizRepository(),
-		QuizSession:  NewQuizSessionRepository(),
 		Friends:      NewFriendsRepository(),
 		Challenges:   NewChallengesRepository(),
 		Leaderboard:  NewLeaderboardRepository(),

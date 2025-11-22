@@ -105,7 +105,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				users.GET("/stats", authHandler.GetUserStats)
 				users.GET("/attempts", quizHandler.GetUserAttempts)
 				users.GET("/attempts/:attemptId", quizHandler.GetAttemptDetails)
-				users.GET("/active-sessions", quizHandler.GetUserActiveSessions)
 			}
 
 			// Protected quiz endpoints
@@ -116,12 +115,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				protectedQuizzes.POST("/:id/attempts", quizHandler.StartQuizAttempt)
 				protectedQuizzes.POST("/:id/attempts/:attemptId/submit", quizHandler.SubmitQuizAttempt)
 				protectedQuizzes.PUT("/:id/attempts/:attemptId", quizHandler.UpdateQuizAttempt)
-
-				// Session management endpoints
-				protectedQuizzes.POST("/:id/attempts/:attemptId/pause", quizHandler.PauseQuizSession)
-				protectedQuizzes.POST("/:id/attempts/:attemptId/resume", quizHandler.ResumeQuizSession)
-				protectedQuizzes.PUT("/:id/attempts/:attemptId/save-progress", quizHandler.SaveQuizProgress)
-				protectedQuizzes.DELETE("/:id/attempts/:attemptId/abandon", quizHandler.AbandonQuizSession)
+				protectedQuizzes.DELETE("/:id/attempts/:attemptId/abandon", quizHandler.AbandonQuizAttempt)
 
 				// Rating endpoints
 				protectedQuizzes.POST("/:id/ratings", ratingHandler.CreateRating)

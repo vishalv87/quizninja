@@ -736,6 +736,30 @@ func (r *QuizRepository) DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
 	return nil
 }
 
+// AbandonQuizAttempt marks an active attempt as abandoned
+func (r *QuizRepository) AbandonQuizAttempt(attemptID uuid.UUID) error {
+	query := `
+		UPDATE quiz_attempts
+		SET status = 'abandoned', is_completed = true, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $1 AND is_completed = false`
+
+	result, err := r.db.Exec(query, attemptID)
+	if err != nil {
+		return fmt.Errorf("failed to abandon quiz attempt: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected > 0 {
+		fmt.Printf("Abandoned quiz attempt %s\n", attemptID)
+	}
+
+	return nil
+}
+
 // GetUserAttempts retrieves user's quiz attempts with filtering and pagination
 func (r *QuizRepository) GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error) {
 	fmt.Printf("[QuizRepository] GetUserAttempts called for user: %s with filters: %+v\n", userID, filters)
@@ -948,8 +972,8 @@ func (r *QuizRepository) GetAttemptWithDetails(attemptID uuid.UUID) (*models.Qui
 	return &attempt, nil
 }
 
-// GetUserQuizAttemptWithDetails retrieves THE user's attempt for a specific quiz with quiz details
-// Returns the most recent attempt (active or completed) - frontends can check is_completed field
+// GetUserQuizAttemptWithDetails retrieves THE user's active (incomplete) attempt for a specific quiz with quiz details
+// Returns only active attempts (is_completed = false) - returns error if no active attempt exists
 func (r *QuizRepository) GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error) {
 	query := `
 		SELECT
@@ -960,7 +984,7 @@ func (r *QuizRepository) GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID)
 			q.total_questions, q.points, q.is_featured, q.tags, q.thumbnail_url, q.created_at
 		FROM quiz_attempts qa
 		JOIN quizzes q ON qa.quiz_id = q.id
-		WHERE qa.user_id = $1 AND qa.quiz_id = $2
+		WHERE qa.user_id = $1 AND qa.quiz_id = $2 AND qa.is_completed = false
 		ORDER BY qa.created_at DESC
 		LIMIT 1`
 
