@@ -26,7 +26,7 @@ export function NotificationBell({
     <Button
       variant="ghost"
       size="icon"
-      className={cn("relative", className)}
+      className={cn("relative rounded-xl hover:bg-primary/10 transition-all duration-300", className)}
       onClick={onClick}
     >
       <Bell className={cn("h-5 w-5", hasUnread && "text-primary")} />
