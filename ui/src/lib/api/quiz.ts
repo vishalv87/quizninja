@@ -140,10 +140,10 @@ export async function searchQuizzes(query: string): Promise<Quiz[]> {
  */
 export async function startQuizAttempt(quizId: string): Promise<QuizAttempt> {
   try {
-    const response = await apiClient.post<QuizAttempt>(
+    const response = await apiClient.post<{ data: QuizAttempt }>(
       API_ENDPOINTS.QUIZ.START_ATTEMPT(quizId)
-    ) as unknown as QuizAttempt;
-    return response;
+    ) as unknown as { data: QuizAttempt };
+    return response.data;
   } catch (error) {
     apiLogger.error("Error starting quiz attempt", { quizId, error });
     throw error;
@@ -159,11 +159,11 @@ export async function updateQuizAttempt(
   answers: QuizAnswer[]
 ): Promise<QuizAttempt> {
   try {
-    const response = await apiClient.put<QuizAttempt>(
+    const response = await apiClient.put<{ data: QuizAttempt }>(
       API_ENDPOINTS.QUIZ.UPDATE_ATTEMPT(quizId, attemptId),
       { answers }
-    ) as unknown as QuizAttempt;
-    return response;
+    ) as unknown as { data: QuizAttempt };
+    return response.data;
   } catch (error) {
     apiLogger.error("Error updating quiz attempt", {
       quizId,
@@ -190,14 +190,14 @@ export async function submitQuizAttempt(
       selectedOptionIndex: answer.selected_option_index,
     }));
 
-    const response = await apiClient.post<QuizResults>(
+    const response = await apiClient.post<{ data: QuizResults }>(
       API_ENDPOINTS.QUIZ.SUBMIT_ATTEMPT(quizId, attemptId),
       {
         attemptId,
         answers: formattedAnswers,
       }
-    ) as unknown as QuizResults;
-    return response;
+    ) as unknown as { data: QuizResults };
+    return response.data;
   } catch (error) {
     apiLogger.error("Error submitting quiz attempt", {
       quizId,
@@ -255,10 +255,10 @@ export async function getAttemptDetails(
   attemptId: string
 ): Promise<QuizAttempt> {
   try {
-    const response = await apiClient.get<QuizAttempt>(
+    const response = await apiClient.get<{ data: { attempt: QuizAttempt } }>(
       API_ENDPOINTS.USERS.ATTEMPT_DETAILS(attemptId)
-    ) as unknown as QuizAttempt;
-    return response;
+    ) as unknown as { data: { attempt: QuizAttempt } };
+    return response.data.attempt;
   } catch (error) {
     apiLogger.error("Error fetching attempt details", { attemptId, error });
     throw error;
@@ -272,10 +272,10 @@ export async function getActiveAttemptForQuiz(
   quizId: string
 ): Promise<QuizAttempt | null> {
   try {
-    const response = await apiClient.get<QuizAttempt>(
+    const response = await apiClient.get<{ data: { attempt: QuizAttempt } }>(
       API_ENDPOINTS.USERS.QUIZ_ATTEMPT(quizId)
-    ) as unknown as QuizAttempt;
-    return response;
+    ) as unknown as { data: { attempt: QuizAttempt } };
+    return response.data.attempt;
   } catch (error: any) {
     // If 404, no active attempt exists
     if (error.status === 404) {

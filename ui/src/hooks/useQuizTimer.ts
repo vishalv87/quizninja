@@ -10,6 +10,7 @@ import { useQuizStore } from "@/store/quizStore";
 export function useQuizTimer(onTimeUp?: () => void) {
   const { timeRemaining, decrementTime } = useQuizStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasCalledOnTimeUp = useRef(false);
 
   useEffect(() => {
     // Don't start timer if no time limit
@@ -21,13 +22,17 @@ export function useQuizTimer(onTimeUp?: () => void) {
       return;
     }
 
-    // Check if time is up
+    // Check if time is up - only call onTimeUp once
     if (timeRemaining <= 0) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      onTimeUp?.();
+      // Guard to prevent multiple calls to onTimeUp
+      if (!hasCalledOnTimeUp.current) {
+        hasCalledOnTimeUp.current = true;
+        onTimeUp?.();
+      }
       return;
     }
 

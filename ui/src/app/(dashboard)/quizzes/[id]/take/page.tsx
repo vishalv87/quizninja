@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuiz } from "@/hooks/useQuiz";
 import { useQuizQuestions } from "@/hooks/useQuizQuestions";
@@ -67,6 +67,9 @@ export default function QuizTakingPage() {
 
   // Ref to prevent multiple initialization attempts
   const hasInitialized = useRef(false);
+
+  // Ref to prevent multiple submission attempts
+  const isSubmittingRef = useRef(false);
 
   // Extract stable mutate functions to avoid dependency issues
   const { mutate: startAttempt } = startAttemptMutation;
@@ -141,11 +144,14 @@ export default function QuizTakingPage() {
     abandonSession,
   ]);
 
-  // Setup quiz timer
-  useQuizTimer(() => {
+  // Memoized callback for timer to prevent re-renders causing multiple calls
+  const handleTimeUp = useCallback(() => {
     // Auto-submit when time runs out
-    handleSubmit();
-  });
+    setShowSubmitDialog(true);
+  }, []);
+
+  // Setup quiz timer
+  useQuizTimer(handleTimeUp);
 
   // Prevent accidental page close
   useEffect(() => {
@@ -186,7 +192,9 @@ export default function QuizTakingPage() {
   };
 
   const confirmSubmit = () => {
-    if (!currentAttempt) return;
+    // Guard against multiple submissions
+    if (!currentAttempt || isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
 
     const answersList = Object.values(answers);
     submitAttemptMutation.mutate(
@@ -199,6 +207,10 @@ export default function QuizTakingPage() {
         onSuccess: () => {
           resetQuiz();
           router.push(`/quizzes/${quizId}/results/${currentAttempt.id}`);
+        },
+        onError: () => {
+          // Reset the guard on error to allow retry
+          isSubmittingRef.current = false;
         },
       }
     );
@@ -352,8 +364,13 @@ export default function QuizTakingPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSubmit}>Submit Quiz</AlertDialogAction>
+            <AlertDialogCancel disabled={submitAttemptMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSubmit}
+              disabled={submitAttemptMutation.isPending}
+            >
+              {submitAttemptMutation.isPending ? "Submitting..." : "Submit Quiz"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

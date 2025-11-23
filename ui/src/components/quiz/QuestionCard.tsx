@@ -50,7 +50,7 @@ export function QuestionCard({
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={selectedAnswer}
+            value={selectedAnswer ?? ""}
             onValueChange={onAnswerChange}
             disabled={disabled}
             className="space-y-3"
@@ -104,7 +104,7 @@ export function QuestionCard({
         </CardHeader>
         <CardContent>
           <RadioGroup
-            value={selectedAnswer}
+            value={selectedAnswer ?? ""}
             onValueChange={onAnswerChange}
             disabled={disabled}
             className="space-y-3"
