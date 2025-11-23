@@ -4,7 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Quiz, QuizAttempt } from "@/types/quiz";
-import { BookOpen, Clock, Star, Trophy, Heart, CheckCircle, XCircle } from "lucide-react";
+import { BookOpen, Clock, Star, Trophy, Heart, CheckCircle, XCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
@@ -26,10 +26,9 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
 
   // Determine difficulty color
   const difficultyColor = {
-    beginner: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    intermediate:
-      "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-    advanced: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+    beginner: "bg-green-100 text-green-700 border-green-200",
+    intermediate: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    advanced: "bg-red-100 text-red-700 border-red-200",
   }[quiz.difficulty];
 
   // Handle favorite toggle
@@ -40,139 +39,125 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
-      <CardHeader className="space-y-2">
+    <Card className="group relative flex flex-col h-full overflow-hidden border-gray-200/60 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white">
+      {/* Top Decoration Bar */}
+      <div className={cn("h-1.5 w-full bg-gradient-to-r", 
+        quiz.difficulty === 'beginner' ? "from-green-400 to-emerald-500" :
+        quiz.difficulty === 'intermediate' ? "from-yellow-400 to-orange-500" :
+        "from-red-500 to-rose-600"
+      )} />
+      
+      <CardHeader className="space-y-3 pb-3">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-xl font-bold line-clamp-2 flex-1">
-            {quiz.title}
-          </h3>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {quiz.is_featured && (
-              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={handleFavoriteClick}
-              disabled={isFavoriteLoading}
-              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-            >
-              <Heart
-                className={cn(
-                  "h-5 w-5 transition-colors",
-                  isFavorite
-                    ? "text-red-600 fill-red-600 dark:text-red-400 dark:fill-red-400"
-                    : "text-muted-foreground hover:text-red-600 dark:hover:text-red-400"
-                )}
-              />
-            </Button>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={cn("capitalize font-medium border", difficultyColor)}>
+                {quiz.difficulty}
+              </Badge>
+              {quiz.is_featured && (
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 gap-1">
+                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                  Featured
+                </Badge>
+              )}
+            </div>
+            <h3 className="text-xl font-bold line-clamp-2 group-hover:text-primary transition-colors">
+              {quiz.title}
+            </h3>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 -mr-2 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+            onClick={handleFavoriteClick}
+            disabled={isFavoriteLoading}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart
+              className={cn(
+                "h-5 w-5 transition-all duration-300",
+                isFavorite
+                  ? "fill-red-500 text-red-500 scale-110"
+                  : "scale-100"
+              )}
+            />
+          </Button>
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-2">
+        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
           {quiz.description}
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1">
-        <div className="space-y-3">
-          {/* Category and Difficulty */}
-          <div className="flex gap-2 flex-wrap">
-            <Badge variant="secondary">{quiz.category}</Badge>
-            <Badge className={difficultyColor}>
-              {quiz.difficulty.charAt(0).toUpperCase() +
-                quiz.difficulty.slice(1)}
+      <CardContent className="flex-1 pb-4">
+        <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-50">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BookOpen className="h-4 w-4 text-primary/70" />
+            <span>{quiz.question_count} questions</span>
+          </div>
+
+          {quiz.time_limit && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4 text-primary/70" />
+              <span>{quiz.time_limit} min</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Trophy className="h-4 w-4 text-primary/70" />
+            <span>{quiz.points} points</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Badge variant="secondary" className="px-1.5 py-0 h-5 text-xs font-normal">
+              {quiz.category}
             </Badge>
           </div>
-
-          {/* Quiz Stats */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="flex items-center gap-2 text-sm">
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                {quiz.question_count} questions
-              </span>
-            </div>
-
-            {quiz.time_limit && (
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {quiz.time_limit} min
-                </span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2 text-sm">
-              <Trophy className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">
-                {quiz.points} points
-              </span>
-            </div>
-
-            {quiz.average_score !== undefined && (
-              <div className="flex items-center gap-2 text-sm">
-                <Star className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">
-                  {quiz.average_score.toFixed(0)}% avg
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Attempts count if available */}
-          {quiz.attempts_count !== undefined && quiz.attempts_count > 0 && (
-            <p className="text-xs text-muted-foreground pt-1">
-              {quiz.attempts_count} attempt
-              {quiz.attempts_count !== 1 ? "s" : ""}
-            </p>
-          )}
         </div>
       </CardContent>
 
-      <CardFooter className="flex flex-col gap-2">
+      <CardFooter className="pt-0 pb-5 px-6 flex flex-col gap-3">
         {/* Completion Status Badge */}
         {isCompleted && (
-          <div className="w-full flex items-center justify-between mb-1">
-            <Badge
-              variant="secondary"
-              className={cn(
-                "text-xs",
-                passed
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-              )}
-            >
-              {passed ? (
-                <><CheckCircle className="mr-1 h-3 w-3" /> Passed</>
-              ) : (
-                <><XCircle className="mr-1 h-3 w-3" /> Failed</>
-              )}
-            </Badge>
-            <span className="text-sm text-muted-foreground">
-              Score: {completedAttempt?.score ?? 0}/{completedAttempt?.total_points ?? quiz.question_count}
+          <div className={cn(
+            "w-full flex items-center justify-between p-2 rounded-lg text-sm font-medium",
+            passed ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+          )}>
+            <div className="flex items-center gap-1.5">
+              {passed ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              <span>{passed ? "Passed" : "Failed"}</span>
+            </div>
+            <span className="font-bold">
+              {completedAttempt?.score}/{completedAttempt?.total_points}
             </span>
           </div>
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-2 w-full">
-          <Link href={`/quizzes/${quiz.id}`} className="flex-1">
-            <Button variant="outline" className="w-full">
-              View Details
-            </Button>
-          </Link>
+        <div className="flex gap-3 w-full">
           {isCompleted ? (
-            <Link href={`/quizzes/${quiz.id}/results/${completedAttempt?.id}`} className="flex-1">
-              <Button className="w-full">
-                <Trophy className="mr-2 h-4 w-4" />
-                View Results
+            <>
+              <Button variant="outline" className="flex-1 border-primary/20 hover:bg-primary/5 hover:text-primary" asChild>
+                <Link href={`/quizzes/${quiz.id}`}>Details</Link>
               </Button>
-            </Link>
+              <Button className="flex-1 bg-primary hover:bg-primary/90 shadow-sm" asChild>
+                <Link href={`/quizzes/${quiz.id}/results/${completedAttempt?.id}`}>
+                  <Trophy className="mr-2 h-4 w-4" />
+                  Results
+                </Link>
+              </Button>
+            </>
           ) : (
-            <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-              <Button className="w-full">Start Quiz</Button>
-            </Link>
+            <>
+              <Button variant="outline" className="flex-1 border-primary/20 hover:bg-primary/5 hover:text-primary" asChild>
+                <Link href={`/quizzes/${quiz.id}`}>Details</Link>
+              </Button>
+              <Button className="flex-1 bg-primary hover:bg-primary/90 shadow-sm group-hover:shadow-md transition-all" asChild>
+                <Link href={`/quizzes/${quiz.id}/take`}>
+                  Start Quiz
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </>
           )}
         </div>
       </CardFooter>

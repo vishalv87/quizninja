@@ -107,99 +107,115 @@ export default function QuizzesPage() {
   }, [filters.showFavoritesOnly, favoriteIds, allQuizzes]);
 
   return (
-    <div className="container py-8 space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Quizzes</h1>
-        <p className="text-muted-foreground mt-2">
-          Explore quizzes and test your knowledge
-        </p>
+    <div className="space-y-8 pb-10">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 to-cyan-600 p-8 text-white shadow-xl lg:p-12">
+        <div className="relative z-10 max-w-3xl">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
+            Explore Quizzes
+          </h1>
+          <p className="text-lg text-blue-100 mb-8 max-w-2xl">
+            Challenge yourself with our diverse collection of quizzes. Filter by category, difficulty, or search for specific topics to test your knowledge.
+          </p>
+          
+          {/* Search Bar Embedded in Hero */}
+          <div className="bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-lg">
+            <QuizSearch
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search quizzes by title or description..."
+              className="border-none bg-transparent text-white placeholder:text-blue-200 focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+          </div>
+        </div>
+        
+        {/* Decorative background elements */}
+        <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-0 right-20 -mb-10 h-40 w-40 rounded-full bg-cyan-400/20 blur-2xl" />
       </div>
 
-      <Separator />
-
-      {/* Search Bar */}
-      <QuizSearch
-        value={searchQuery}
-        onChange={handleSearchChange}
-        placeholder="Search quizzes by title or description..."
-      />
-
-      {/* Filters */}
-      <QuizFilters filters={filters} onFilterChange={handleFilterChange} />
-
-      {/* Tabs for All Quizzes and Featured */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="all">All Quizzes</TabsTrigger>
-          <TabsTrigger value="featured">Featured</TabsTrigger>
-        </TabsList>
-
-        {/* All Quizzes Tab */}
-        <TabsContent value="all" className="mt-6 space-y-6">
-          <QuizList
-            quizzes={filteredQuizzes}
-            isLoading={allQuizzesLoading}
-            error={allQuizzesError}
-            completedQuizMap={completedQuizMap}
-          />
-
-          {/* Pagination for All Quizzes */}
-          {filteredQuizzes && filteredQuizzes.length > 0 && (
-            <div className="flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className={
-                        currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-
-                  {/* Show page numbers */}
-                  {[...Array(Math.min(5, Math.ceil(100 / ITEMS_PER_PAGE)))].map((_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          onClick={() => setCurrentPage(pageNum)}
-                          isActive={currentPage === pageNum}
-                          className="cursor-pointer"
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  })}
-
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                      className={
-                        filteredQuizzes.length < ITEMS_PER_PAGE
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+      <div className="container px-0 md:px-4">
+        {/* Filters and Tabs */}
+        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between mb-8">
+          <Tabs defaultValue="all" className="w-full">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between mb-6">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="all">All Quizzes</TabsTrigger>
+                <TabsTrigger value="featured">Featured</TabsTrigger>
+              </TabsList>
+              
+              <div className="flex-1 lg:max-w-2xl">
+                <QuizFilters filters={filters} onFilterChange={handleFilterChange} />
+              </div>
             </div>
-          )}
-        </TabsContent>
 
-        {/* Featured Quizzes Tab */}
-        <TabsContent value="featured" className="mt-6">
-          <QuizList
-            quizzes={featuredQuizzes || []}
-            isLoading={featuredLoading}
-            error={featuredError}
-            completedQuizMap={completedQuizMap}
-          />
-        </TabsContent>
-      </Tabs>
+            {/* All Quizzes Tab */}
+            <TabsContent value="all" className="space-y-8">
+              <QuizList
+                quizzes={filteredQuizzes}
+                isLoading={allQuizzesLoading}
+                error={allQuizzesError}
+                completedQuizMap={completedQuizMap}
+              />
+
+              {/* Pagination for All Quizzes */}
+              {filteredQuizzes && filteredQuizzes.length > 0 && (
+                <div className="flex justify-center pt-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className={
+                            currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+
+                      {/* Show page numbers */}
+                      {[...Array(Math.min(5, Math.ceil(100 / ITEMS_PER_PAGE)))].map((_, i) => {
+                        const pageNum = i + 1;
+                        return (
+                          <PaginationItem key={pageNum}>
+                            <PaginationLink
+                              onClick={() => setCurrentPage(pageNum)}
+                              isActive={currentPage === pageNum}
+                              className="cursor-pointer"
+                            >
+                              {pageNum}
+                            </PaginationLink>
+                          </PaginationItem>
+                        );
+                      })}
+
+                      <PaginationItem>
+                        <PaginationNext
+                          onClick={() => setCurrentPage((p) => p + 1)}
+                          className={
+                            filteredQuizzes.length < ITEMS_PER_PAGE
+                              ? "pointer-events-none opacity-50"
+                              : "cursor-pointer"
+                          }
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Featured Quizzes Tab */}
+            <TabsContent value="featured">
+              <QuizList
+                quizzes={featuredQuizzes || []}
+                isLoading={featuredLoading}
+                error={featuredError}
+                completedQuizMap={completedQuizMap}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

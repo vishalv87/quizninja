@@ -57,82 +57,77 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
   };
 
   return (
-    <Card className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Category Filter */}
-        <div className="space-y-2">
-          <Label htmlFor="category-filter">Category</Label>
-          {categoriesLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
+    <div className="flex flex-col gap-4 p-1">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-1 gap-4 w-full sm:w-auto">
+          {/* Category Filter */}
+          <div className="w-full sm:w-[200px]">
+            {categoriesLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={filters.category || "all"}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger id="category-filter" className="bg-white border-gray-200">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories?.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.display_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Difficulty Filter */}
+          <div className="w-full sm:w-[180px]">
             <Select
-              value={filters.category || "all"}
-              onValueChange={handleCategoryChange}
+              value={filters.difficulty || "all"}
+              onValueChange={handleDifficultyChange}
             >
-              <SelectTrigger id="category-filter">
-                <SelectValue placeholder="All Categories" />
+              <SelectTrigger id="difficulty-filter" className="bg-white border-gray-200">
+                <SelectValue placeholder="Difficulty" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories?.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.display_name}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Difficulties</SelectItem>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="advanced">Advanced</SelectItem>
               </SelectContent>
             </Select>
-          )}
+          </div>
         </div>
 
-        {/* Difficulty Filter */}
-        <div className="space-y-2">
-          <Label htmlFor="difficulty-filter">Difficulty</Label>
-          <Select
-            value={filters.difficulty || "all"}
-            onValueChange={handleDifficultyChange}
-          >
-            <SelectTrigger id="difficulty-filter">
-              <SelectValue placeholder="All Difficulties" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Difficulties</SelectItem>
-              <SelectItem value="beginner">Beginner</SelectItem>
-              <SelectItem value="intermediate">Intermediate</SelectItem>
-              <SelectItem value="advanced">Advanced</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Featured Filter */}
-        <div className="space-y-2">
-          <Label htmlFor="featured-filter">Featured Only</Label>
-          <div className="flex items-center h-10 px-3 border rounded-md">
+        {/* Toggles */}
+        <div className="flex items-center gap-6 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2">
             <Switch
               id="featured-filter"
               checked={filters.isFeatured}
               onCheckedChange={handleFeaturedChange}
             />
-            <Label htmlFor="featured-filter" className="ml-3 cursor-pointer">
-              {filters.isFeatured ? "Yes" : "No"}
+            <Label htmlFor="featured-filter" className="text-sm font-medium cursor-pointer text-muted-foreground">
+              Featured
             </Label>
           </div>
-        </div>
 
-        {/* Favorites Filter */}
-        <div className="space-y-2">
-          <Label htmlFor="favorites-filter">Favorites Only</Label>
-          <div className="flex items-center h-10 px-3 border rounded-md">
+          <div className="flex items-center gap-2">
             <Switch
               id="favorites-filter"
               checked={filters.showFavoritesOnly || false}
               onCheckedChange={handleFavoritesChange}
             />
-            <Label htmlFor="favorites-filter" className="ml-3 cursor-pointer">
-              {filters.showFavoritesOnly ? "Yes" : "No"}
+            <Label htmlFor="favorites-filter" className="text-sm font-medium cursor-pointer text-muted-foreground">
+              Favorites
             </Label>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
