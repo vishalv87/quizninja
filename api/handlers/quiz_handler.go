@@ -513,6 +513,8 @@ func (h *QuizHandler) SubmitQuizAttempt(c *gin.Context) {
 		"score":                     int(finalScore), // Convert back to int for response
 		"total_questions":           totalQuestions,
 		"correct_answers":           correctAnswers,
+		"percentage":                scorePercentage,          // Score percentage for frontend display
+		"passed":                    attempt.Passed,           // Pass/fail status
 		"time_spent":                submitRequest.TimeSpent,
 		"answers":                   validatedAnswers,         // Include validated answers with isCorrect status
 		"achievement_notifications": achievementNotifications, // Include achievement notifications
