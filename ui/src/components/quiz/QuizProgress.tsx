@@ -14,8 +14,7 @@ export function QuizProgress({
   totalQuestions,
   answeredCount,
 }: QuizProgressProps) {
-  const progressPercentage = ((currentQuestion + 1) / totalQuestions) * 100;
-  const answeredPercentage = (answeredCount / totalQuestions) * 100;
+  const progressPercentage = (answeredCount / totalQuestions) * 100;
 
   return (
     <Card className="p-4">
@@ -41,12 +40,8 @@ export function QuizProgress({
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-          <div>
-            {Math.round(progressPercentage)}% complete
-          </div>
-          <div className="text-right">
-            {totalQuestions - answeredCount} remaining
-          </div>
+          <div>{Math.round(progressPercentage)}% complete</div>
+          <div className="text-right">{totalQuestions - answeredCount} remaining</div>
         </div>
       </div>
     </Card>
