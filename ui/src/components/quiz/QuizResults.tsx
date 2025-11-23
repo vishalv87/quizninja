@@ -11,30 +11,29 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  Award,
-  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { Progress } from "@/components/ui/progress";
 
 interface QuizResultsProps {
   results: QuizResultsType;
-  onRetry?: () => void;
 }
 
-export function QuizResults({ results, onRetry }: QuizResultsProps) {
+export function QuizResults({ results }: QuizResultsProps) {
   const { attempt, quiz, percentage, passed } = results;
 
-  // Calculate stats
-  const accuracy = (attempt.correct_answers / attempt.total_questions) * 100;
-  const incorrectAnswers = attempt.total_questions - attempt.correct_answers;
+  // Calculate stats with defensive checks to prevent NaN
+  const correctAnswers = attempt.score ?? 0;
+  const totalQuestions = attempt.total_points ?? 0;
+  const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+  const incorrectAnswers = totalQuestions - correctAnswers;
 
   // Format time
-  const timeSpentMinutes = attempt.time_spent_seconds
-    ? Math.floor(attempt.time_spent_seconds / 60)
+  const timeSpentMinutes = attempt.time_spent
+    ? Math.floor(attempt.time_spent / 60)
     : 0;
-  const timeSpentSeconds = attempt.time_spent_seconds
-    ? attempt.time_spent_seconds % 60
+  const timeSpentSeconds = attempt.time_spent
+    ? attempt.time_spent % 60
     : 0;
 
   return (
@@ -115,7 +114,7 @@ export function QuizResults({ results, onRetry }: QuizResultsProps) {
                 <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{attempt.correct_answers}</p>
+                <p className="text-2xl font-bold">{correctAnswers}</p>
                 <p className="text-xs text-muted-foreground">
                   Correct Answers
                 </p>
@@ -142,7 +141,7 @@ export function QuizResults({ results, onRetry }: QuizResultsProps) {
         </Card>
 
         {/* Time Spent */}
-        {attempt.time_spent_seconds !== undefined && (
+        {attempt.time_spent !== undefined && (
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
@@ -184,7 +183,7 @@ export function QuizResults({ results, onRetry }: QuizResultsProps) {
           <Separator />
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">Total Questions</span>
-            <span className="font-medium">{attempt.total_questions}</span>
+            <span className="font-medium">{totalQuestions}</span>
           </div>
           <Separator />
           <div className="flex items-center justify-between">
@@ -201,12 +200,6 @@ export function QuizResults({ results, onRetry }: QuizResultsProps) {
             Browse More Quizzes
           </Button>
         </Link>
-        {onRetry && (
-          <Button size="lg" onClick={onRetry} className="flex-1">
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Retry Quiz
-          </Button>
-        )}
       </div>
     </div>
   );

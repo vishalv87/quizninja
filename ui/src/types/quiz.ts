@@ -70,12 +70,13 @@ export interface QuizAttempt {
   quiz_id: string;
   user_id: string;
   status: "in_progress" | "completed" | "abandoned";
-  score?: number;
-  total_questions: number;
-  correct_answers: number;
+  score: number; // Number of correct answers
+  total_points: number; // Total number of questions
   started_at: string;
   completed_at?: string;
-  time_spent_seconds?: number;
+  time_spent?: number; // Time spent in seconds
+  percentage_score?: number; // Pre-calculated percentage from backend
+  passed?: boolean; // Whether the user passed (>= 60%)
   answers: QuizAnswer[];
 }
 

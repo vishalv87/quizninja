@@ -106,8 +106,10 @@ export function RecentActivity() {
       <CardContent>
         <div className="space-y-4">
           {attempts.map((attempt: any) => {
-            const percentage = attempt.score
-              ? Math.round((attempt.score / (attempt.total_questions * 10)) * 100)
+            const correctAnswers = attempt.score ?? 0;
+            const totalQuestions = attempt.total_points ?? 0;
+            const percentage = totalQuestions > 0
+              ? Math.round((correctAnswers / totalQuestions) * 100)
               : 0;
             const passed = percentage >= 60;
 
@@ -143,7 +145,7 @@ export function RecentActivity() {
                     <div className="text-right">
                       <p className="text-sm font-semibold">{percentage}%</p>
                       <p className="text-xs text-muted-foreground">
-                        {attempt.correct_answers}/{attempt.total_questions} correct
+                        {correctAnswers}/{totalQuestions} correct
                       </p>
                     </div>
                   )}

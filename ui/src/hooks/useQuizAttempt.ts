@@ -102,9 +102,10 @@ export function useQuizAttemptResults(attemptId: string) {
       // Fetch quiz details
       const quiz = await getQuiz(attempt.quiz_id);
 
-      // Calculate percentage and passed status
-      const percentage = (attempt.correct_answers / attempt.total_questions) * 100;
-      const passed = percentage >= 60; // Assuming 60% is passing
+      // Use pre-calculated percentage from backend, or calculate with defensive checks
+      const percentage = attempt.percentage_score ??
+        (attempt.total_points > 0 ? (attempt.score / attempt.total_points) * 100 : 0);
+      const passed = attempt.passed ?? percentage >= 60;
 
       return {
         attempt,

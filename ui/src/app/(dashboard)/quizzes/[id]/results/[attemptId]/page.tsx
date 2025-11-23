@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { QuizResults } from "@/components/quiz/QuizResults";
 import { useQuizAttemptResults } from "@/hooks/useQuizAttempt";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,15 +16,10 @@ import Link from "next/link";
  */
 export default function QuizResultsPage() {
   const params = useParams();
-  const router = useRouter();
   const quizId = params.id as string;
   const attemptId = params.attemptId as string;
 
   const { data: results, isLoading, error } = useQuizAttemptResults(attemptId);
-
-  const handleRetry = () => {
-    router.push(`/quizzes/${quizId}`);
-  };
 
   // Loading state
   if (isLoading) {
@@ -107,7 +102,7 @@ export default function QuizResultsPage() {
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
-      <QuizResults results={results} onRetry={handleRetry} />
+      <QuizResults results={results} />
     </div>
   );
 }

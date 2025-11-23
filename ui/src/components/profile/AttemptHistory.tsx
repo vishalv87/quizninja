@@ -134,8 +134,10 @@ export function AttemptHistory() {
         ) : (
           <div className="space-y-3">
             {attempts.map((attempt: any) => {
-              const percentage = attempt.score && attempt.total_questions
-                ? Math.round((attempt.score / (attempt.total_questions * 10)) * 100)
+              const correctAnswers = attempt.score ?? 0;
+              const totalQuestions = attempt.total_points ?? 0;
+              const percentage = totalQuestions > 0
+                ? Math.round((correctAnswers / totalQuestions) * 100)
                 : 0;
               const passed = percentage >= 60;
 
@@ -177,10 +179,10 @@ export function AttemptHistory() {
                               addSuffix: true,
                             })}
                         </span>
-                        {attempt.time_spent_seconds && (
+                        {attempt.time_spent && (
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {formatTime(attempt.time_spent_seconds)}
+                            {formatTime(attempt.time_spent)}
                           </span>
                         )}
                       </div>
@@ -191,7 +193,7 @@ export function AttemptHistory() {
                       <div className="text-right">
                         <p className="text-lg font-bold">{percentage}%</p>
                         <p className="text-xs text-muted-foreground">
-                          {attempt.correct_answers}/{attempt.total_questions} correct
+                          {correctAnswers}/{totalQuestions} correct
                         </p>
                       </div>
                     )}
