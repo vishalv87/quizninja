@@ -3,16 +3,17 @@
 import { QuizCard } from "./QuizCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/common/EmptyState";
-import type { Quiz } from "@/types/quiz";
+import type { Quiz, QuizAttempt } from "@/types/quiz";
 import { BookOpen } from "lucide-react";
 
 interface QuizListProps {
   quizzes: Quiz[];
   isLoading?: boolean;
   error?: Error | null;
+  completedQuizMap?: Map<string, QuizAttempt>;
 }
 
-export function QuizList({ quizzes, isLoading, error }: QuizListProps) {
+export function QuizList({ quizzes, isLoading, error, completedQuizMap }: QuizListProps) {
   // Loading state
   if (isLoading) {
     return (
@@ -52,7 +53,11 @@ export function QuizList({ quizzes, isLoading, error }: QuizListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {quizzes.map((quiz) => (
-        <QuizCard key={quiz.id} quiz={quiz} />
+        <QuizCard
+          key={quiz.id}
+          quiz={quiz}
+          completedAttempt={completedQuizMap?.get(quiz.id)}
+        />
       ))}
     </div>
   );

@@ -8,6 +8,7 @@ import { useQuizzes } from "@/hooks/useQuizzes";
 import { useFeaturedQuizzes } from "@/hooks/useFeaturedQuizzes";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useCompletedQuizMap } from "@/hooks/useCompletedQuizMap";
 import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,6 +83,17 @@ export default function QuizzesPage() {
     [favoritesData]
   );
 
+  // Extract all quiz IDs for fetching completion status (combine all and featured)
+  const allQuizIds = useMemo(() => {
+    const ids = new Set<string>();
+    allQuizzes?.forEach((quiz) => ids.add(quiz.id));
+    featuredQuizzes?.forEach((quiz) => ids.add(quiz.id));
+    return Array.from(ids);
+  }, [allQuizzes, featuredQuizzes]);
+
+  // Fetch completed quiz attempts for displaying completion status
+  const { data: completedQuizMap } = useCompletedQuizMap(allQuizIds);
+
   // Filter quizzes by favorites when showFavoritesOnly is true
   useEffect(() => {
     if (filters.showFavoritesOnly && favoriteIds.length > 0 && allQuizzes) {
@@ -129,6 +141,7 @@ export default function QuizzesPage() {
             quizzes={filteredQuizzes}
             isLoading={allQuizzesLoading}
             error={allQuizzesError}
+            completedQuizMap={completedQuizMap}
           />
 
           {/* Pagination for All Quizzes */}
@@ -183,6 +196,7 @@ export default function QuizzesPage() {
             quizzes={featuredQuizzes || []}
             isLoading={featuredLoading}
             error={featuredError}
+            completedQuizMap={completedQuizMap}
           />
         </TabsContent>
       </Tabs>

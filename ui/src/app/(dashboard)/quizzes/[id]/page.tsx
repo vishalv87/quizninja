@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuiz } from "@/hooks/useQuiz";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/useFavorites";
+import { useLatestCompletedAttempt } from "@/hooks/useQuizAttempt";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { EmptyState } from "@/components/common/EmptyState";
 import { RelatedQuizzesCard } from "@/components/quiz/RelatedQuizzesCard";
+import { formatDuration } from "@/lib/utils";
 import {
   BookOpen,
   Trophy,
@@ -22,6 +24,9 @@ import {
   Lightbulb,
   AlertTriangle,
   CheckCircle2,
+  Clock,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -59,6 +64,12 @@ export default function QuizDetailPage() {
   const { data: quiz, isLoading, error } = useQuiz(quizId);
   const { data: isFavorite, isLoading: favoriteLoading } = useIsFavorite(quizId);
   const { toggle: toggleFavorite } = useToggleFavorite();
+  const { data: completedAttempt } = useLatestCompletedAttempt(quizId);
+
+  // Derive completion status
+  const isCompleted = completedAttempt && completedAttempt.status === "completed";
+  const percentage = completedAttempt?.percentage_score ?? 0;
+  const passed = percentage >= 60;
 
   // Loading state
   if (isLoading) {
@@ -161,30 +172,81 @@ export default function QuizDetailPage() {
                 <p className="text-white/90 text-base md:text-lg">{quiz.description}</p>
               </div>
 
-              {/* Stats Row */}
+              {/* Stats Row - Conditional based on completion status */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 pt-4">
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70 font-medium">Questions</p>
-                  <p className="text-2xl font-bold text-white">{quiz.question_count}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70 font-medium">Time Limit</p>
-                  <p className="text-2xl font-bold text-white">
-                    {quiz.time_limit ? `${quiz.time_limit} min` : 'No limit'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-white/70 font-medium">Points</p>
-                  <p className="text-2xl font-bold text-white">{quiz.points}</p>
-                </div>
-                <div className="col-span-2 md:col-span-1 flex items-end">
-                  <Link href={`/quizzes/${quiz.id}/take`} className="w-full">
-                    <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90">
-                      <Play className="mr-2 h-5 w-5" />
-                      Start Quiz
-                    </Button>
-                  </Link>
-                </div>
+                {isCompleted ? (
+                  <>
+                    {/* Completed Stats */}
+                    <div className="space-y-1">
+                      <p className="text-sm text-white/70 font-medium">Correct</p>
+                      <p className="text-2xl font-bold text-white">
+                        {completedAttempt?.score ?? 0}/{completedAttempt?.total_points ?? quiz.question_count}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-white/70 font-medium flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Time Taken
+                      </p>
+                      <p className="text-2xl font-bold text-white">
+                        {completedAttempt?.time_spent ? formatDuration(completedAttempt.time_spent) : 'N/A'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-white/70 font-medium">Points Earned</p>
+                      <p className="text-2xl font-bold text-white">{completedAttempt?.score ?? 0}</p>
+                    </div>
+                    <div className="col-span-2 md:col-span-1 flex flex-col items-end gap-2">
+                      {/* Pass/Fail Badge */}
+                      <Badge
+                        variant="secondary"
+                        className={`${
+                          passed
+                            ? "bg-green-500/20 text-green-100 border-green-400/30"
+                            : "bg-red-500/20 text-red-100 border-red-400/30"
+                        } backdrop-blur-sm`}
+                      >
+                        {passed ? (
+                          <><CheckCircle className="mr-1 h-3 w-3" /> Passed</>
+                        ) : (
+                          <><XCircle className="mr-1 h-3 w-3" /> Failed</>
+                        )}
+                      </Badge>
+                      <Link href={`/quizzes/${quiz.id}/results/${completedAttempt?.id}`} className="w-full">
+                        <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90">
+                          <Trophy className="mr-2 h-5 w-5" />
+                          View Results
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Not Completed Stats */}
+                    <div className="space-y-1">
+                      <p className="text-sm text-white/70 font-medium">Questions</p>
+                      <p className="text-2xl font-bold text-white">{quiz.question_count}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-white/70 font-medium">Time Limit</p>
+                      <p className="text-2xl font-bold text-white">
+                        {quiz.time_limit ? `${quiz.time_limit} min` : 'No limit'}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-white/70 font-medium">Points</p>
+                      <p className="text-2xl font-bold text-white">{quiz.points}</p>
+                    </div>
+                    <div className="col-span-2 md:col-span-1 flex items-end">
+                      <Link href={`/quizzes/${quiz.id}/take`} className="w-full">
+                        <Button size="lg" className="w-full bg-white text-gray-900 hover:bg-white/90">
+                          <Play className="mr-2 h-5 w-5" />
+                          Start Quiz
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -328,8 +390,8 @@ export default function QuizDetailPage() {
           )}
 
           {/* View Results Button for completed quizzes */}
-          {quiz.user_has_attempted && (
-            <Link href={`/quizzes/${quiz.id}/results`} className="w-full">
+          {isCompleted && completedAttempt && (
+            <Link href={`/quizzes/${quiz.id}/results/${completedAttempt.id}`} className="w-full">
               <Button size="lg" variant="secondary" className="w-full">
                 <Trophy className="mr-2 h-5 w-5" />
                 View Results & History

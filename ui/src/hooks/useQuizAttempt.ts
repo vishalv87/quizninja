@@ -6,6 +6,7 @@ import {
   getAttemptDetails,
   getQuiz,
   getActiveAttemptForQuiz,
+  getLatestCompletedAttempt,
   abandonQuizSession,
 } from "@/lib/api/quiz";
 import { toast } from "sonner";
@@ -131,6 +132,20 @@ export function useActiveAttempt(quizId: string) {
     enabled: !!quizId,
     staleTime: 0, // Always check for fresh data
     refetchOnWindowFocus: true, // Refetch when user comes back to page
+  });
+}
+
+/**
+ * Hook to fetch the latest completed (non-abandoned) attempt for a specific quiz
+ * Returns null if no completed attempt exists
+ */
+export function useLatestCompletedAttempt(quizId: string) {
+  return useQuery<QuizAttempt | null>({
+    queryKey: ["completed-attempt", quizId],
+    queryFn: () => getLatestCompletedAttempt(quizId),
+    enabled: !!quizId,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes - completed attempts don't change
+    refetchOnWindowFocus: false,
   });
 }
 

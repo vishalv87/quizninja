@@ -3,20 +3,26 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Quiz } from "@/types/quiz";
-import { BookOpen, Clock, Star, Trophy, Heart } from "lucide-react";
+import type { Quiz, QuizAttempt } from "@/types/quiz";
+import { BookOpen, Clock, Star, Trophy, Heart, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/useFavorites";
 import { cn } from "@/lib/utils";
 
 interface QuizCardProps {
   quiz: Quiz;
+  completedAttempt?: QuizAttempt;
 }
 
-export function QuizCard({ quiz }: QuizCardProps) {
+export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
   // Check if quiz is favorited
   const { data: isFavorite, isLoading: isFavoriteLoading } = useIsFavorite(quiz.id);
   const { toggle } = useToggleFavorite();
+
+  // Derive completion status - only consider truly completed (non-abandoned) attempts
+  const isCompleted = completedAttempt && completedAttempt.status === "completed";
+  const percentage = completedAttempt?.percentage_score ?? 0;
+  const passed = percentage >= 60;
 
   // Determine difficulty color
   const difficultyColor = {
@@ -124,15 +130,51 @@ export function QuizCard({ quiz }: QuizCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="flex gap-2">
-        <Link href={`/quizzes/${quiz.id}`} className="flex-1">
-          <Button variant="outline" className="w-full">
-            View Details
-          </Button>
-        </Link>
-        <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
-          <Button className="w-full">Start Quiz</Button>
-        </Link>
+      <CardFooter className="flex flex-col gap-2">
+        {/* Completion Status Badge */}
+        {isCompleted && (
+          <div className="w-full flex items-center justify-between mb-1">
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-xs",
+                passed
+                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                  : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+              )}
+            >
+              {passed ? (
+                <><CheckCircle className="mr-1 h-3 w-3" /> Passed</>
+              ) : (
+                <><XCircle className="mr-1 h-3 w-3" /> Failed</>
+              )}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              Score: {completedAttempt?.score ?? 0}/{completedAttempt?.total_points ?? quiz.question_count}
+            </span>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 w-full">
+          <Link href={`/quizzes/${quiz.id}`} className="flex-1">
+            <Button variant="outline" className="w-full">
+              View Details
+            </Button>
+          </Link>
+          {isCompleted ? (
+            <Link href={`/quizzes/${quiz.id}/results/${completedAttempt?.id}`} className="flex-1">
+              <Button className="w-full">
+                <Trophy className="mr-2 h-4 w-4" />
+                View Results
+              </Button>
+            </Link>
+          ) : (
+            <Link href={`/quizzes/${quiz.id}/take`} className="flex-1">
+              <Button className="w-full">Start Quiz</Button>
+            </Link>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );

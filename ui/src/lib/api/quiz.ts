@@ -285,3 +285,24 @@ export async function getActiveAttemptForQuiz(
     throw error;
   }
 }
+
+/**
+ * Get the latest completed (non-abandoned) attempt for a specific quiz
+ */
+export async function getLatestCompletedAttempt(
+  quizId: string
+): Promise<QuizAttempt | null> {
+  try {
+    const response = await apiClient.get<{ data: { attempt: QuizAttempt } }>(
+      API_ENDPOINTS.USERS.QUIZ_COMPLETED_ATTEMPT(quizId)
+    ) as unknown as { data: { attempt: QuizAttempt } };
+    return response.data.attempt;
+  } catch (error: any) {
+    // If 404, no completed attempt exists
+    if (error.status === 404) {
+      return null;
+    }
+    apiLogger.error("Error fetching latest completed attempt", { quizId, error });
+    throw error;
+  }
+}

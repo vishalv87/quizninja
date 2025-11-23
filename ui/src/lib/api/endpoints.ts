@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
     },
     QUIZZES: "/users/quizzes",
     QUIZ_ATTEMPT: (quizId: string) => `/users/quizzes/${quizId}/attempt`,
+    QUIZ_COMPLETED_ATTEMPT: (quizId: string) => `/users/quizzes/${quizId}/completed-attempt`,
     STATS: "/users/stats",
     USER_STATS: (userId: string) => `/users/${userId}/stats`,
     ATTEMPTS: "/users/attempts",
