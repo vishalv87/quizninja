@@ -19,11 +19,11 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="space-y-8">
+        <Skeleton className="h-48 w-full rounded-3xl" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-32 rounded-xl" />
           ))}
         </div>
       </div>
@@ -38,6 +38,7 @@ export default function DashboardPage() {
       icon: FileQuestion,
       href: '/quizzes',
       color: 'text-blue-600',
+      bgColor: 'bg-blue-100',
     },
     {
       title: 'Your Rank',
@@ -46,6 +47,7 @@ export default function DashboardPage() {
       icon: Trophy,
       href: '/leaderboard',
       color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100',
     },
     {
       title: 'Total Points',
@@ -54,6 +56,7 @@ export default function DashboardPage() {
       icon: Trophy,
       href: '/profile',
       color: 'text-purple-600',
+      bgColor: 'bg-purple-100',
     },
     {
       title: 'Achievements',
@@ -62,6 +65,7 @@ export default function DashboardPage() {
       icon: Trophy,
       href: '/achievements',
       color: 'text-green-600',
+      bgColor: 'bg-green-100',
     },
   ]
 
@@ -71,101 +75,123 @@ export default function DashboardPage() {
       description: 'Find and take quizzes on various topics',
       href: '/quizzes',
       icon: FileQuestion,
+      gradient: 'from-blue-500 to-cyan-500',
     },
     {
       title: 'Challenge Friends',
       description: 'Compete with your friends in quiz battles',
       href: '/challenges',
       icon: Swords,
+      gradient: 'from-purple-500 to-pink-500',
     },
     {
       title: 'View Achievements',
       description: 'Track your progress and unlock rewards',
       href: '/achievements',
       icon: Trophy,
+      gradient: 'from-orange-500 to-yellow-500',
     },
   ]
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {user?.name || 'Quiz Ninja'}! 👋
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Ready to test your knowledge? Here's your dashboard overview.
-        </p>
+    <div className="space-y-10 pb-10">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 to-indigo-600 p-8 text-white shadow-xl lg:p-12">
+        <div className="relative z-10 max-w-2xl">
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
+            Welcome back, {user?.name || 'Quiz Ninja'}! 👋
+          </h1>
+          <p className="text-lg text-indigo-100 mb-6">
+            Ready to test your knowledge today? "Knowledge is power, but enthusiasm pulls the switch."
+          </p>
+          <Button 
+            size="lg" 
+            className="bg-white text-indigo-600 hover:bg-indigo-50 border-0 font-semibold"
+            asChild
+          >
+            <Link href="/quizzes">
+              Start a Quiz
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
+        
+        {/* Decorative background elements */}
+        <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-0 right-20 -mb-10 h-40 w-40 rounded-full bg-indigo-400/20 blur-2xl" />
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {quickStats.map((stat) => {
           const Icon = stat.icon
           return (
-            <Card key={stat.title} className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {stat.description}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2 h-8 px-2"
-                  asChild
-                >
-                  <Link href={stat.href}>
-                    View details
-                    <ArrowRight className="ml-1 h-3 w-3" />
-                  </Link>
-                </Button>
+            <Card key={stat.title} className="group overflow-hidden border border-gray-200/60 shadow-sm hover:shadow-lg transition-all duration-300 bg-white hover:-translate-y-1">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 rounded-2xl ${stat.bgColor} group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                  </div>
+                  {stat.value !== '...' && (
+                     <span className="text-xs font-medium text-muted-foreground bg-gray-100 px-2.5 py-1 rounded-full border border-gray-100">
+                       {stat.title}
+                     </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-3xl font-bold tracking-tight text-gray-900">
+                    {stat.value}
+                  </h3>
+                  <p className="text-sm text-muted-foreground font-medium">
+                    {stat.description}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight mb-4">Quick Actions</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {quickActions.map((action) => {
-            const Icon = action.icon
-            return (
-              <Card key={action.title} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Icon className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">{action.title}</CardTitle>
-                  </div>
-                  <CardDescription>{action.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button className="w-full" asChild>
-                    <Link href={action.href}>
-                      Get Started
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )
-          })}
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Main Content Area (2 columns) */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Quick Actions */}
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight mb-6 flex items-center gap-2">
+              <span className="bg-primary/10 p-2 rounded-lg text-primary">⚡</span>
+              Quick Actions
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {quickActions.map((action) => {
+                const Icon = action.icon
+                return (
+                  <Link key={action.title} href={action.href} className="group block h-full">
+                    <div className="relative h-full overflow-hidden rounded-2xl border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                      <div className={`absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 bg-gradient-to-br ${action.gradient}`} />
+                      <div className="relative z-10 flex flex-col h-full">
+                        <div className={`mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-md`}>
+                          <Icon className="h-6 w-6" />
+                        </div>
+                        <h3 className="mb-2 font-semibold tracking-tight text-lg">{action.title}</h3>
+                        <p className="text-sm text-muted-foreground">{action.description}</p>
+                      </div>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <RecentActivity />
+        </div>
+
+        {/* Sidebar Area (1 column) */}
+        <div className="space-y-8">
+          {/* Featured Quizzes */}
+          <FeaturedQuizzesDashboard />
         </div>
       </div>
-
-      {/* Recent Activity */}
-      <RecentActivity />
-
-      {/* Featured Quizzes */}
-      <FeaturedQuizzesDashboard />
     </div>
   )
 }
