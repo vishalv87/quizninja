@@ -69,6 +69,7 @@ type QuizRepositoryInterface interface {
 	GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error)
 	GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error)
 	GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error)
+	GetUserLatestCompletedAttempt(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error)
 
 	// Favorites operations
 	AddFavorite(userID, quizID uuid.UUID) error

@@ -657,6 +657,38 @@ func (h *QuizHandler) GetUserQuizAttempt(c *gin.Context) {
 	utils.SuccessResponse(c, gin.H{"attempt": attempt})
 }
 
+// GetUserLatestCompletedAttempt handles GET /api/v1/users/quizzes/{quizId}/completed-attempt
+// Returns the user's latest completed (non-abandoned) attempt for a specific quiz
+func (h *QuizHandler) GetUserLatestCompletedAttempt(c *gin.Context) {
+	quizIDParam := c.Param("quizId")
+	quizID, err := uuid.Parse(quizIDParam)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid quiz ID format: "+quizIDParam)
+		return
+	}
+
+	userID := getUserIDFromContext(c)
+
+	attempt, err := h.repo.Quiz.GetUserLatestCompletedAttempt(userID, quizID)
+	if err != nil {
+		utils.HandleError(c, err)
+		return
+	}
+
+	if attempt == nil {
+		utils.ErrorResponse(c, http.StatusNotFound, "No completed attempt found for this quiz")
+		return
+	}
+
+	// Verify the attempt belongs to the user (double check)
+	if attempt.UserID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Not authorized to view this attempt")
+		return
+	}
+
+	utils.SuccessResponse(c, gin.H{"attempt": attempt})
+}
+
 // Helper function to get user ID from context
 func getUserIDFromContext(c *gin.Context) uuid.UUID {
 	userIDInterface, exists := c.Get("user_id")
