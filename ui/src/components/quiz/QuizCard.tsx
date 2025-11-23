@@ -39,7 +39,7 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
   };
 
   return (
-    <Card className="group relative flex flex-col h-full overflow-hidden border-gray-200/60 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white">
+    <Card className="group relative flex flex-col h-full overflow-hidden border-0 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white dark:bg-background rounded-2xl">
       {/* Top Decoration Bar */}
       <div className={cn("h-1.5 w-full bg-gradient-to-r", 
         quiz.difficulty === 'beginner' ? "from-green-400 to-emerald-500" :
@@ -61,7 +61,7 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
                 </Badge>
               )}
             </div>
-            <h3 className="text-xl font-bold line-clamp-2 group-hover:text-primary transition-colors">
+            <h3 className="text-xl font-bold line-clamp-2 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
               {quiz.title}
             </h3>
           </div>
@@ -89,26 +89,26 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
       </CardHeader>
 
       <CardContent className="flex-1 pb-4">
-        <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-50">
+        <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-100/50 dark:border-gray-800/50">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <BookOpen className="h-4 w-4 text-primary/70" />
+            <BookOpen className="h-4 w-4 text-violet-500" />
             <span>{quiz.question_count} questions</span>
           </div>
 
           {quiz.time_limit && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 text-primary/70" />
+              <Clock className="h-4 w-4 text-violet-500" />
               <span>{quiz.time_limit} min</span>
             </div>
           )}
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Trophy className="h-4 w-4 text-primary/70" />
+            <Trophy className="h-4 w-4 text-violet-500" />
             <span>{quiz.points} points</span>
           </div>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="secondary" className="px-1.5 py-0 h-5 text-xs font-normal">
+            <Badge variant="secondary" className="px-1.5 py-0 h-5 text-xs font-normal bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300">
               {quiz.category}
             </Badge>
           </div>
@@ -119,8 +119,8 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
         {/* Completion Status Badge */}
         {isCompleted && (
           <div className={cn(
-            "w-full flex items-center justify-between p-2 rounded-lg text-sm font-medium",
-            passed ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+            "w-full flex items-center justify-between p-2.5 rounded-xl text-sm font-medium",
+            passed ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
           )}>
             <div className="flex items-center gap-1.5">
               {passed ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
@@ -136,10 +136,10 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
         <div className="flex gap-3 w-full">
           {isCompleted ? (
             <>
-              <Button variant="outline" className="flex-1 border-primary/20 hover:bg-primary/5 hover:text-primary" asChild>
+              <Button variant="outline" className="flex-1 rounded-xl border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-300 transition-all duration-300" asChild>
                 <Link href={`/quizzes/${quiz.id}`}>Details</Link>
               </Button>
-              <Button className="flex-1 bg-primary hover:bg-primary/90 shadow-sm" asChild>
+              <Button className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-300 text-white" asChild>
                 <Link href={`/quizzes/${quiz.id}/results/${completedAttempt?.id}`}>
                   <Trophy className="mr-2 h-4 w-4" />
                   Results
@@ -148,10 +148,10 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
             </>
           ) : (
             <>
-              <Button variant="outline" className="flex-1 border-primary/20 hover:bg-primary/5 hover:text-primary" asChild>
+              <Button variant="outline" className="flex-1 rounded-xl border-violet-200 dark:border-violet-800 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-700 dark:hover:text-violet-300 transition-all duration-300" asChild>
                 <Link href={`/quizzes/${quiz.id}`}>Details</Link>
               </Button>
-              <Button className="flex-1 bg-primary hover:bg-primary/90 shadow-sm group-hover:shadow-md transition-all" asChild>
+              <Button className="flex-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-300 text-white" asChild>
                 <Link href={`/quizzes/${quiz.id}/take`}>
                   Start Quiz
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />

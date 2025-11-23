@@ -57,22 +57,21 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-1">
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-1 gap-4 w-full sm:w-auto">
+    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+      <div className="flex flex-1 gap-3 w-full sm:w-auto">
           {/* Category Filter */}
           <div className="w-full sm:w-[200px]">
             {categoriesLoading ? (
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full rounded-xl" />
             ) : (
               <Select
                 value={filters.category || "all"}
                 onValueChange={handleCategoryChange}
               >
-                <SelectTrigger id="category-filter" className="bg-white border-gray-200">
+                <SelectTrigger id="category-filter" className="bg-white/80 dark:bg-background/80 border-gray-200/60 dark:border-gray-700/60 rounded-xl transition-all duration-300 hover:border-primary/30 focus:ring-violet-500/20">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories?.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
@@ -90,10 +89,10 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
               value={filters.difficulty || "all"}
               onValueChange={handleDifficultyChange}
             >
-              <SelectTrigger id="difficulty-filter" className="bg-white border-gray-200">
+              <SelectTrigger id="difficulty-filter" className="bg-white/80 dark:bg-background/80 border-gray-200/60 dark:border-gray-700/60 rounded-xl transition-all duration-300 hover:border-primary/30 focus:ring-violet-500/20">
                 <SelectValue placeholder="Difficulty" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="rounded-xl">
                 <SelectItem value="all">All Difficulties</SelectItem>
                 <SelectItem value="beginner">Beginner</SelectItem>
                 <SelectItem value="intermediate">Intermediate</SelectItem>
@@ -110,8 +109,9 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
               id="featured-filter"
               checked={filters.isFeatured}
               onCheckedChange={handleFeaturedChange}
+              className="data-[state=checked]:bg-violet-600"
             />
-            <Label htmlFor="featured-filter" className="text-sm font-medium cursor-pointer text-muted-foreground">
+            <Label htmlFor="featured-filter" className="text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
               Featured
             </Label>
           </div>
@@ -121,13 +121,13 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
               id="favorites-filter"
               checked={filters.showFavoritesOnly || false}
               onCheckedChange={handleFavoritesChange}
+              className="data-[state=checked]:bg-violet-600"
             />
-            <Label htmlFor="favorites-filter" className="text-sm font-medium cursor-pointer text-muted-foreground">
+            <Label htmlFor="favorites-filter" className="text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
               Favorites
             </Label>
           </div>
         </div>
       </div>
-    </div>
   );
 }

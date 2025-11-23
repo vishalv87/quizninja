@@ -22,10 +22,10 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <Card className={className}>
+    <Card className={`border-none shadow-sm bg-white/50 dark:bg-background/50 backdrop-blur-sm rounded-xl ${className || ''}`}>
       <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="rounded-full bg-muted p-4">
-          <Icon className="h-8 w-8 text-muted-foreground" />
+        <div className="rounded-2xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 p-4 shadow-sm">
+          <Icon className="h-8 w-8 text-violet-600 dark:text-violet-400" />
         </div>
         <h3 className="mt-4 text-lg font-semibold">{title}</h3>
         {description && (
@@ -57,7 +57,9 @@ export function EmptyStateCompact({
 }: Omit<EmptyStateProps, 'action' | 'className'>) {
   return (
     <div className="flex flex-col items-center justify-center p-6 text-center">
-      <Icon className="h-12 w-12 text-muted-foreground" />
+      <div className="rounded-xl bg-gradient-to-br from-violet-500/10 to-indigo-500/10 p-3">
+        <Icon className="h-8 w-8 text-violet-600 dark:text-violet-400" />
+      </div>
       <h4 className="mt-3 text-sm font-semibold">{title}</h4>
       {description && (
         <p className="mt-1 text-xs text-muted-foreground">{description}</p>

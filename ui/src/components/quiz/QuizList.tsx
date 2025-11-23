@@ -66,25 +66,27 @@ export function QuizList({ quizzes, isLoading, error, completedQuizMap }: QuizLi
 // Skeleton loader for quiz cards
 function QuizCardSkeleton() {
   return (
-    <div className="border rounded-lg p-6 space-y-4">
+    <div className="border border-gray-200/60 dark:border-gray-800/60 rounded-xl p-6 space-y-4 bg-white/50 dark:bg-background/50 backdrop-blur-sm shadow-sm">
+      {/* Top bar skeleton */}
+      <Skeleton className="h-1.5 w-full rounded-full -mt-6 -mx-6 mb-4" style={{ width: 'calc(100% + 3rem)' }} />
       <div className="space-y-2">
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
+        <div className="flex gap-2">
+          <Skeleton className="h-5 w-20 rounded-full" />
+          <Skeleton className="h-5 w-16 rounded-full" />
+        </div>
+        <Skeleton className="h-6 w-3/4 rounded-lg" />
+        <Skeleton className="h-4 w-full rounded-lg" />
+        <Skeleton className="h-4 w-2/3 rounded-lg" />
       </div>
-      <div className="flex gap-2">
-        <Skeleton className="h-6 w-20" />
-        <Skeleton className="h-6 w-20" />
+      <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-100 dark:border-gray-800">
+        <Skeleton className="h-4 w-full rounded-lg" />
+        <Skeleton className="h-4 w-full rounded-lg" />
+        <Skeleton className="h-4 w-full rounded-lg" />
+        <Skeleton className="h-4 w-full rounded-lg" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-full" />
-      </div>
-      <div className="flex gap-2">
-        <Skeleton className="h-10 flex-1" />
-        <Skeleton className="h-10 flex-1" />
+      <div className="flex gap-3 pt-2">
+        <Skeleton className="h-10 flex-1 rounded-xl" />
+        <Skeleton className="h-10 flex-1 rounded-xl" />
       </div>
     </div>
   );
