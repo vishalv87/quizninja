@@ -81,9 +81,9 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="hidden border-r border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-background/95 backdrop-blur-md md:block w-64">
+    <div className="hidden border-r border-white/20 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl md:block w-72 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-30">
       <ScrollArea className="h-[calc(100vh-4rem)] py-6">
-        <nav className="space-y-1.5 px-4">
+        <nav className="space-y-2 px-4">
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             const Icon = item.icon
@@ -93,17 +93,25 @@ export function Sidebar() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300',
+                  'group flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-300 ease-out',
                   isActive
-                    ? 'bg-gradient-to-r from-violet-500/10 to-indigo-500/10 text-violet-700 dark:text-violet-400 shadow-sm border border-violet-200/50 dark:border-violet-500/20'
-                    : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
+                    ? 'bg-gradient-to-r from-violet-600/90 to-indigo-600/90 text-white shadow-lg shadow-indigo-500/20 scale-[1.02]'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-white/50 dark:hover:bg-white/10 hover:text-violet-600 dark:hover:text-violet-300 hover:shadow-sm hover:scale-[1.01]'
                 )}
               >
-                <Icon className={cn(
-                  'h-5 w-5 transition-colors duration-300',
-                  isActive ? 'text-violet-600 dark:text-violet-400' : ''
-                )} />
-                {item.name}
+                <div className={cn(
+                  "p-1 rounded-lg transition-all duration-300",
+                  isActive ? "bg-white/20" : "bg-transparent group-hover:bg-violet-100/50 dark:group-hover:bg-violet-900/30"
+                )}>
+                  <Icon className={cn(
+                    'h-5 w-5 transition-transform duration-300',
+                    isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-violet-600 dark:group-hover:text-violet-300 group-hover:scale-110'
+                  )} />
+                </div>
+                <span className="tracking-wide">{item.name}</span>
+                {isActive && (
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
+                )}
               </Link>
             )
           })}
