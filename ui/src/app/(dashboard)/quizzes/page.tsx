@@ -5,18 +5,14 @@ import { QuizList } from "@/components/quiz/QuizList";
 import { QuizFilters, QuizFilterValues } from "@/components/quiz/QuizFilters";
 import { QuizSearch } from "@/components/quiz/QuizSearch";
 import { useQuizzes } from "@/hooks/useQuizzes";
-import { useFeaturedQuizzes } from "@/hooks/useFeaturedQuizzes";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCompletedQuizMap } from "@/hooks/useCompletedQuizMap";
-import { Separator } from "@/components/ui/separator";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Quiz } from "@/types/quiz";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -27,11 +23,10 @@ const ITEMS_PER_PAGE = 12;
 
 export default function QuizzesPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
   const [filters, setFilters] = useState<QuizFilterValues>({
     category: "",
     difficulty: "",
-    isFeatured: false,
-    showFavoritesOnly: false,
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
@@ -50,12 +45,16 @@ export default function QuizzesPage() {
     setCurrentPage(1);
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setCurrentPage(1);
+  };
+
   // Build filter object for API
   const apiFilters = {
     search: debouncedSearch || undefined,
     category: filters.category || undefined,
     difficulty: filters.difficulty || undefined,
-    is_featured: filters.isFeatured || undefined,
     limit: ITEMS_PER_PAGE,
     offset: (currentPage - 1) * ITEMS_PER_PAGE,
   };
@@ -67,13 +66,6 @@ export default function QuizzesPage() {
     error: allQuizzesError,
   } = useQuizzes(apiFilters);
 
-  // Fetch featured quizzes separately
-  const {
-    data: featuredQuizzes,
-    isLoading: featuredLoading,
-    error: featuredError,
-  } = useFeaturedQuizzes();
-
   // Fetch favorites for filtering
   const { data: favoritesData } = useFavorites();
 
@@ -83,28 +75,101 @@ export default function QuizzesPage() {
     [favoritesData]
   );
 
-  // Extract all quiz IDs for fetching completion status (combine all and featured)
+  // Extract all quiz IDs for fetching completion status
   const allQuizIds = useMemo(() => {
     const ids = new Set<string>();
     allQuizzes?.forEach((quiz) => ids.add(quiz.id));
-    featuredQuizzes?.forEach((quiz) => ids.add(quiz.id));
     return Array.from(ids);
-  }, [allQuizzes, featuredQuizzes]);
+  }, [allQuizzes]);
 
   // Fetch completed quiz attempts for displaying completion status
   const { data: completedQuizMap } = useCompletedQuizMap(allQuizIds);
 
-  // Filter quizzes by favorites when showFavoritesOnly is true
+  // Unified filtering logic based on active tab
   useEffect(() => {
-    if (filters.showFavoritesOnly && favoriteIds.length > 0 && allQuizzes) {
-      const filtered = allQuizzes.filter((quiz) =>
-        favoriteIds.includes(quiz.id)
-      );
-      setFilteredQuizzes(filtered);
-    } else {
-      setFilteredQuizzes(allQuizzes || []);
+    if (!allQuizzes) {
+      setFilteredQuizzes([]);
+      return;
     }
-  }, [filters.showFavoritesOnly, favoriteIds, allQuizzes]);
+
+    let filtered = [...allQuizzes];
+
+    // Apply tab-based filtering
+    switch (activeTab) {
+      case "featured":
+        filtered = filtered.filter((quiz) => quiz.is_featured);
+        break;
+      case "completed":
+        filtered = filtered.filter((quiz) => completedQuizMap?.has(quiz.id));
+        break;
+      case "not-completed":
+        filtered = filtered.filter((quiz) => !completedQuizMap?.has(quiz.id));
+        break;
+      case "favorites":
+        filtered = filtered.filter((quiz) => favoriteIds.includes(quiz.id));
+        break;
+      case "all":
+      default:
+        // No additional filtering for "all" tab
+        break;
+    }
+
+    setFilteredQuizzes(filtered);
+  }, [activeTab, allQuizzes, completedQuizMap, favoriteIds]);
+
+  // Pagination component (reusable for all tabs)
+  const renderPagination = () => {
+    if (!filteredQuizzes || filteredQuizzes.length === 0) return null;
+
+    return (
+      <div className="flex justify-center pt-4">
+        <Pagination>
+          <PaginationContent className="gap-1">
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className={`rounded-xl transition-all duration-300 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/20 dark:hover:text-violet-400 ${
+                  currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
+                }`}
+              />
+            </PaginationItem>
+
+            {/* Show page numbers */}
+            {[...Array(Math.min(5, Math.ceil(100 / ITEMS_PER_PAGE)))].map((_, i) => {
+              const pageNum = i + 1;
+              const isActive = currentPage === pageNum;
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    onClick={() => setCurrentPage(pageNum)}
+                    isActive={isActive}
+                    className={`cursor-pointer rounded-xl transition-all duration-300 ${
+                      isActive
+                        ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-0 shadow-md hover:from-violet-700 hover:to-indigo-700"
+                        : "hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/20 dark:hover:text-violet-400"
+                    }`}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className={`rounded-xl transition-all duration-300 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/20 dark:hover:text-violet-400 ${
+                  filteredQuizzes.length < ITEMS_PER_PAGE
+                    ? "pointer-events-none opacity-50"
+                    : "cursor-pointer"
+                }`}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-10 pb-10">
@@ -137,20 +202,38 @@ export default function QuizzesPage() {
       <div className="container px-0 md:px-4">
         {/* Filters and Tabs */}
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between mb-8">
-          <Tabs defaultValue="all" className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-              <TabsList className="grid w-full max-w-xs grid-cols-2 bg-gray-100/80 dark:bg-gray-800/50 p-1 rounded-xl">
+              <TabsList className="grid w-full max-w-4xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 bg-gray-100/80 dark:bg-gray-800/50 p-1 rounded-xl">
                 <TabsTrigger
                   value="all"
                   className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
                 >
-                  All Quizzes
+                  All
                 </TabsTrigger>
                 <TabsTrigger
                   value="featured"
                   className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
                 >
                   Featured
+                </TabsTrigger>
+                <TabsTrigger
+                  value="completed"
+                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                >
+                  Completed
+                </TabsTrigger>
+                <TabsTrigger
+                  value="not-completed"
+                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                >
+                  Not Completed
+                </TabsTrigger>
+                <TabsTrigger
+                  value="favorites"
+                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                >
+                  Favorites
                 </TabsTrigger>
               </TabsList>
 
@@ -159,7 +242,7 @@ export default function QuizzesPage() {
               </div>
             </div>
 
-            {/* All Quizzes Tab */}
+            {/* All Tab */}
             <TabsContent value="all" className="space-y-8">
               <QuizList
                 quizzes={filteredQuizzes}
@@ -167,66 +250,51 @@ export default function QuizzesPage() {
                 error={allQuizzesError}
                 completedQuizMap={completedQuizMap}
               />
-
-              {/* Pagination for All Quizzes */}
-              {filteredQuizzes && filteredQuizzes.length > 0 && (
-                <div className="flex justify-center pt-4">
-                  <Pagination>
-                    <PaginationContent className="gap-1">
-                      <PaginationItem>
-                        <PaginationPrevious
-                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                          className={`rounded-xl transition-all duration-300 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/20 dark:hover:text-violet-400 ${
-                            currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"
-                          }`}
-                        />
-                      </PaginationItem>
-
-                      {/* Show page numbers */}
-                      {[...Array(Math.min(5, Math.ceil(100 / ITEMS_PER_PAGE)))].map((_, i) => {
-                        const pageNum = i + 1;
-                        const isActive = currentPage === pageNum;
-                        return (
-                          <PaginationItem key={pageNum}>
-                            <PaginationLink
-                              onClick={() => setCurrentPage(pageNum)}
-                              isActive={isActive}
-                              className={`cursor-pointer rounded-xl transition-all duration-300 ${
-                                isActive
-                                  ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white border-0 shadow-md hover:from-violet-700 hover:to-indigo-700"
-                                  : "hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/20 dark:hover:text-violet-400"
-                              }`}
-                            >
-                              {pageNum}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-
-                      <PaginationItem>
-                        <PaginationNext
-                          onClick={() => setCurrentPage((p) => p + 1)}
-                          className={`rounded-xl transition-all duration-300 hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-900/20 dark:hover:text-violet-400 ${
-                            filteredQuizzes.length < ITEMS_PER_PAGE
-                              ? "pointer-events-none opacity-50"
-                              : "cursor-pointer"
-                          }`}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
+              {renderPagination()}
             </TabsContent>
 
-            {/* Featured Quizzes Tab */}
-            <TabsContent value="featured">
+            {/* Featured Tab */}
+            <TabsContent value="featured" className="space-y-8">
               <QuizList
-                quizzes={featuredQuizzes || []}
-                isLoading={featuredLoading}
-                error={featuredError}
+                quizzes={filteredQuizzes}
+                isLoading={allQuizzesLoading}
+                error={allQuizzesError}
                 completedQuizMap={completedQuizMap}
               />
+              {renderPagination()}
+            </TabsContent>
+
+            {/* Completed Tab */}
+            <TabsContent value="completed" className="space-y-8">
+              <QuizList
+                quizzes={filteredQuizzes}
+                isLoading={allQuizzesLoading}
+                error={allQuizzesError}
+                completedQuizMap={completedQuizMap}
+              />
+              {renderPagination()}
+            </TabsContent>
+
+            {/* Not Completed Tab */}
+            <TabsContent value="not-completed" className="space-y-8">
+              <QuizList
+                quizzes={filteredQuizzes}
+                isLoading={allQuizzesLoading}
+                error={allQuizzesError}
+                completedQuizMap={completedQuizMap}
+              />
+              {renderPagination()}
+            </TabsContent>
+
+            {/* Favorites Tab */}
+            <TabsContent value="favorites" className="space-y-8">
+              <QuizList
+                quizzes={filteredQuizzes}
+                isLoading={allQuizzesLoading}
+                error={allQuizzesError}
+                completedQuizMap={completedQuizMap}
+              />
+              {renderPagination()}
             </TabsContent>
           </Tabs>
         </div>
