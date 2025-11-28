@@ -66,7 +66,7 @@ export function QuizList({ quizzes, isLoading, error, completedQuizMap }: QuizLi
 // Skeleton loader for quiz cards
 function QuizCardSkeleton() {
   return (
-    <div className="border border-gray-200/60 dark:border-gray-800/60 rounded-xl p-6 space-y-4 bg-white/50 dark:bg-background/50 backdrop-blur-sm shadow-sm">
+    <div className="border border-white/20 dark:border-white/10 rounded-2xl p-6 space-y-4 bg-white/90 dark:bg-background/90 backdrop-blur-sm shadow-md shadow-black/5">
       {/* Top bar skeleton */}
       <Skeleton className="h-1.5 w-full rounded-full -mt-6 -mx-6 mb-4" style={{ width: 'calc(100% + 3rem)' }} />
       <div className="space-y-2">
@@ -78,7 +78,7 @@ function QuizCardSkeleton() {
         <Skeleton className="h-4 w-full rounded-lg" />
         <Skeleton className="h-4 w-2/3 rounded-lg" />
       </div>
-      <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-100 dark:border-gray-800">
+      <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-200/30 dark:border-gray-700/30">
         <Skeleton className="h-4 w-full rounded-lg" />
         <Skeleton className="h-4 w-full rounded-lg" />
         <Skeleton className="h-4 w-full rounded-lg" />

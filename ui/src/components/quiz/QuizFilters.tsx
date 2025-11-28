@@ -48,7 +48,7 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
             value={filters.category || "all"}
             onValueChange={handleCategoryChange}
           >
-            <SelectTrigger id="category-filter" className="bg-white/80 dark:bg-background/80 border-gray-200/60 dark:border-gray-700/60 rounded-xl transition-all duration-300 hover:border-primary/30 focus:ring-violet-500/20">
+            <SelectTrigger id="category-filter" className="bg-white/90 dark:bg-background/90 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50 rounded-xl transition-all duration-300 hover:border-violet-400/50 dark:hover:border-violet-600/50 focus:ring-violet-500/20 shadow-sm">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
@@ -69,7 +69,7 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
           value={filters.difficulty || "all"}
           onValueChange={handleDifficultyChange}
         >
-          <SelectTrigger id="difficulty-filter" className="bg-white/80 dark:bg-background/80 border-gray-200/60 dark:border-gray-700/60 rounded-xl transition-all duration-300 hover:border-primary/30 focus:ring-violet-500/20">
+          <SelectTrigger id="difficulty-filter" className="bg-white/90 dark:bg-background/90 backdrop-blur-sm border-gray-200/50 dark:border-gray-700/50 rounded-xl transition-all duration-300 hover:border-violet-400/50 dark:hover:border-violet-600/50 focus:ring-violet-500/20 shadow-sm">
             <SelectValue placeholder="Difficulty" />
           </SelectTrigger>
           <SelectContent className="rounded-xl">

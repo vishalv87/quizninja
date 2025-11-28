@@ -39,9 +39,9 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
   };
 
   return (
-    <Card className="group relative flex flex-col h-full overflow-hidden border-0 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-white dark:bg-background rounded-2xl">
+    <Card className="group relative flex flex-col h-full overflow-hidden border border-white/20 dark:border-white/10 shadow-md shadow-black/5 transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1 bg-white/90 dark:bg-background/90 backdrop-blur-sm rounded-2xl">
       {/* Top Decoration Bar */}
-      <div className={cn("h-1.5 w-full bg-gradient-to-r", 
+      <div className={cn("h-1.5 w-full bg-gradient-to-r",
         quiz.difficulty === 'beginner' ? "from-green-400 to-emerald-500" :
         quiz.difficulty === 'intermediate' ? "from-yellow-400 to-orange-500" :
         "from-red-500 to-rose-600"
@@ -89,7 +89,7 @@ export function QuizCard({ quiz, completedAttempt }: QuizCardProps) {
       </CardHeader>
 
       <CardContent className="flex-1 pb-4">
-        <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-100/50 dark:border-gray-800/50">
+        <div className="grid grid-cols-2 gap-3 py-3 border-t border-b border-gray-200/30 dark:border-gray-700/30">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <BookOpen className="h-4 w-4 text-violet-500" />
             <span>{quiz.question_count} questions</span>

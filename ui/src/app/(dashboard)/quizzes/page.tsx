@@ -174,7 +174,7 @@ export default function QuizzesPage() {
   return (
     <div className="space-y-10 pb-10">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 to-indigo-600 p-8 text-white shadow-xl lg:p-12">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/30 border border-white/10 lg:p-12">
         <div className="relative z-10 max-w-3xl">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
             Explore Quizzes
@@ -195,8 +195,9 @@ export default function QuizzesPage() {
         </div>
 
         {/* Decorative background elements */}
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 right-20 -mb-10 h-40 w-40 rounded-full bg-indigo-400/20 blur-2xl" />
+        <div className="absolute right-0 top-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-0 right-20 -mb-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
+        <div className="absolute left-10 bottom-10 h-32 w-32 rounded-full bg-purple-400/20 blur-2xl" />
       </div>
 
       <div className="container px-0 md:px-4">
@@ -204,34 +205,34 @@ export default function QuizzesPage() {
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between mb-8">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
-              <TabsList className="grid w-full max-w-4xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 bg-gray-100/80 dark:bg-gray-800/50 p-1 rounded-xl">
+              <TabsList className="grid w-full max-w-4xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 bg-white/60 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 p-1 rounded-xl shadow-sm">
                 <TabsTrigger
                   value="all"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                  className="rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
                 >
                   All
                 </TabsTrigger>
                 <TabsTrigger
                   value="featured"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                  className="rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
                 >
                   Featured
                 </TabsTrigger>
                 <TabsTrigger
                   value="completed"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                  className="rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
                 >
                   Completed
                 </TabsTrigger>
                 <TabsTrigger
                   value="not-completed"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                  className="rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
                 >
                   Not Completed
                 </TabsTrigger>
                 <TabsTrigger
                   value="favorites"
-                  className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-background data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-sm transition-all duration-300"
+                  className="rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
                 >
                   Favorites
                 </TabsTrigger>
