@@ -55,7 +55,6 @@ func (ph *PreferencesHandler) UpdatePreferences(c *gin.Context) {
 	notificationTypes := req.NotificationTypes
 	if notificationTypes == nil {
 		notificationTypes = map[string]interface{}{
-			"challenges":           true,
 			"achievements":         true,
 			"quiz_reminders":       true,
 			"friend_activity":      true,

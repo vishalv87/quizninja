@@ -25,7 +25,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 	quizHandler := handlers.NewQuizHandler(cfg)
 	userHandler := handlers.NewUserHandler()
 	friendsHandler := handlers.NewFriendsHandler(cfg)
-	challengesHandler := handlers.NewChallengesHandler(cfg)
 	leaderboardHandler := handlers.NewLeaderboardHandler(cfg)
 	achievementHandler := handlers.NewAchievementHandler(cfg)
 	favoritesHandler := handlers.NewFavoritesHandler(cfg)
@@ -155,29 +154,6 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 				notifications.DELETE("/:id", notificationHandler.DeleteNotification)
 				notifications.POST("", notificationHandler.CreateNotification)                  // Admin/system endpoint
 				notifications.POST("/cleanup", notificationHandler.CleanupExpiredNotifications) // Admin endpoint
-			}
-
-			// Challenge endpoints
-			challenges := protected.Group("/challenges")
-			// Apply stricter rate limiting for write operations if enabled
-			if cfg.RateLimitEnabled {
-				challenges.Use(middleware.StrictRateLimit())
-			}
-			{
-				challenges.POST("", challengesHandler.CreateChallenge)
-				challenges.GET("", challengesHandler.GetChallenges)
-				challenges.GET("/stats", challengesHandler.GetChallengeStats)
-				challenges.GET("/pending", challengesHandler.GetPendingChallenges)
-				challenges.GET("/active", challengesHandler.GetActiveChallenges)
-				challenges.GET("/completed", challengesHandler.GetCompletedChallenges)
-				challenges.GET("/:id", challengesHandler.GetChallengeByID)
-				challenges.PUT("/:id/accept", challengesHandler.AcceptChallenge)
-				challenges.PUT("/:id/decline", challengesHandler.DeclineChallenge)
-				challenges.PUT("/:id/cancel", challengesHandler.CancelChallenge)
-				challenges.PUT("/:id/score", challengesHandler.UpdateChallengeScore)
-				challenges.POST("/:id/link-attempt", challengesHandler.LinkAttemptToChallenge)
-				challenges.PUT("/:id/complete", challengesHandler.CompleteChallengeAttempt)
-				challenges.POST("/expire", challengesHandler.ExpireChallenges) // Admin endpoint
 			}
 
 			// All leaderboard endpoints (require authentication)

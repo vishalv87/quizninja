@@ -676,7 +676,6 @@ func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models
 	typeCounts := models.NotificationTypeCounts{
 		FriendRequests:      notificationsByType[models.NotificationTypeFriendRequest],
 		FriendResponses:     notificationsByType[models.NotificationTypeFriendAccepted] + notificationsByType[models.NotificationTypeFriendRejected],
-		Challenges:          notificationsByType[models.NotificationTypeChallengeReceived] + notificationsByType[models.NotificationTypeChallengeAccepted] + notificationsByType[models.NotificationTypeChallengeDeclined] + notificationsByType[models.NotificationTypeChallengeCompleted],
 		Achievements:        notificationsByType[models.NotificationTypeAchievementUnlocked],
 		General:             notificationsByType[models.NotificationTypeGeneral],
 		SystemAnnouncements: notificationsByType[models.NotificationTypeSystemAnnouncement],

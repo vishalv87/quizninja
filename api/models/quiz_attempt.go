@@ -19,14 +19,10 @@ type QuizAttempt struct {
 	Passed          bool            `json:"passed" db:"passed"`
 	Status          string          `json:"status" db:"status"` // started, completed, abandoned
 	IsCompleted     bool            `json:"is_completed" db:"is_completed"`
-	StartedAt       time.Time       `json:"started_at" db:"started_at"`
-	CompletedAt     *time.Time      `json:"completed_at,omitempty" db:"completed_at"`
-	CreatedAt       time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at" db:"updated_at"`
-
-	// Challenge tracking fields
-	ChallengeID        *uuid.UUID `json:"challenge_id,omitempty" db:"challenge_id"`
-	IsChallengeAttempt bool       `json:"is_challenge_attempt" db:"is_challenge_attempt"`
+	StartedAt   time.Time  `json:"started_at" db:"started_at"`
+	CompletedAt *time.Time `json:"completed_at,omitempty" db:"completed_at"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // AttemptAnswer represents a user's answer to a quiz question

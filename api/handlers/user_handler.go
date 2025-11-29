@@ -156,8 +156,6 @@ func (uh *UserHandler) GetUserProfile(c *gin.Context) {
 				CurrentStreak:         stats.CurrentStreak,
 				LongestStreak:         stats.BestStreak,
 				AchievementsUnlocked:  0, // TODO: Add achievement count query
-				ChallengesWon:         0, // TODO: Add challenges won count query
-				ChallengesLost:        0, // TODO: Add challenges lost count query
 				Rank:                  0, // TODO: Add rank calculation
 			}
 		} else if err != nil {

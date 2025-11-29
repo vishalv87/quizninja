@@ -36,7 +36,6 @@ const (
 	TriggerFriendAdded     AchievementTrigger = "friend_added"
 	TriggerPerfectScore    AchievementTrigger = "perfect_score"
 	TriggerLevelUp         AchievementTrigger = "level_up"
-	TriggerChallengeWon    AchievementTrigger = "challenge_won"
 	TriggerLeaderboardRank AchievementTrigger = "leaderboard_rank"
 )
 
@@ -184,7 +183,7 @@ func (as *AchievementService) getAchievementsToCheck(trigger AchievementTrigger,
 		keys := []string{"perfect_score"}
 		achievementsToCheck = as.filterAchievementsByKeys(allAchievements, keys)
 
-	case TriggerLevelUp, TriggerChallengeWon, TriggerLeaderboardRank:
+	case TriggerLevelUp, TriggerLeaderboardRank:
 		// Check related achievements for these triggers
 		keys := []string{"rising_star", "tech_genius", "sports_expert", "speed_demon"}
 		achievementsToCheck = as.filterAchievementsByKeys(allAchievements, keys)

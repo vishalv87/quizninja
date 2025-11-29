@@ -137,7 +137,6 @@ func (ur *UserRepository) CreateUserPreferences(preferences *models.UserPreferen
 		notificationTypesData = preferences.NotificationTypes
 	} else {
 		notificationTypesData = map[string]interface{}{
-			"challenges":           true,
 			"achievements":         true,
 			"quiz_reminders":       true,
 			"friend_activity":      true,
@@ -234,7 +233,6 @@ func (ur *UserRepository) UpdateUserPreferences(preferences *models.UserPreferen
 	} else {
 		// Use default notification types if nil or empty
 		notificationTypesData = map[string]interface{}{
-			"challenges":           true,
 			"achievements":         true,
 			"quiz_reminders":       true,
 			"friend_activity":      true,

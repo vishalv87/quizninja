@@ -62,10 +62,6 @@ const (
 	NotificationTypeFriendRequest       = "friend_request"
 	NotificationTypeFriendAccepted      = "friend_accepted"
 	NotificationTypeFriendRejected      = "friend_rejected"
-	NotificationTypeChallengeReceived   = "challenge_received"
-	NotificationTypeChallengeAccepted   = "challenge_accepted"
-	NotificationTypeChallengeDeclined   = "challenge_declined"
-	NotificationTypeChallengeCompleted  = "challenge_completed"
 	NotificationTypeAchievementUnlocked = "achievement_unlocked"
 	NotificationTypeGeneral             = "general"
 	NotificationTypeSystemAnnouncement  = "system_announcement"
@@ -73,7 +69,7 @@ const (
 
 // NotificationFilters represents filters for notification queries
 type NotificationFilters struct {
-	Type      string     `form:"type" binding:"omitempty,oneof=friend_request friend_accepted friend_rejected challenge_received challenge_accepted challenge_declined challenge_completed achievement_unlocked general system_announcement"`
+	Type      string     `form:"type" binding:"omitempty,oneof=friend_request friend_accepted friend_rejected achievement_unlocked general system_announcement"`
 	IsRead    *bool      `form:"is_read"`
 	StartDate *time.Time `form:"start_date" time_format:"2006-01-02"`
 	EndDate   *time.Time `form:"end_date" time_format:"2006-01-02"`
@@ -129,7 +125,6 @@ type NotificationStatsResponse struct {
 type NotificationTypeCounts struct {
 	FriendRequests      int `json:"friend_requests"`
 	FriendResponses     int `json:"friend_responses"`
-	Challenges          int `json:"challenges"`
 	Achievements        int `json:"achievements"`
 	General             int `json:"general"`
 	SystemAnnouncements int `json:"system_announcements"`
@@ -158,8 +153,6 @@ func (n *Notification) GetDisplayIcon() string {
 	switch n.Type {
 	case NotificationTypeFriendRequest, NotificationTypeFriendAccepted, NotificationTypeFriendRejected:
 		return "👥"
-	case NotificationTypeChallengeReceived, NotificationTypeChallengeAccepted, NotificationTypeChallengeDeclined, NotificationTypeChallengeCompleted:
-		return "⚔️"
 	case NotificationTypeAchievementUnlocked:
 		return "🏆"
 	case NotificationTypeSystemAnnouncement:
@@ -176,8 +169,6 @@ func (n *Notification) GetDisplayCategory() string {
 	switch n.Type {
 	case NotificationTypeFriendRequest, NotificationTypeFriendAccepted, NotificationTypeFriendRejected:
 		return "Friends"
-	case NotificationTypeChallengeReceived, NotificationTypeChallengeAccepted, NotificationTypeChallengeDeclined, NotificationTypeChallengeCompleted:
-		return "Challenges"
 	case NotificationTypeAchievementUnlocked:
 		return "Achievements"
 	case NotificationTypeSystemAnnouncement:
@@ -195,11 +186,6 @@ func (n *Notification) GetActionURL() *string {
 	case NotificationTypeFriendRequest:
 		if entityID := n.RelatedEntityID; entityID != nil {
 			url := fmt.Sprintf("/friends/requests/%s", entityID.String())
-			return &url
-		}
-	case NotificationTypeChallengeReceived, NotificationTypeChallengeAccepted, NotificationTypeChallengeDeclined, NotificationTypeChallengeCompleted:
-		if entityID := n.RelatedEntityID; entityID != nil {
-			url := fmt.Sprintf("/challenges/%s", entityID.String())
 			return &url
 		}
 	case NotificationTypeAchievementUnlocked:
@@ -267,8 +253,6 @@ func (n *Notification) GetDataBool(key string) bool {
 func (n *Notification) IsActionable() bool {
 	switch n.Type {
 	case NotificationTypeFriendRequest:
-		return true
-	case NotificationTypeChallengeReceived:
 		return true
 	default:
 		return false

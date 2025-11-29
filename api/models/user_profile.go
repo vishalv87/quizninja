@@ -42,8 +42,6 @@ type UserStats struct {
 	CurrentStreak         int       `json:"current_streak"`
 	LongestStreak         int       `json:"longest_streak"`
 	AchievementsUnlocked  int       `json:"achievements_unlocked"`
-	ChallengesWon         int       `json:"challenges_won"`
-	ChallengesLost        int       `json:"challenges_lost"`
 	Rank                  int       `json:"rank"`
 }
 
