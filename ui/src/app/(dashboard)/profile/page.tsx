@@ -3,14 +3,18 @@
 import { Loader2 } from 'lucide-react'
 import { useProfile } from '@/hooks/useProfile'
 import { useUserStats } from '@/hooks/useUserStats'
+import { useAuth } from '@/hooks/useAuth'
 import { ProfileCard } from '@/components/profile/ProfileCard'
 import { AttemptHistory } from '@/components/profile/AttemptHistory'
 import { AchievementBadges } from '@/components/profile/AchievementBadges'
 import { DetailedStatistics } from '@/components/profile/DetailedStatistics'
 import { ErrorDisplay } from '@/components/common/ErrorBoundary'
-import { Card, CardContent } from '@/components/ui/card'
+import { PageHero } from '@/components/common/PageHero'
+import { GlassCard } from '@/components/common/GlassCard'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function ProfilePage() {
+  const { user } = useAuth()
   const { data: profile, isLoading, error } = useProfile()
   const { data: statsData, isLoading: isLoadingStats } = useUserStats()
 
@@ -18,56 +22,122 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-10 pb-10">
+        <Skeleton className="h-48 w-full rounded-3xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <ErrorDisplay
-          error={error as Error}
-          onRetry={() => window.location.reload()}
+      <div className="space-y-10 pb-10">
+        <PageHero
+          title="Profile"
+          icon="👤"
+          description="View and manage your personal information."
         />
+        <div className="container px-0 md:px-4">
+          <GlassCard>
+            <ErrorDisplay
+              error={error as Error}
+              onRetry={() => window.location.reload()}
+            />
+          </GlassCard>
+        </div>
       </div>
     )
   }
 
   if (!profile) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
+      <div className="space-y-10 pb-10">
+        <PageHero
+          title="Profile"
+          icon="👤"
+          description="View and manage your personal information."
+        />
+        <div className="container px-0 md:px-4">
+          <GlassCard>
+            <p className="text-center text-muted-foreground py-8">
               Profile not found
             </p>
-          </CardContent>
-        </Card>
+          </GlassCard>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your personal information and settings
-        </p>
+    <div className="space-y-10 pb-10">
+      {/* Hero Section */}
+      <PageHero
+        title={`Hey, ${user?.name || 'Quiz Ninja'}!`}
+        icon="👤"
+        description="View your profile, track your progress, and see your achievements. Keep up the great work!"
+      />
+
+      <div className="container px-0 md:px-4 space-y-8">
+        {/* Profile Card */}
+        <GlassCard padding="none" rounded="2xl">
+          <ProfileCard profile={profile} stats={stats} isLoadingStats={isLoadingStats} />
+        </GlassCard>
+
+        {/* Detailed Statistics */}
+        <GlassCard padding="none" rounded="2xl">
+          <div className="p-6 border-b border-white/10">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <span className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white p-1.5 rounded-lg shadow-sm">
+                📊
+              </span>
+              Statistics
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Your detailed quiz performance metrics
+            </p>
+          </div>
+          <div className="p-6">
+            <DetailedStatistics stats={stats} isLoading={isLoadingStats} />
+          </div>
+        </GlassCard>
+
+        {/* Achievements */}
+        <GlassCard padding="none" rounded="2xl">
+          <div className="p-6 border-b border-white/10">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <span className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-1.5 rounded-lg shadow-sm">
+                🏆
+              </span>
+              Achievements
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Your unlocked badges and rewards
+            </p>
+          </div>
+          <div className="p-6">
+            <AchievementBadges />
+          </div>
+        </GlassCard>
+
+        {/* Attempt History */}
+        <GlassCard padding="none" rounded="2xl">
+          <div className="p-6 border-b border-white/10">
+            <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <span className="bg-gradient-to-br from-violet-500 to-purple-600 text-white p-1.5 rounded-lg shadow-sm">
+                📝
+              </span>
+              Quiz History
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              Your recent quiz attempts and scores
+            </p>
+          </div>
+          <div className="p-6">
+            <AttemptHistory />
+          </div>
+        </GlassCard>
       </div>
-
-      <ProfileCard profile={profile} stats={stats} isLoadingStats={isLoadingStats} />
-
-      {/* Detailed Statistics */}
-      <DetailedStatistics stats={stats} isLoading={isLoadingStats} />
-
-      {/* Achievements */}
-      <AchievementBadges />
-
-      {/* Attempt History */}
-      <AttemptHistory />
     </div>
   )
 }

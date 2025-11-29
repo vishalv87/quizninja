@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AchievementGrid } from "@/components/achievement/AchievementGrid";
-import { useAchievementProgress } from "@/hooks/useAchievementProgress";
-import { useAchievementStats } from "@/hooks/useAchievementProgress";
+import { useAchievementProgress, useAchievementStats } from "@/hooks/useAchievementProgress";
 import { Trophy, Lock, Star, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageHero } from "@/components/common/PageHero";
+import { GlassCard } from "@/components/common/GlassCard";
+import { StatsCard } from "@/components/common/StatsCard";
+import { StatsGrid } from "@/components/common/StatsGrid";
 
 export default function AchievementsPage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -18,7 +20,7 @@ export default function AchievementsPage() {
     error: progressError,
   } = useAchievementProgress();
 
-  const { data: stats } = useAchievementStats();
+  const { data: stats, isLoading: statsLoading } = useAchievementStats();
 
   // Calculate counts for each category
   const counts = useMemo(() => {
@@ -38,193 +40,203 @@ export default function AchievementsPage() {
   }, [achievementsProgress]);
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Achievements</h1>
-        <p className="text-muted-foreground">
-          Track your progress and unlock all achievements!
-        </p>
-      </div>
+    <div className="space-y-10 pb-10">
+      {/* Hero Section */}
+      <PageHero
+        title="Achievements"
+        icon="⭐"
+        description="Track your progress and unlock all achievements! Complete quizzes, challenge friends, and earn rewards."
+      />
 
       {/* Stats Cards */}
-      {stats && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Achievements</CardTitle>
-              <Trophy className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total_achievements}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Unlocked</CardTitle>
-              <Star className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.unlocked_achievements}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stats.completion_percentage.toFixed(1)}% Complete
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Points Earned</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.points_earned}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                out of {stats.total_points} points
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Locked</CardTitle>
-              <Lock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {stats.total_achievements - stats.unlocked_achievements}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Keep playing to unlock!
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <StatsGrid columns={4}>
+        <StatsCard
+          title="Total"
+          value={stats?.total_achievements ?? 0}
+          description="Achievements available"
+          icon={Trophy}
+          color="blue"
+          loading={statsLoading}
+        />
+        <StatsCard
+          title="Unlocked"
+          value={stats?.unlocked_achievements ?? 0}
+          description={`${stats?.completion_percentage?.toFixed(1) ?? 0}% Complete`}
+          icon={Star}
+          color="yellow"
+          loading={statsLoading}
+        />
+        <StatsCard
+          title="Points Earned"
+          value={stats?.points_earned ?? 0}
+          description={`out of ${stats?.total_points ?? 0} points`}
+          icon={TrendingUp}
+          color="green"
+          loading={statsLoading}
+        />
+        <StatsCard
+          title="Locked"
+          value={(stats?.total_achievements ?? 0) - (stats?.unlocked_achievements ?? 0)}
+          description="Keep playing to unlock!"
+          icon={Lock}
+          color="purple"
+          loading={statsLoading}
+        />
+      </StatsGrid>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="all" className="gap-2">
-            All
-            {counts.all > 0 && (
-              <Badge variant="outline" className="ml-1 px-2 py-0.5 text-xs">
-                {counts.all}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="unlocked" className="gap-2">
-            <Star className="h-4 w-4" />
-            Unlocked
-            {counts.unlocked > 0 && (
-              <Badge variant="default" className="ml-1 px-2 py-0.5 text-xs">
-                {counts.unlocked}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="locked" className="gap-2">
-            <Lock className="h-4 w-4" />
-            Locked
-            {counts.locked > 0 && (
-              <Badge variant="secondary" className="ml-1 px-2 py-0.5 text-xs">
-                {counts.locked}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      <div className="container px-0 md:px-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3 bg-white/60 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 p-1 rounded-xl shadow-sm">
+            <TabsTrigger
+              value="all"
+              className="gap-2 rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
+            >
+              All
+              {counts.all > 0 && (
+                <Badge variant="outline" className="ml-1 px-2 py-0.5 text-xs">
+                  {counts.all}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="unlocked"
+              className="gap-2 rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
+            >
+              <Star className="h-4 w-4" />
+              Unlocked
+              {counts.unlocked > 0 && (
+                <Badge variant="default" className="ml-1 px-2 py-0.5 text-xs">
+                  {counts.unlocked}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="locked"
+              className="gap-2 rounded-lg data-[state=active]:bg-white/90 dark:data-[state=active]:bg-background/90 data-[state=active]:text-violet-700 dark:data-[state=active]:text-violet-400 data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-violet-200/50 dark:data-[state=active]:border-violet-800/50 transition-all duration-300 hover:bg-white/40 dark:hover:bg-white/5"
+            >
+              <Lock className="h-4 w-4" />
+              Locked
+              {counts.locked > 0 && (
+                <Badge variant="secondary" className="ml-1 px-2 py-0.5 text-xs">
+                  {counts.locked}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        {/* All Achievements Tab */}
-        <TabsContent value="all" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>All Achievements</CardTitle>
-              <CardDescription>
-                View all available achievements and track your progress
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AchievementGrid
-                achievements={achievementsProgress}
-                isLoading={progressLoading}
-                error={progressError}
-                filter="all"
-                emptyMessage="No achievements available yet. Check back soon!"
-              />
-            </CardContent>
-          </Card>
+          {/* All Achievements Tab */}
+          <TabsContent value="all" className="space-y-6">
+            <GlassCard padding="none" rounded="2xl">
+              <div className="p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                  <span className="bg-gradient-to-br from-violet-500 to-purple-600 text-white p-1.5 rounded-lg shadow-sm">
+                    <Trophy className="h-4 w-4" />
+                  </span>
+                  All Achievements
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  View all available achievements and track your progress
+                </p>
+              </div>
+              <div className="p-6">
+                <AchievementGrid
+                  achievements={achievementsProgress}
+                  isLoading={progressLoading}
+                  error={progressError}
+                  filter="all"
+                  emptyMessage="No achievements available yet. Check back soon!"
+                />
+              </div>
+            </GlassCard>
 
-          {/* Categories */}
-          {categories.length > 0 && (
-            <div className="space-y-6">
-              {categories.map((category) => {
-                const categoryAchievements = achievementsProgress.filter(
-                  (a) => a.achievement.category === category
-                );
-                const unlockedInCategory = categoryAchievements.filter((a) => a.is_unlocked).length;
+            {/* Categories */}
+            {categories.length > 0 && (
+              <div className="space-y-6">
+                {categories.map((category) => {
+                  const categoryAchievements = achievementsProgress.filter(
+                    (a) => a.achievement.category === category
+                  );
+                  const unlockedInCategory = categoryAchievements.filter((a) => a.is_unlocked).length;
 
-                return (
-                  <Card key={category}>
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle>{category}</CardTitle>
-                        <Badge variant="outline">
-                          {unlockedInCategory} / {categoryAchievements.length}
-                        </Badge>
+                  return (
+                    <GlassCard key={category} padding="none" rounded="2xl">
+                      <div className="p-6 border-b border-white/10">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">
+                            {category}
+                          </h3>
+                          <Badge variant="outline" className="bg-white/50 dark:bg-white/10">
+                            {unlockedInCategory} / {categoryAchievements.length}
+                          </Badge>
+                        </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <AchievementGrid
-                        achievements={categoryAchievements}
-                        filter="all"
-                      />
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
+                      <div className="p-6">
+                        <AchievementGrid
+                          achievements={categoryAchievements}
+                          filter="all"
+                        />
+                      </div>
+                    </GlassCard>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
 
-        {/* Unlocked Achievements Tab */}
-        <TabsContent value="unlocked" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Unlocked Achievements</CardTitle>
-              <CardDescription>
-                Achievements you've successfully completed
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AchievementGrid
-                achievements={achievementsProgress}
-                isLoading={progressLoading}
-                error={progressError}
-                filter="unlocked"
-                emptyMessage="No unlocked achievements yet. Complete quizzes to earn achievements!"
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
+          {/* Unlocked Achievements Tab */}
+          <TabsContent value="unlocked" className="space-y-6">
+            <GlassCard padding="none" rounded="2xl">
+              <div className="p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                  <span className="bg-gradient-to-br from-amber-400 to-orange-500 text-white p-1.5 rounded-lg shadow-sm">
+                    <Star className="h-4 w-4" />
+                  </span>
+                  Unlocked Achievements
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Achievements you&apos;ve successfully completed
+                </p>
+              </div>
+              <div className="p-6">
+                <AchievementGrid
+                  achievements={achievementsProgress}
+                  isLoading={progressLoading}
+                  error={progressError}
+                  filter="unlocked"
+                  emptyMessage="No unlocked achievements yet. Complete quizzes to earn achievements!"
+                />
+              </div>
+            </GlassCard>
+          </TabsContent>
 
-        {/* Locked Achievements Tab */}
-        <TabsContent value="locked" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Locked Achievements</CardTitle>
-              <CardDescription>
-                Achievements you're working towards unlocking
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AchievementGrid
-                achievements={achievementsProgress}
-                isLoading={progressLoading}
-                error={progressError}
-                filter="locked"
-                emptyMessage="Great job! You've unlocked all achievements!"
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          {/* Locked Achievements Tab */}
+          <TabsContent value="locked" className="space-y-6">
+            <GlassCard padding="none" rounded="2xl">
+              <div className="p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                  <span className="bg-gradient-to-br from-slate-400 to-slate-600 text-white p-1.5 rounded-lg shadow-sm">
+                    <Lock className="h-4 w-4" />
+                  </span>
+                  Locked Achievements
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Achievements you&apos;re working towards unlocking
+                </p>
+              </div>
+              <div className="p-6">
+                <AchievementGrid
+                  achievements={achievementsProgress}
+                  isLoading={progressLoading}
+                  error={progressError}
+                  filter="locked"
+                  emptyMessage="Great job! You've unlocked all achievements!"
+                />
+              </div>
+            </GlassCard>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

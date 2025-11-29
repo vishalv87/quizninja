@@ -36,7 +36,7 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-10 pb-10">
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 to-indigo-600 p-8 text-white shadow-xl lg:p-12">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/30 border border-white/10 lg:p-12">
         <div className="relative z-10 max-w-3xl">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
             Browse Categories
@@ -72,8 +72,9 @@ export default function CategoriesPage() {
         </div>
 
         {/* Decorative background elements */}
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 right-20 -mb-10 h-40 w-40 rounded-full bg-indigo-400/20 blur-2xl" />
+        <div className="absolute right-0 top-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-0 right-20 -mb-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
+        <div className="absolute left-10 bottom-10 h-32 w-32 rounded-full bg-purple-400/20 blur-2xl" />
       </div>
 
       <div className="container px-0 md:px-4">
