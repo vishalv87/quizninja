@@ -74,8 +74,8 @@ export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <div className="hidden border-r border-white/20 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl md:block w-72 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-30">
-      <ScrollArea className="h-[calc(100vh-4rem)] py-6">
+    <div className="hidden border-r border-white/20 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl md:block w-72 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-30 h-full overflow-hidden">
+      <ScrollArea className="h-full py-6">
         <nav className="space-y-2 px-4">
           {navigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
