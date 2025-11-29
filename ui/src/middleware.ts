@@ -13,7 +13,6 @@ const protectedRoutes = [
   '/quizzes',
   '/profile',
   '/friends',
-  '/challenges',
   '/achievements',
   '/leaderboard',
   '/discussions',

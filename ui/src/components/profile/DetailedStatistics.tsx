@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Target, TrendingUp, Zap, Calendar, Award } from "lucide-react";
+import { BarChart3, Target, Zap, Calendar, Award } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,10 +41,6 @@ export function DetailedStatistics({ stats, isLoading }: DetailedStatisticsProps
 
   const averageTimePerQuiz = stats.total_quizzes_completed > 0
     ? Math.round(stats.total_time_spent_minutes / stats.total_quizzes_completed)
-    : 0;
-
-  const challengeWinRate = (stats.challenges_won + stats.challenges_lost) > 0
-    ? Math.round((stats.challenges_won / (stats.challenges_won + stats.challenges_lost)) * 100)
     : 0;
 
   return (
@@ -120,19 +116,6 @@ export function DetailedStatistics({ stats, isLoading }: DetailedStatisticsProps
             </p>
           </div>
 
-          {/* Challenge Win Rate */}
-          <div className="p-4 rounded-lg border bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10 border-purple-200 dark:border-purple-800">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              <span className="text-xs font-medium text-purple-900 dark:text-purple-100">Challenge Win Rate</span>
-            </div>
-            <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-              {challengeWinRate}%
-            </p>
-            <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-              {stats.challenges_won}W - {stats.challenges_lost}L
-            </p>
-          </div>
         </div>
 
         {/* Point and Achievement Summary */}

@@ -7,11 +7,9 @@ import {
   FileQuestion,
   Users,
   Trophy,
-  Award,
   MessageSquare,
   Bell,
   Settings,
-  Swords,
   BarChart3,
   FolderOpen,
   Heart,
@@ -39,11 +37,6 @@ const navigation = [
     name: 'Favorites',
     href: '/favorites',
     icon: Heart,
-  },
-  {
-    name: 'Challenges',
-    href: '/challenges',
-    icon: Swords,
   },
   {
     name: 'Friends',

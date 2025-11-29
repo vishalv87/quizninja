@@ -1,5 +1,5 @@
 export const APP_NAME = "QuizNinja";
-export const APP_DESCRIPTION = "Test Your Knowledge, Challenge Your Friends";
+export const APP_DESCRIPTION = "Test Your Knowledge, Compete with Friends";
 
 export const ROUTES = {
   HOME: "/",
@@ -13,8 +13,6 @@ export const ROUTES = {
   PROFILE_EDIT: "/profile/edit",
   FRIENDS: "/friends",
   FRIEND_REQUESTS: "/friends/requests",
-  CHALLENGES: "/challenges",
-  CHALLENGE_DETAIL: (id: string) => `/challenges/${id}`,
   ACHIEVEMENTS: "/achievements",
   LEADERBOARD: "/leaderboard",
   DISCUSSIONS: "/discussions",
@@ -44,9 +42,6 @@ export const QUIZ_CATEGORIES = [
 export const NOTIFICATION_TYPES = {
   FRIEND_REQUEST: "friend_request",
   FRIEND_ACCEPTED: "friend_accepted",
-  CHALLENGE_RECEIVED: "challenge_received",
-  CHALLENGE_ACCEPTED: "challenge_accepted",
-  CHALLENGE_COMPLETED: "challenge_completed",
   ACHIEVEMENT_UNLOCKED: "achievement_unlocked",
   QUIZ_REMINDER: "quiz_reminder",
   DISCUSSION_REPLY: "discussion_reply",
@@ -69,8 +64,6 @@ export const QUERY_KEYS = {
   QUIZ_ATTEMPTS: "quiz-attempts",
   FRIENDS: "friends",
   FRIEND_REQUESTS: "friend-requests",
-  CHALLENGES: "challenges",
-  CHALLENGE: "challenge",
   ACHIEVEMENTS: "achievements",
   LEADERBOARD: "leaderboard",
   NOTIFICATIONS: "notifications",

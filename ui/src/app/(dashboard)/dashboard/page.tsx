@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, FileQuestion, Swords, Trophy } from 'lucide-react'
+import { ArrowRight, FileQuestion, Users, Trophy } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserStats } from '@/hooks/useUserStats'
 import { authLogger } from '@/lib/logger'
@@ -83,10 +83,10 @@ export default function DashboardPage() {
       shadow: 'shadow-blue-500/20',
     },
     {
-      title: 'Challenge Friends',
-      description: 'Compete with your friends in quiz battles',
-      href: '/challenges',
-      icon: Swords,
+      title: 'Find Friends',
+      description: 'Connect with other quiz enthusiasts',
+      href: '/friends',
+      icon: Users,
       gradient: 'from-purple-500 to-pink-500',
       shadow: 'shadow-purple-500/20',
     },

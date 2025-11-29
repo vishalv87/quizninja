@@ -1,7 +1,6 @@
 'use client'
 
-import { Mail, Calendar, UserPlus, UserMinus, Swords, UserCheck, Clock } from 'lucide-react'
-import Link from 'next/link'
+import { Mail, Calendar, UserPlus, UserMinus, UserCheck, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 
 import type { UserProfile, UserStats } from '@/types/user'
@@ -81,12 +80,6 @@ export function UserProfileCard({
                   <UserCheck className="mr-1 h-3 w-3" />
                   Friends
                 </Badge>
-                <Button variant="default" size="sm" asChild>
-                  <Link href={`/challenges/create?friendId=${profile.user_id}`}>
-                    <Swords className="mr-2 h-4 w-4" />
-                    Challenge
-                  </Link>
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"

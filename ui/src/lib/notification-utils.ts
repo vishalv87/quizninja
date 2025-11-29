@@ -1,11 +1,9 @@
 import {
   UserPlus,
   UserCheck,
-  Swords,
   Trophy,
   Bell,
   MessageSquare,
-  CheckCircle2,
   Info,
   type LucideIcon
 } from "lucide-react";
@@ -19,9 +17,6 @@ export function getNotificationIcon(type: string): LucideIcon {
   const iconMap: Record<NotificationType, LucideIcon> = {
     friend_request: UserPlus,
     friend_accepted: UserCheck,
-    challenge_received: Swords,
-    challenge_accepted: Swords,
-    challenge_completed: CheckCircle2,
     achievement_unlocked: Trophy,
     quiz_reminder: Bell,
     discussion_reply: MessageSquare,
@@ -50,21 +45,6 @@ export function getNotificationColor(type: string): {
       icon: "text-green-600 dark:text-green-400",
       bg: "bg-green-50 dark:bg-green-950/50",
       text: "text-green-900 dark:text-green-100",
-    },
-    challenge_received: {
-      icon: "text-orange-600 dark:text-orange-400",
-      bg: "bg-orange-50 dark:bg-orange-950/50",
-      text: "text-orange-900 dark:text-orange-100",
-    },
-    challenge_accepted: {
-      icon: "text-orange-600 dark:text-orange-400",
-      bg: "bg-orange-50 dark:bg-orange-950/50",
-      text: "text-orange-900 dark:text-orange-100",
-    },
-    challenge_completed: {
-      icon: "text-purple-600 dark:text-purple-400",
-      bg: "bg-purple-50 dark:bg-purple-950/50",
-      text: "text-purple-900 dark:text-purple-100",
     },
     achievement_unlocked: {
       icon: "text-yellow-600 dark:text-yellow-400",
@@ -109,9 +89,6 @@ export function getNotificationTypeLabel(type: string): string {
   const labelMap: Record<NotificationType, string> = {
     friend_request: "Friend Request",
     friend_accepted: "Friend Accepted",
-    challenge_received: "Challenge Received",
-    challenge_accepted: "Challenge Accepted",
-    challenge_completed: "Challenge Completed",
     achievement_unlocked: "Achievement Unlocked",
     quiz_reminder: "Quiz Reminder",
     discussion_reply: "Discussion Reply",
@@ -130,9 +107,6 @@ export function getNotificationActionUrl(type: string, data?: Record<string, any
   const urlMap: Record<NotificationType, (data: Record<string, any>) => string | null> = {
     friend_request: (d) => d.user_id ? `/profile/${d.user_id}` : "/friends",
     friend_accepted: (d) => d.user_id ? `/profile/${d.user_id}` : "/friends",
-    challenge_received: (d) => d.challenge_id ? `/challenges/${d.challenge_id}` : "/challenges",
-    challenge_accepted: (d) => d.challenge_id ? `/challenges/${d.challenge_id}` : "/challenges",
-    challenge_completed: (d) => d.challenge_id ? `/challenges/${d.challenge_id}` : "/challenges",
     achievement_unlocked: (d) => d.achievement_id ? `/achievements` : "/achievements",
     quiz_reminder: (d) => d.quiz_id ? `/quizzes/${d.quiz_id}` : "/quizzes",
     discussion_reply: (d) => d.discussion_id ? `/discussions/${d.discussion_id}` : "/discussions",

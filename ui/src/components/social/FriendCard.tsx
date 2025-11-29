@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Friend } from "@/types/user";
-import { MoreVertical, UserMinus, Swords, User, Calendar } from "lucide-react";
+import { MoreVertical, UserMinus, User, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useRemoveFriend } from "@/hooks/useFriends";
@@ -91,12 +91,6 @@ export function FriendCard({ friend }: FriendCardProps) {
                     View Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href={`/challenges/create?friendId=${friend.id}`} className="cursor-pointer">
-                    <Swords className="mr-2 h-4 w-4" />
-                    Challenge Friend
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setShowRemoveDialog(true)}
                   className="text-destructive focus:text-destructive cursor-pointer"
@@ -119,21 +113,15 @@ export function FriendCard({ friend }: FriendCardProps) {
 
         <CardContent className="flex-1">
           <div className="text-sm text-muted-foreground border-t border-gray-200/30 dark:border-gray-700/30 pt-3">
-            <p>Click to view profile or challenge your friend to a quiz!</p>
+            <p>Click to view your friend&apos;s profile!</p>
           </div>
         </CardContent>
 
         <CardFooter className="flex gap-2">
           <Link href={`/profile/${friend.id}`} className="flex-1">
-            <Button variant="outline" className="w-full rounded-xl border-gray-200/50 dark:border-gray-700/50 hover:border-violet-400/50 dark:hover:border-violet-600/50 transition-all duration-200 active:scale-95 hover:shadow-md">
+            <Button className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-indigo-500/20 transition-all duration-200 active:scale-95 hover:shadow-lg hover:shadow-indigo-500/30">
               <User className="mr-2 h-4 w-4" />
               View Profile
-            </Button>
-          </Link>
-          <Link href={`/challenges/create?friendId=${friend.id}`} className="flex-1">
-            <Button className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-md shadow-indigo-500/20 transition-all duration-200 active:scale-95 hover:shadow-lg hover:shadow-indigo-500/30">
-              <Swords className="mr-2 h-4 w-4" />
-              Challenge
             </Button>
           </Link>
         </CardFooter>

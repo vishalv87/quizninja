@@ -25,8 +25,6 @@ export interface UserStats {
   current_streak: number;
   longest_streak: number;
   achievements_unlocked: number;
-  challenges_won: number;
-  challenges_lost: number;
   rank: number;
 }
 

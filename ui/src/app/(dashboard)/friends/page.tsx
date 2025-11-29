@@ -43,7 +43,7 @@ export default function FriendsPage() {
             Hey{user?.name ? `, ${user.name.split(' ')[0]}` : ''}! 👋
           </h1>
           <p className="text-xl text-indigo-100 mb-8 font-medium leading-relaxed">
-            Connect with quiz enthusiasts and challenge your friends to epic battles!
+            Connect with quiz enthusiasts and compete on the leaderboard!
           </p>
           <Button
             size="lg"

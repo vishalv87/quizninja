@@ -7,11 +7,9 @@ import {
   FileQuestion,
   Users,
   Trophy,
-  Award,
   MessageSquare,
   Bell,
   Settings,
-  Swords,
   BarChart3,
   X,
 } from 'lucide-react'
@@ -31,11 +29,6 @@ const navigation = [
     name: 'Quizzes',
     href: '/quizzes',
     icon: FileQuestion,
-  },
-  {
-    name: 'Challenges',
-    href: '/challenges',
-    icon: Swords,
   },
   {
     name: 'Friends',

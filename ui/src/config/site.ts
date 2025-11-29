@@ -1,6 +1,6 @@
 export const siteConfig = {
   name: "QuizNinja",
-  description: "Test Your Knowledge, Challenge Your Friends",
+  description: "Test Your Knowledge, Compete with Friends",
   url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ogImage: "/og-image.png",
   links: {

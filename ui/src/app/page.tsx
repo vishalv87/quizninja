@@ -43,7 +43,7 @@ export default function Home() {
     {
       title: "Daily Quizzes",
       value: "500+",
-      description: "New challenges daily",
+      description: "Fresh quizzes daily",
     },
   ];
 
@@ -57,7 +57,7 @@ export default function Home() {
     },
     {
       icon: Users,
-      title: "Challenge Friends",
+      title: "Connect with Friends",
       description: "Compete with friends and climb the leaderboard together",
       iconBg: "bg-green-100",
       iconColor: "text-green-600",

@@ -35,9 +35,6 @@ export interface NotificationListResponse {
 export type NotificationType =
   | 'friend_request'
   | 'friend_accepted'
-  | 'challenge_received'
-  | 'challenge_accepted'
-  | 'challenge_completed'
   | 'achievement_unlocked'
   | 'quiz_reminder'
   | 'discussion_reply'
@@ -48,9 +45,6 @@ export function isValidNotificationType(type: string): type is NotificationType 
   return [
     'friend_request',
     'friend_accepted',
-    'challenge_received',
-    'challenge_accepted',
-    'challenge_completed',
     'achievement_unlocked',
     'quiz_reminder',
     'discussion_reply',

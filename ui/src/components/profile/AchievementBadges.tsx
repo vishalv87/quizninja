@@ -72,7 +72,7 @@ export function AchievementBadges() {
             </div>
             <p className="text-sm text-muted-foreground mb-1">No achievements yet</p>
             <p className="text-xs text-muted-foreground">
-              Complete quizzes and challenges to unlock achievements!
+              Complete quizzes to unlock achievements!
             </p>
           </div>
         ) : (

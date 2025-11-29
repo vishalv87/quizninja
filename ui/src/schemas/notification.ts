@@ -9,9 +9,6 @@ export const notificationFilterSchema = z.object({
     .enum([
       'friend_request',
       'friend_accepted',
-      'challenge_received',
-      'challenge_accepted',
-      'challenge_completed',
       'achievement_unlocked',
       'quiz_reminder',
       'discussion_reply',
@@ -37,9 +34,6 @@ export const createNotificationSchema = z.object({
   type: z.enum([
     'friend_request',
     'friend_accepted',
-    'challenge_received',
-    'challenge_accepted',
-    'challenge_completed',
     'achievement_unlocked',
     'quiz_reminder',
     'discussion_reply',

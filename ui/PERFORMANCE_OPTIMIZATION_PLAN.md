@@ -259,7 +259,7 @@ export function NavigationProgress() {
 **Impact**: High
 **Files to Create/Modify**:
 - `components/quiz/QuizListSkeleton.tsx` (new)
-- `components/challenge/ChallengeListSkeleton.tsx` (new)
+- `components/leaderboard/LeaderboardListSkeleton.tsx` (new)
 - `components/leaderboard/LeaderboardSkeleton.tsx` (new)
 
 **Example Implementation** (`QuizListSkeleton.tsx`):
@@ -414,7 +414,7 @@ import dynamic from 'next/dynamic'
 const QuickStats = dynamic(() => import('@/components/dashboard/QuickStats'))
 const ActivityFeed = dynamic(() => import('@/components/dashboard/ActivityFeed'))
 const FeaturedQuizzes = dynamic(() => import('@/components/dashboard/FeaturedQuizzes'))
-const ActiveChallenges = dynamic(() => import('@/components/dashboard/ActiveChallenges'))
+const FriendActivity = dynamic(() => import('@/components/dashboard/FriendActivity'))
 const AchievementShowcase = dynamic(() => import('@/components/dashboard/AchievementShowcase'))
 
 // Load above-fold content immediately, below-fold lazily
@@ -723,7 +723,7 @@ export function QuizCardClient({ quizId, initialFavoriteState }: QuizCardClientP
 
 **Components to Split**:
 - `QuizCard` → Server + Client parts
-- `ChallengeCard` → Server + Client parts
+- `FriendCard` → Server + Client parts
 - `DiscussionCard` → Server + Client parts
 - `LeaderboardRow` → Server + Client parts
 - `AchievementCard` → Server + Client parts
@@ -784,7 +784,7 @@ export function QuizCardClient({ quizId, initialFavoriteState }: QuizCardClientP
 **Current Problem**:
 Dashboard makes sequential API calls, causing waterfall:
 ```
-Load page → Fetch stats → Fetch quizzes → Fetch challenges
+Load page → Fetch stats → Fetch quizzes → Fetch activity
 ```
 
 **Solution - Parallel Fetching**:
@@ -792,28 +792,28 @@ Load page → Fetch stats → Fetch quizzes → Fetch challenges
 // app/(dashboard)/dashboard/page.tsx (Server Component)
 import { getQuizzes } from '@/lib/api/quiz'
 import { getUserStats } from '@/lib/api/user'
-import { getChallenges } from '@/lib/api/challenges'
+import { getFriendActivity } from '@/lib/api/friends'
 
 export default async function DashboardPage() {
   // Parallel data fetching
-  const [stats, quizzes, challenges] = await Promise.all([
+  const [stats, quizzes, activity] = await Promise.all([
     getUserStats(),
     getQuizzes({ featured: true, limit: 6 }),
-    getChallenges({ status: 'active', limit: 3 }),
+    getFriendActivity({ limit: 3 }),
   ])
 
   return (
     <div>
       <QuickStats data={stats} />
       <FeaturedQuizzes quizzes={quizzes} />
-      <ActiveChallenges challenges={challenges} />
+      <FriendActivity activity={activity} />
     </div>
   )
 }
 ```
 
 **Pages to Optimize**:
-- `/dashboard` - Parallel fetch stats, quizzes, challenges
+- `/dashboard` - Parallel fetch stats, quizzes, activity
 - `/quizzes/[id]` - Parallel fetch quiz details and user attempt
 - `/leaderboard` - Parallel fetch global and friend leaderboards
 - `/profile/[userId]` - Parallel fetch profile, stats, achievements
@@ -895,7 +895,7 @@ export function Sidebar() {
       {/* prefetch defaults to true for Link */}
       <Link href="/dashboard" prefetch={true}>Dashboard</Link>
       <Link href="/quizzes" prefetch={true}>Quizzes</Link>
-      <Link href="/challenges" prefetch={true}>Challenges</Link>
+      <Link href="/friends" prefetch={true}>Friends</Link>
 
       {/* Disable prefetch for less common routes */}
       <Link href="/settings" prefetch={false}>Settings</Link>
@@ -1023,7 +1023,7 @@ export const QuizCard = memo(function QuizCard({ quiz, onFavorite }: QuizCardPro
 
 **Components to Memoize**:
 - `QuizCard` (used in lists of 10-50 items)
-- `ChallengeCard` (used in lists)
+- `FriendCard` (used in lists)
 - `LeaderboardRow` (used in lists of 100+ items)
 - `DiscussionCard` (used in lists)
 - `AchievementCard` (used in lists)
@@ -1457,7 +1457,7 @@ export function useToggleFavorite() {
 ```
 
 **Interactions to Make Optimistic**:
-- ✅ Toggle favorite (quiz, challenge)
+- ✅ Toggle favorite (quiz)
 - ✅ Like/unlike discussion
 - ✅ Send friend request
 - ✅ Accept/decline friend request
@@ -1629,8 +1629,8 @@ function Dashboard() {
     // User is likely to go to quizzes next
     router.prefetch('/quizzes')
 
-    // Also prefetch active challenges
-    router.prefetch('/challenges')
+    // Also prefetch friends page
+    router.prefetch('/friends')
   }, [])
 
   return <DashboardContent />
@@ -1849,7 +1849,7 @@ export default function RootLayout({ children }: Props) {
 - [ ] Optimistic updates implemented for 6+ interactions
 - [ ] Enhanced loading states on all data-heavy pages
 - [ ] Progressive loading implemented
-- [ ] Hover prefetch on quiz/challenge cards
+- [ ] Hover prefetch on quiz cards
 - [ ] Predictive prefetch in quiz taking flow
 - [ ] Stale-while-revalidate for leaderboard
 - [ ] Button loading states on all forms
@@ -2652,7 +2652,7 @@ module.exports = withPWA({
 {
   "name": "QuizNinja",
   "short_name": "QuizNinja",
-  "description": "Take quizzes, challenge friends, earn achievements",
+  "description": "Take quizzes, compete with friends, earn achievements",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#ffffff",

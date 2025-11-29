@@ -96,24 +96,6 @@ export const API_ENDPOINTS = {
     NOTIFICATIONS_READ_ALL: "/friends/notifications/read-all",
   },
 
-  // Challenges
-  CHALLENGES: {
-    CREATE: "/challenges",
-    LIST: "/challenges",
-    STATS: "/challenges/stats",
-    PENDING: "/challenges/pending",
-    ACTIVE: "/challenges/active",
-    COMPLETED: "/challenges/completed",
-    GET: (id: string) => `/challenges/${id}`,
-    ACCEPT: (id: string) => `/challenges/${id}/accept`,
-    DECLINE: (id: string) => `/challenges/${id}/decline`,
-    CANCEL: (id: string) => `/challenges/${id}/cancel`,
-    UPDATE_SCORE: (id: string) => `/challenges/${id}/score`,
-    LINK_ATTEMPT: (id: string) => `/challenges/${id}/link-attempt`,
-    COMPLETE: (id: string) => `/challenges/${id}/complete`,
-    EXPIRE: "/challenges/expire",
-  },
-
   // Leaderboard
   LEADERBOARD: {
     GET: "/leaderboard",
