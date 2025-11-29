@@ -131,15 +131,11 @@ export function Header() {
 
       {/* Global Search Dialog */}
       <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-2xl">
-          <div className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl rounded-lg border border-white/20 overflow-hidden">
-             <DialogHeader className="p-6 pb-0">
-              <DialogTitle className="sr-only">Search QuizNinja</DialogTitle>
-            </DialogHeader>
-            <div className="p-6 pt-4">
-              <GlobalSearch onClose={() => setSearchOpen(false)} />
-            </div>
-          </div>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto p-0 border-0 bg-transparent shadow-none">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Search QuizNinja</DialogTitle>
+          </DialogHeader>
+          <GlobalSearch onClose={() => setSearchOpen(false)} />
         </DialogContent>
       </Dialog>
     </header>
