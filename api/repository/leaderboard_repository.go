@@ -26,32 +26,100 @@ func (lr *LeaderboardRepository) GetGlobalLeaderboard(period string, limit, offs
 	var entries []models.LeaderboardEntry
 	var totalCount int
 
-	// Since we don't have real user data yet, let's return sample data for now
-	// In production, this would query the actual database
-	sampleEntries := lr.getSampleLeaderboardData(period)
-
-	// Apply pagination
-	start := offset
-	if start > len(sampleEntries) {
-		start = len(sampleEntries)
+	// Count total users with points > 0
+	countQuery := `SELECT COUNT(*) FROM users WHERE total_points > 0`
+	err := lr.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return []models.LeaderboardEntry{}, 0, fmt.Errorf("failed to count leaderboard entries: %w", err)
 	}
 
-	end := start + limit
-	if end > len(sampleEntries) {
-		end = len(sampleEntries)
+	// Get leaderboard entries ordered by total_points
+	baseQuery := `
+		SELECT
+			u.id,
+			u.name,
+			u.avatar_url,
+			u.total_points,
+			u.total_quizzes_completed,
+			u.average_score,
+			u.current_streak,
+			u.level,
+			u.last_active
+		FROM users u
+		WHERE u.total_points > 0
+		ORDER BY u.total_points DESC, u.average_score DESC, u.current_streak DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := lr.db.Query(baseQuery, limit, offset)
+	if err != nil {
+		return []models.LeaderboardEntry{}, 0, fmt.Errorf("failed to query global leaderboard: %w", err)
+	}
+	defer rows.Close()
+
+	rank := offset + 1
+	for rows.Next() {
+		var entry models.LeaderboardEntry
+		var avatarURL sql.NullString
+		var lastActive sql.NullTime
+
+		err := rows.Scan(
+			&entry.UserID,
+			&entry.Name,
+			&avatarURL,
+			&entry.Points,
+			&entry.QuizzesCompleted,
+			&entry.AverageScore,
+			&entry.CurrentStreak,
+			&entry.Level,
+			&lastActive,
+		)
+		if err != nil {
+			return []models.LeaderboardEntry{}, 0, fmt.Errorf("failed to scan leaderboard entry: %w", err)
+		}
+
+		if avatarURL.Valid {
+			entry.Avatar = &avatarURL.String
+		}
+
+		if lastActive.Valid {
+			entry.LastActive = lastActive.Time
+		} else {
+			entry.LastActive = time.Now()
+		}
+
+		entry.Rank = rank
+		rank++
+
+		// Default values for global leaderboard (no user context)
+		entry.IsCurrentUser = false
+		entry.IsFriend = false
+
+		// Get user achievements
+		achievements, err := lr.GetUserAchievements(entry.UserID)
+		if err != nil {
+			achievements = []string{}
+		}
+		entry.Achievements = achievements
+
+		// Get user category points
+		categoryPoints, err := lr.GetUserCategoryPoints(entry.UserID)
+		if err != nil {
+			categoryPoints = make(map[string]int)
+		}
+		entry.CategoryPoints = categoryPoints
+
+		entries = append(entries, entry)
 	}
 
-	if start < len(sampleEntries) {
-		entries = sampleEntries[start:end]
-	} else {
-		entries = []models.LeaderboardEntry{} // Return empty slice, not nil
+	if err = rows.Err(); err != nil {
+		return []models.LeaderboardEntry{}, 0, fmt.Errorf("error iterating leaderboard rows: %w", err)
 	}
 
 	// Ensure entries is never nil
 	if entries == nil {
 		entries = []models.LeaderboardEntry{}
 	}
-	totalCount = len(sampleEntries)
 
 	return entries, totalCount, nil
 }
@@ -171,7 +239,7 @@ func (lr *LeaderboardRepository) GetUserRank(userID uuid.UUID, period string) (*
 	var avatarURL sql.NullString
 
 	userQuery := `
-		SELECT total_points, total_quizzes_completed, full_name, avatar_url
+		SELECT total_points, total_quizzes_completed, name, avatar_url
 		FROM users
 		WHERE id = $1
 	`
@@ -213,18 +281,18 @@ func (lr *LeaderboardRepository) GetUserRank(userID uuid.UUID, period string) (*
 		return nil, fmt.Errorf("failed to calculate user rank: %w", err)
 	}
 
-	// Get total users count
+	// Get total users count (include current user even if they have 0 points)
 	totalUsersQuery := `
 		SELECT COUNT(*)
 		FROM users
-		WHERE total_points > 0
+		WHERE total_points > 0 OR id = $1
 	`
 	if timeFilter != "" {
 		totalUsersQuery += " AND " + timeFilter
 	}
 
 	var totalUsers int
-	err = lr.db.QueryRow(totalUsersQuery).Scan(&totalUsers)
+	err = lr.db.QueryRow(totalUsersQuery, userID).Scan(&totalUsers)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get total users: %w", err)
 	}
@@ -409,96 +477,6 @@ func (lr *LeaderboardRepository) GetUserCategoryPoints(userID uuid.UUID) (map[st
 	}
 
 	return categoryPoints, nil
-}
-
-// getSampleLeaderboardData returns sample leaderboard data for testing
-func (lr *LeaderboardRepository) getSampleLeaderboardData(period string) []models.LeaderboardEntry {
-	// In a real implementation, this would filter data based on the period
-	_ = period
-	sampleEntries := []models.LeaderboardEntry{
-		{
-			UserID:           uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
-			Name:             "Alex Johnson",
-			Avatar:           stringPtr("https://i.pravatar.cc/150?img=1"),
-			Rank:             1,
-			Points:           2850,
-			QuizzesCompleted: 45,
-			AverageScore:     87.5,
-			CurrentStreak:    12,
-			Level:            "15",
-			LastActive:       time.Date(2024, 1, 15, 14, 30, 0, 0, time.UTC),
-			IsCurrentUser:    false,
-			IsFriend:         true,
-			Achievements:     []string{"Quiz Master", "Speed Demon", "Perfect Score"},
-			CategoryPoints:   map[string]int{"Science": 950, "History": 800, "Sports": 600, "Math": 500},
-		},
-		{
-			UserID:           uuid.MustParse("550e8400-e29b-41d4-a716-446655440002"),
-			Name:             "Sarah Chen",
-			Avatar:           stringPtr("https://i.pravatar.cc/150?img=2"),
-			Rank:             2,
-			Points:           2720,
-			QuizzesCompleted: 38,
-			AverageScore:     89.2,
-			CurrentStreak:    8,
-			Level:            "14",
-			LastActive:       time.Date(2024, 1, 15, 12, 15, 0, 0, time.UTC),
-			IsCurrentUser:    false,
-			IsFriend:         true,
-			Achievements:     []string{"Perfectionist", "Science Whiz"},
-			CategoryPoints:   map[string]int{"Science": 1200, "Math": 800, "History": 720},
-		},
-		{
-			UserID:           uuid.MustParse("550e8400-e29b-41d4-a716-446655440003"),
-			Name:             "Mike Rodriguez",
-			Avatar:           stringPtr("https://i.pravatar.cc/150?img=3"),
-			Rank:             3,
-			Points:           2450,
-			QuizzesCompleted: 32,
-			AverageScore:     82.1,
-			CurrentStreak:    5,
-			Level:            "13",
-			LastActive:       time.Date(2024, 1, 15, 10, 45, 0, 0, time.UTC),
-			IsCurrentUser:    true,
-			IsFriend:         false,
-			Achievements:     []string{"Consistency King", "Sports Expert"},
-			CategoryPoints:   map[string]int{"Sports": 1100, "History": 700, "Science": 650},
-		},
-		{
-			UserID:           uuid.MustParse("550e8400-e29b-41d4-a716-446655440004"),
-			Name:             "Emma Wilson",
-			Avatar:           stringPtr("https://i.pravatar.cc/150?img=4"),
-			Rank:             4,
-			Points:           2180,
-			QuizzesCompleted: 29,
-			AverageScore:     85.6,
-			CurrentStreak:    3,
-			Level:            "12",
-			LastActive:       time.Date(2024, 1, 14, 18, 20, 0, 0, time.UTC),
-			IsCurrentUser:    false,
-			IsFriend:         false,
-			Achievements:     []string{"History Buff", "Rising Star"},
-			CategoryPoints:   map[string]int{"History": 900, "Math": 680, "Science": 600},
-		},
-		{
-			UserID:           uuid.MustParse("550e8400-e29b-41d4-a716-446655440005"),
-			Name:             "David Kim",
-			Avatar:           stringPtr("https://i.pravatar.cc/150?img=5"),
-			Rank:             5,
-			Points:           1950,
-			QuizzesCompleted: 26,
-			AverageScore:     78.9,
-			CurrentStreak:    7,
-			Level:            "11",
-			LastActive:       time.Date(2024, 1, 14, 16, 30, 0, 0, time.UTC),
-			IsCurrentUser:    false,
-			IsFriend:         true,
-			Achievements:     []string{"Dedicated Player", "Math Genius"},
-			CategoryPoints:   map[string]int{"Math": 850, "Science": 550, "Sports": 550},
-		},
-	}
-
-	return sampleEntries
 }
 
 // getTimeFilterForPeriod returns the appropriate WHERE clause for time filtering

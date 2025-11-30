@@ -199,8 +199,10 @@ func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
 		averageScore += entry.AverageScore
 	}
 
+	averageStreak := 0.0
 	if len(leaderboard) > 0 {
 		averageScore = averageScore / float64(len(leaderboard))
+		averageStreak = float64(totalStreaks) / float64(len(leaderboard))
 	}
 
 	stats := map[string]interface{}{
@@ -210,7 +212,7 @@ func (h *LeaderboardHandler) GetLeaderboardStats(c *gin.Context) {
 		"total_points_distributed": totalPoints,
 		"total_quizzes":            totalQuizzes,
 		"average_points":           averageScore,
-		"average_streak":           float64(totalStreaks) / float64(len(leaderboard)),
+		"average_streak":           averageStreak,
 		"top_user":                 nil,
 		"most_active":              nil,
 		"longest_streak":           0,
