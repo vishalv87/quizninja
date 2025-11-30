@@ -5,6 +5,7 @@ import (
 
 	"quizninja-api/config"
 	"quizninja-api/handlers"
+	internalroutes "quizninja-api/internal/routes"
 	"quizninja-api/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -214,4 +215,7 @@ func SetupRoutes(r *gin.Engine, cfg *config.Config) {
 			}
 		}
 	}
+
+	// Setup internal API routes
+	internalroutes.SetupInternalRoutes(r, cfg)
 }

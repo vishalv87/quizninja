@@ -52,6 +52,10 @@ type Config struct {
 	LogLevel  string // DEBUG, INFO, WARN, ERROR, FATAL
 	LogFormat string // text or json
 	LogOutput string // stdout, file, or both
+
+	// Internal API Configuration
+	InternalAPISecret  string // Shared secret for internal API authentication
+	InternalServiceURL string // Base URL for internal service calls
 }
 
 func Load() *Config {
@@ -123,6 +127,10 @@ func Load() *Config {
 		LogLevel:  strings.ToUpper(getEnv("LOG_LEVEL", "INFO")),
 		LogFormat: strings.ToLower(getEnv("LOG_FORMAT", "json")),
 		LogOutput: strings.ToLower(getEnv("LOG_OUTPUT", "stdout")),
+
+		// Internal API Configuration
+		InternalAPISecret:  getEnv("INTERNAL_API_SECRET", ""),
+		InternalServiceURL: getEnv("INTERNAL_SERVICE_URL", "http://localhost:8080"),
 	}
 
 	//  SECURITY: Prevent mock auth in production
