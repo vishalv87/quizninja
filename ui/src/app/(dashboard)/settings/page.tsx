@@ -4,18 +4,20 @@ import { Settings as SettingsIcon, User, Sliders } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AccountSettingsForm } from '@/components/settings/AccountSettingsForm'
 import { PreferencesForm } from '@/components/settings/PreferencesForm'
-import { PageHero } from '@/components/common/PageHero'
 import { GlassCard } from '@/components/common/GlassCard'
 
 export default function SettingsPage() {
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title="Settings"
-        icon="⚙️"
-        description="Manage your account, preferences, and customize your quiz experience to suit your style."
-      />
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          Settings
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
+          Manage your account and customize your quiz experience
+        </p>
+      </div>
 
       <div className="container px-0 md:px-4">
         <GlassCard padding="none" rounded="2xl">

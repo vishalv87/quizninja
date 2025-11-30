@@ -173,31 +173,23 @@ export default function QuizzesPage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/30 border border-white/10 lg:p-12">
-        <div className="relative z-10 max-w-3xl">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl mb-4">
-            Explore Quizzes
-          </h1>
-          <p className="text-lg text-indigo-100 mb-8 max-w-2xl">
-            Challenge yourself with our diverse collection of quizzes. Filter by category, difficulty, or search for specific topics to test your knowledge.
-          </p>
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          Explore Quizzes
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
+          Challenge yourself with our diverse collection of quizzes
+        </p>
+      </div>
 
-          {/* Search Bar Embedded in Hero */}
-          <div className="bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-lg">
-            <QuizSearch
-              value={searchQuery}
-              onChange={handleSearchChange}
-              placeholder="Search quizzes by title or description..."
-              className="border-none bg-transparent text-white placeholder:text-indigo-200 focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-          </div>
-        </div>
-
-        {/* Decorative background elements */}
-        <div className="absolute right-0 top-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 right-20 -mb-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
-        <div className="absolute left-10 bottom-10 h-32 w-32 rounded-full bg-purple-400/20 blur-2xl" />
+      {/* Search Bar */}
+      <div className="bg-white/60 dark:bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/20 dark:border-white/10 shadow-sm">
+        <QuizSearch
+          value={searchQuery}
+          onChange={handleSearchChange}
+          placeholder="Search quizzes by title or description..."
+        />
       </div>
 
       <div className="container px-0 md:px-4">

@@ -4,7 +4,6 @@ import { Trophy, Users, Award, TrendingUp } from "lucide-react";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { UserRankCard } from "@/components/leaderboard/UserRankCard";
 import { useLeaderboard, useUserRank, useLeaderboardStats } from "@/hooks/useLeaderboard";
-import { PageHero } from "@/components/common/PageHero";
 import { GlassCard } from "@/components/common/GlassCard";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatsGrid } from "@/components/common/StatsGrid";
@@ -25,13 +24,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title="Leaderboard"
-        icon="🏆"
-        description="See how you rank among the top quiz masters! Climb the ranks by completing quizzes and earning points."
-      />
-
       {/* Stats Cards */}
       <StatsGrid columns={4}>
         <StatsCard

@@ -18,7 +18,6 @@ import { MessageSquare, MessagesSquare, Users, TrendingUp, Search, Filter } from
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DiscussionFilters } from "@/lib/api/discussions";
-import { PageHero } from "@/components/common/PageHero";
 import { GlassCard } from "@/components/common/GlassCard";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatsGrid } from "@/components/common/StatsGrid";
@@ -61,14 +60,18 @@ export default function DiscussionsPage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title="Discussions"
-        icon="💬"
-        description="Share insights, ask questions, and engage with the community. Join the conversation!"
-      >
+      {/* Header with action button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            Discussions
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Share insights, ask questions, and engage with the community
+          </p>
+        </div>
         <CreateDiscussionDialog />
-      </PageHero>
+      </div>
 
       {/* Stats Cards */}
       <StatsGrid columns={3}>

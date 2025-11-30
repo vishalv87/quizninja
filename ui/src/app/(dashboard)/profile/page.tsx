@@ -9,7 +9,6 @@ import { AttemptHistory } from '@/components/profile/AttemptHistory'
 import { AchievementBadges } from '@/components/profile/AchievementBadges'
 import { DetailedStatistics } from '@/components/profile/DetailedStatistics'
 import { ErrorDisplay } from '@/components/common/ErrorBoundary'
-import { PageHero } from '@/components/common/PageHero'
 import { GlassCard } from '@/components/common/GlassCard'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -33,11 +32,14 @@ export default function ProfilePage() {
   if (error) {
     return (
       <div className="space-y-10 pb-10">
-        <PageHero
-          title="Profile"
-          icon="👤"
-          description="View and manage your personal information."
-        />
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            Profile
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            View and manage your personal information
+          </p>
+        </div>
         <div className="container px-0 md:px-4">
           <GlassCard>
             <ErrorDisplay
@@ -53,11 +55,14 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="space-y-10 pb-10">
-        <PageHero
-          title="Profile"
-          icon="👤"
-          description="View and manage your personal information."
-        />
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            Profile
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            View and manage your personal information
+          </p>
+        </div>
         <div className="container px-0 md:px-4">
           <GlassCard>
             <p className="text-center text-muted-foreground py-8">
@@ -71,12 +76,15 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title={`Hey, ${user?.name || 'Quiz Ninja'}!`}
-        icon="👤"
-        description="View your profile, track your progress, and see your achievements. Keep up the great work!"
-      />
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          Profile
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
+          View your profile, track your progress, and see your achievements
+        </p>
+      </div>
 
       <div className="container px-0 md:px-4 space-y-8">
         {/* Profile Card */}

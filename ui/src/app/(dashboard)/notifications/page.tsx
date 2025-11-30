@@ -19,7 +19,6 @@ import {
 } from "@/hooks/useNotifications";
 import { getNotificationTypeLabel } from "@/lib/notification-utils";
 import { NOTIFICATION_TYPES } from "@/lib/constants";
-import { PageHero } from "@/components/common/PageHero";
 import { GlassCard } from "@/components/common/GlassCard";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatsGrid } from "@/components/common/StatsGrid";
@@ -51,24 +50,28 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title="Notifications"
-        icon="🔔"
-        description="Stay updated with your latest activities, achievements, and friend requests."
-      >
+      {/* Header with action button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            Notifications
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Stay updated with your latest activities and achievements
+          </p>
+        </div>
         {notifications.length > 0 && filterTab !== "read" && (
           <Button
             onClick={handleMarkAllAsRead}
             disabled={markAllAsRead.isPending}
             size="lg"
-            className="bg-white text-indigo-600 hover:bg-indigo-50 border-0 font-bold h-12 px-8 rounded-xl shadow-lg shadow-black/10 transition-all hover:scale-105 hover:shadow-xl"
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold h-11 px-6 rounded-xl shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl"
           >
-            <CheckCheck className="h-5 w-5 mr-2" />
+            <CheckCheck className="h-4 w-4 mr-2" />
             Mark all as read
           </Button>
         )}
-      </PageHero>
+      </div>
 
       {/* Stats Cards */}
       <StatsGrid columns={3}>

@@ -4,7 +4,6 @@ import { QuizList } from "@/components/quiz/QuizList";
 import { useFavorites } from "@/hooks/useFavorites";
 import { Heart } from "lucide-react";
 import type { Quiz } from "@/types/quiz";
-import { PageHero } from "@/components/common/PageHero";
 import { GlassCard } from "@/components/common/GlassCard";
 
 export default function FavoritesPage() {
@@ -28,20 +27,17 @@ export default function FavoritesPage() {
     updated_at: favorite.quiz.created_at,
   })) || [];
 
-  const getDescription = () => {
-    if (isLoading) return "Loading your favorite quizzes...";
-    if (favoriteQuizzes.length === 0) return "Save your favorite quizzes here for quick access. Start exploring and add some!";
-    return `You have ${favoriteQuizzes.length} favorite ${favoriteQuizzes.length === 1 ? 'quiz' : 'quizzes'}. Ready to challenge yourself?`;
-  };
-
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title="Favorites"
-        icon="❤️"
-        description={getDescription()}
-      />
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+          Favorites
+        </h1>
+        <p className="text-slate-500 dark:text-slate-400 mt-1">
+          Save your favorite quizzes here for quick access
+        </p>
+      </div>
 
       <div className="container px-0 md:px-4">
         <GlassCard padding="none" rounded="2xl">

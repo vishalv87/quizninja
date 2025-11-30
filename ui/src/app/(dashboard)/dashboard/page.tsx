@@ -102,31 +102,26 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-600 via-indigo-600 to-purple-700 p-8 text-white shadow-2xl shadow-indigo-500/30 lg:p-12 border border-white/10">
-        <div className="relative z-10 max-w-2xl">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-6 drop-shadow-sm">
-            Welcome back, {user?.name || 'Quiz Ninja'}! 👋
+      {/* Header with action button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            Welcome back, {user?.name || 'Quiz Ninja'}!
           </h1>
-          <p className="text-xl text-indigo-100 mb-8 font-medium leading-relaxed">
-            Ready to test your knowledge today? "Knowledge is power, but enthusiasm pulls the switch."
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Ready to test your knowledge today?
           </p>
-          <Button 
-            size="lg" 
-            className="bg-white text-indigo-600 hover:bg-indigo-50 border-0 font-bold h-12 px-8 rounded-xl shadow-lg shadow-black/10 transition-all hover:scale-105 hover:shadow-xl"
-            asChild
-          >
-            <Link href="/quizzes">
-              Start a Quiz
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
         </div>
-        
-        {/* Decorative background elements */}
-        <div className="absolute right-0 top-0 -mt-20 -mr-20 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 right-20 -mb-20 h-64 w-64 rounded-full bg-indigo-400/20 blur-3xl" />
-        <div className="absolute left-10 bottom-10 h-32 w-32 rounded-full bg-purple-400/20 blur-2xl" />
+        <Button
+          size="lg"
+          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold h-11 px-6 rounded-xl shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl"
+          asChild
+        >
+          <Link href="/quizzes">
+            Start a Quiz
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
       </div>
 
       {/* Quick Stats */}

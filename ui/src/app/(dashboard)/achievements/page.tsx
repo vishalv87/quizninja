@@ -6,7 +6,6 @@ import { AchievementGrid } from "@/components/achievement/AchievementGrid";
 import { useAchievementProgress, useAchievementStats } from "@/hooks/useAchievementProgress";
 import { Trophy, Lock, Star, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { PageHero } from "@/components/common/PageHero";
 import { GlassCard } from "@/components/common/GlassCard";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatsGrid } from "@/components/common/StatsGrid";
@@ -41,13 +40,6 @@ export default function AchievementsPage() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Hero Section */}
-      <PageHero
-        title="Achievements"
-        icon="⭐"
-        description="Track your progress and unlock all achievements! Complete quizzes, challenge friends, and earn rewards."
-      />
-
       {/* Stats Cards */}
       <StatsGrid columns={4}>
         <StatsCard
