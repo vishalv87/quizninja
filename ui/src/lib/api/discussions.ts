@@ -6,6 +6,7 @@ import type {
   CreateDiscussionRequest,
   CreateDiscussionReplyRequest,
 } from "@/types/discussion";
+import type { DiscussionSort } from "@/constants";
 import { apiLogger } from "@/lib/logger";
 
 /**
@@ -15,7 +16,7 @@ import { apiLogger } from "@/lib/logger";
 
 export interface DiscussionFilters {
   quiz_id?: string;
-  sort?: "recent" | "popular";
+  sort?: DiscussionSort;
   search?: string;
   limit?: number;
   offset?: number;

@@ -10,6 +10,7 @@ import {
 import type { LeaderboardEntry } from "@/types/api";
 import type { UserRankResponse, LeaderboardStats } from "@/lib/api/leaderboard";
 import { QUERY_KEYS } from "@/lib/constants";
+import { useAuth } from "@/hooks/useAuth";
 
 /**
  * Hook to fetch global leaderboard
@@ -52,27 +53,20 @@ export function useLeaderboardWithAchievements(limit: number = 50): UseQueryResu
 /**
  * Hook to fetch current user's rank on the leaderboard
  * Returns the user's position and stats
+ * Only fetches when user is authenticated
  *
  * @returns React Query result with user rank data
  */
-export function useUserRank(): UseQueryResult<UserRankResponse, Error> {
+export function useUserRank(): UseQueryResult<UserRankResponse | null, Error> {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   return useQuery({
     queryKey: [QUERY_KEYS.LEADERBOARD, "rank"],
     queryFn: async () => {
       const response = await getUserRank();
-      return response.data ?? {
-        rank: 0,
-        total_users: 0,
-        user: {
-          id: '',
-          full_name: 'User',
-          avatar_url: undefined
-        },
-        total_points: 0,
-        quizzes_completed: 0,
-        achievements_unlocked: 0
-      };
+      return response.data ?? null;
     },
+    enabled: !authLoading && isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: true,
   });

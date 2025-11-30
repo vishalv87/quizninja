@@ -1,7 +1,9 @@
+import { type NotificationType as NotificationTypeEnum } from '@/constants';
+
 export interface Notification {
   id: string;
   user_id: string;
-  type: string;
+  type: NotificationTypeEnum;
   title: string;
   message: string;
   data?: Record<string, any>;
@@ -17,7 +19,7 @@ export interface NotificationStats {
 }
 
 export interface NotificationFilter {
-  type?: string;
+  type?: NotificationTypeEnum;
   is_read?: boolean;
   limit?: number;
   offset?: number;
@@ -31,26 +33,8 @@ export interface NotificationListResponse {
   hasMore: boolean;
 }
 
-// Notification type constants for type-safe filtering
-export type NotificationType =
-  | 'friend_request'
-  | 'friend_accepted'
-  | 'achievement_unlocked'
-  | 'quiz_reminder'
-  | 'discussion_reply'
-  | 'system';
-
-// Type guard to check if a notification type is valid
-export function isValidNotificationType(type: string): type is NotificationType {
-  return [
-    'friend_request',
-    'friend_accepted',
-    'achievement_unlocked',
-    'quiz_reminder',
-    'discussion_reply',
-    'system',
-  ].includes(type);
-}
+// Re-export NotificationType and type guard from constants for backwards compatibility
+export { type NotificationType, isNotificationType as isValidNotificationType } from '@/constants';
 
 // Helper type for notifications with additional computed properties
 export interface NotificationWithMeta extends Notification {

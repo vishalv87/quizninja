@@ -11,6 +11,7 @@ import {
   deleteNotification
 } from "@/lib/api/notifications";
 import type { Notification, NotificationFilter, NotificationStats } from "@/types/notification";
+import type { NotificationType } from "@/constants";
 import { QUERY_KEYS } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -74,7 +75,7 @@ export function useUnreadNotifications(): UseQueryResult<Notification[], Error> 
  * @returns React Query result with filtered notifications
  */
 export function useNotificationsByType(
-  type: string,
+  type: NotificationType,
   enabled: boolean = true
 ): UseQueryResult<Notification[], Error> {
   return useQuery({

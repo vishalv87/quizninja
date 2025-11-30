@@ -7,7 +7,7 @@ import {
   Info,
   type LucideIcon
 } from "lucide-react";
-import type { NotificationType } from "@/types/notification";
+import type { NotificationType } from "@/constants";
 import { formatDistanceToNow } from "date-fns";
 
 /**

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { discussionSortSchema } from "@/constants/schemas";
 
 /**
  * Create Discussion Schema
@@ -61,7 +62,7 @@ export type CreateDiscussionReplyData = z.infer<
  */
 export const discussionFiltersSchema = z.object({
   quiz_id: z.string().uuid("Invalid quiz ID format").optional(),
-  sort: z.enum(["recent", "popular"]).optional(),
+  sort: discussionSortSchema.optional(),
   limit: z.number().min(1).max(100).optional(),
   offset: z.number().min(0).optional(),
 });

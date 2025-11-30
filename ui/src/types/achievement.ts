@@ -1,12 +1,14 @@
+import type { AchievementCategory, AchievementRequirementType } from '@/constants';
+
 export interface Achievement {
   id: string;
   key: string;
   name: string;
   description: string;
   icon: string;
-  category: string;
+  category: AchievementCategory;
   points: number;
-  requirement_type: string;
+  requirement_type: AchievementRequirementType;
   requirement_value: number;
   is_secret: boolean;
   created_at: string;

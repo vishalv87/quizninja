@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { friendRequestActionSchema } from '@/constants/schemas'
 
 /**
  * Send Friend Request Schema
@@ -16,10 +17,7 @@ export type SendFriendRequestData = z.infer<typeof sendFriendRequestSchema>
  * Friend Request Response Schema
  */
 export const friendRequestResponseSchema = z.object({
-  action: z.enum(['accept', 'decline'], {
-    required_error: 'Action is required',
-    invalid_type_error: 'Action must be either accept or decline',
-  }),
+  action: friendRequestActionSchema,
 })
 
 export type FriendRequestResponseData = z.infer<typeof friendRequestResponseSchema>

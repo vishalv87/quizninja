@@ -19,12 +19,13 @@ import {
 } from "@/hooks/useNotifications";
 import { getNotificationTypeLabel } from "@/lib/notification-utils";
 import { NOTIFICATION_TYPES } from "@/lib/constants";
+import { type NotificationType } from "@/constants";
 import { GlassCard } from "@/components/common/GlassCard";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatsGrid } from "@/components/common/StatsGrid";
 
 type FilterTab = "all" | "unread" | "read";
-type NotificationTypeFilter = string | "all";
+type NotificationTypeFilter = NotificationType | "all";
 
 export default function NotificationsPage() {
   const [filterTab, setFilterTab] = useState<FilterTab>("all");
@@ -119,7 +120,7 @@ export default function NotificationsPage() {
               {/* Type filter */}
               <Select
                 value={typeFilter}
-                onValueChange={(value) => setTypeFilter(value)}
+                onValueChange={(value) => setTypeFilter(value as NotificationTypeFilter)}
               >
                 <SelectTrigger className="w-[200px] bg-white/50 dark:bg-white/10 border-white/20 dark:border-white/10 backdrop-blur-sm">
                   <SelectValue placeholder="All types" />

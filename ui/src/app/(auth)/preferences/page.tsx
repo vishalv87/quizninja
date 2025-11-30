@@ -10,11 +10,12 @@ import { useUpdatePreferences } from "@/hooks/usePreferences";
 import { useCompleteOnboarding } from "@/hooks/useOnboarding";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import type { QuizDifficulty } from "@/constants";
 
 export default function PreferencesPage() {
   const router = useRouter();
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [difficulty, setDifficulty] = useState<string>("medium");
+  const [difficulty, setDifficulty] = useState<QuizDifficulty>("intermediate");
 
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const updatePreferences = useUpdatePreferences();
@@ -156,20 +157,20 @@ export default function PreferencesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {[
                 {
-                  value: "easy",
-                  label: "Easy",
+                  value: "beginner",
+                  label: "Beginner",
                   description: "Perfect for beginners and casual learning",
                   color: { bg: "bg-green-100", text: "text-green-600", border: "border-green-600" },
                 },
                 {
-                  value: "medium",
-                  label: "Medium",
+                  value: "intermediate",
+                  label: "Intermediate",
                   description: "Balanced challenge for most learners",
                   color: { bg: "bg-yellow-100", text: "text-yellow-600", border: "border-yellow-600" },
                 },
                 {
-                  value: "hard",
-                  label: "Hard",
+                  value: "advanced",
+                  label: "Advanced",
                   description: "For experts seeking maximum challenge",
                   color: { bg: "bg-red-100", text: "text-red-600", border: "border-red-600" },
                 },
@@ -183,7 +184,7 @@ export default function PreferencesPage() {
                         ? `bg-white border-2 ${level.color.border}`
                         : "bg-white border border-gray-200"
                     }`}
-                    onClick={() => setDifficulty(level.value)}
+                    onClick={() => setDifficulty(level.value as QuizDifficulty)}
                   >
                     <CardContent className="p-6 text-center">
                       <div className="flex flex-col items-center gap-4">

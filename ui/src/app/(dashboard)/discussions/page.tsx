@@ -18,6 +18,7 @@ import { MessageSquare, MessagesSquare, Users, TrendingUp, Search, Filter } from
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { DiscussionFilters } from "@/lib/api/discussions";
+import type { DiscussionSort } from "@/constants";
 import { GlassCard } from "@/components/common/GlassCard";
 import { StatsCard } from "@/components/common/StatsCard";
 import { StatsGrid } from "@/components/common/StatsGrid";
@@ -54,7 +55,7 @@ export default function DiscussionsPage() {
     }
   };
 
-  const handleSortChange = (sort: "recent" | "popular") => {
+  const handleSortChange = (sort: DiscussionSort) => {
     setFilters({ ...filters, sort });
   };
 

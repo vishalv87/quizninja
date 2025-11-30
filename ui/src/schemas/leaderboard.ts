@@ -1,4 +1,9 @@
 import { z } from 'zod'
+import {
+  leaderboardPeriodSchema,
+  leaderboardSortFieldSchema,
+  sortOrderSchema,
+} from '@/constants/schemas'
 
 /**
  * Leaderboard Filter Schema
@@ -11,12 +16,7 @@ export const leaderboardFilterSchema = z.object({
     .max(100, 'Limit must be at most 100')
     .optional()
     .default(50),
-  period: z
-    .enum(['all-time', 'monthly', 'weekly'], {
-      invalid_type_error: 'Period must be all-time, monthly, or weekly',
-    })
-    .optional()
-    .default('all-time'),
+  period: leaderboardPeriodSchema.optional().default('all-time'),
 })
 
 export type LeaderboardFilterData = z.infer<typeof leaderboardFilterSchema>
@@ -26,18 +26,8 @@ export type LeaderboardFilterData = z.infer<typeof leaderboardFilterSchema>
  * Validates leaderboard sorting options
  */
 export const leaderboardSortSchema = z.object({
-  sortBy: z
-    .enum(['points', 'quizzes', 'achievements'], {
-      invalid_type_error: 'Sort by must be points, quizzes, or achievements',
-    })
-    .optional()
-    .default('points'),
-  order: z
-    .enum(['asc', 'desc'], {
-      invalid_type_error: 'Order must be asc or desc',
-    })
-    .optional()
-    .default('desc'),
+  sortBy: leaderboardSortFieldSchema.optional().default('points'),
+  order: sortOrderSchema.optional().default('desc'),
 })
 
 export type LeaderboardSortData = z.infer<typeof leaderboardSortSchema>

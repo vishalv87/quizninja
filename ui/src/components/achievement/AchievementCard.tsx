@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { AchievementProgress } from "@/types/achievement";
-import { Lock, Trophy, Star, Award } from "lucide-react";
+import { AchievementCategory, ACHIEVEMENT_CATEGORY_LABELS } from "@/constants";
+import { Lock, Trophy, Star, Award, Users, Flame, BookOpen, Target } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface AchievementCardProps {
@@ -14,18 +15,21 @@ interface AchievementCardProps {
 export function AchievementCard({ achievementProgress }: AchievementCardProps) {
   const { achievement, current_value, target_value, progress_percentage, is_unlocked, unlocked_at } = achievementProgress;
 
-  // Get icon based on achievement category or use default
+  // Get icon based on achievement category
   const getIcon = () => {
     const iconClass = "h-12 w-12";
 
-    // Icon mapping based on category
-    switch (achievement.category.toLowerCase()) {
-      case "quiz master":
-      case "quizzes":
+    switch (achievement.category) {
+      case AchievementCategory.QUIZ_MASTER:
         return <Trophy className={iconClass} />;
-      case "social":
-      case "friends":
-        return <Star className={iconClass} />;
+      case AchievementCategory.SOCIAL:
+        return <Users className={iconClass} />;
+      case AchievementCategory.STREAK:
+        return <Flame className={iconClass} />;
+      case AchievementCategory.KNOWLEDGE:
+        return <BookOpen className={iconClass} />;
+      case AchievementCategory.COMPETITOR:
+        return <Target className={iconClass} />;
       default:
         return <Award className={iconClass} />;
     }
@@ -67,7 +71,7 @@ export function AchievementCard({ achievementProgress }: AchievementCardProps) {
 
         {/* Category Badge */}
         <div>
-          <Badge variant="outline">{achievement.category}</Badge>
+          <Badge variant="outline">{ACHIEVEMENT_CATEGORY_LABELS[achievement.category]}</Badge>
         </div>
       </CardHeader>
 

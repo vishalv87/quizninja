@@ -119,7 +119,7 @@ export function LeaderboardTable({
         </TableHeader>
         <TableBody>
           {entries.map((entry) => {
-            const isCurrentUser = user?.id === entry.user_id;
+            const isCurrentUser = user?.id === entry.user_id || entry.is_current_user;
 
             return (
               <TableRow
@@ -137,14 +137,14 @@ export function LeaderboardTable({
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={entry.user.avatar_url} alt={entry.user.full_name} />
+                      <AvatarImage src={entry.avatar} alt={entry.name} />
                       <AvatarFallback>
-                        {getInitials(entry.user.full_name)}
+                        {getInitials(entry.name)}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">
-                        {entry.user.full_name}
+                        {entry.name}
                         {isCurrentUser && (
                           <Badge variant="outline" className="ml-2 text-xs">
                             You
@@ -155,13 +155,13 @@ export function LeaderboardTable({
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-semibold">
-                  {entry.total_points.toLocaleString()}
+                  {entry.points.toLocaleString()}
                 </TableCell>
                 <TableCell className="text-right hidden sm:table-cell">
                   {entry.quizzes_completed}
                 </TableCell>
                 <TableCell className="text-right hidden md:table-cell">
-                  {entry.achievements_unlocked}
+                  {entry.achievements?.length ?? 0}
                 </TableCell>
               </TableRow>
             );

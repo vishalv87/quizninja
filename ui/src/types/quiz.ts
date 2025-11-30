@@ -1,3 +1,5 @@
+import type { QuizDifficulty, QuestionType, AttemptStatus } from '@/constants';
+
 export interface Category {
   id: string;
   name: string;
@@ -15,7 +17,7 @@ export interface Quiz {
   title: string;
   description: string;
   category: string;
-  difficulty: "beginner" | "intermediate" | "advanced";
+  difficulty: QuizDifficulty;
   question_count: number;
   time_limit?: number; // Changed from time_limit_minutes to match backend
   points: number; // Changed from points_per_question to match backend
@@ -56,7 +58,7 @@ export interface Question {
   id: string;
   quiz_id: string;
   question_text: string;
-  question_type: "multiple_choice" | "true_false" | "short_answer";
+  question_type: QuestionType;
   points: number;
   order_index: number;
   options?: string[]; // Array of option strings (e.g., ["Paris", "London", "Berlin"])
@@ -69,7 +71,7 @@ export interface QuizAttempt {
   id: string;
   quiz_id: string;
   user_id: string;
-  status: "in_progress" | "completed" | "abandoned";
+  status: AttemptStatus;
   score: number; // Number of correct answers
   total_points: number; // Total number of questions
   started_at: string;

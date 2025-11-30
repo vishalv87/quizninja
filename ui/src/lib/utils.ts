@@ -72,9 +72,9 @@ export function capitalize(str: string): string {
 
 export function getDifficultyColor(difficulty: string): string {
   const difficultyColors: Record<string, string> = {
-    easy: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
-    medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-    hard: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+    beginner: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    intermediate: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    advanced: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   };
 
   return difficultyColors[difficulty.toLowerCase()] || "bg-gray-100 text-gray-800";

@@ -1,13 +1,15 @@
+import type { Theme, ProfileVisibility, FriendRequestStatus, FriendshipStatus, QuizDifficulty, NotificationFrequency } from '@/constants';
+
 export interface UserPreferences {
   user_id: string;
   preferred_categories: string[];
-  preferred_difficulty: string;
-  notification_frequency: string;
+  preferred_difficulty: QuizDifficulty | 'all';
+  notification_frequency: NotificationFrequency;
   email_notifications: boolean;
   onboarding_completed: boolean;
-  theme: "light" | "dark" | "system";
+  theme: Theme;
   // Privacy settings
-  profile_visibility?: "public" | "friends_only" | "private";
+  profile_visibility?: ProfileVisibility;
   show_achievements?: boolean;
   show_stats?: boolean;
   allow_friend_requests?: boolean;
@@ -48,7 +50,7 @@ export interface FriendRequest {
   id: string;
   requester_id: string;
   requested_id: string;
-  status: "pending" | "accepted" | "rejected";
+  status: FriendRequestStatus;
   message?: string;
   requester: {
     id: string;
@@ -80,5 +82,5 @@ export interface UserProfile {
   preferences?: Pick<UserPreferences, 'profile_visibility' | 'show_achievements' | 'show_stats'>;
   // Friendship status
   is_friend?: boolean;
-  friend_request_status?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
+  friend_request_status?: FriendshipStatus;
 }

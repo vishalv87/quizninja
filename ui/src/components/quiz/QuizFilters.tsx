@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DIFFICULTY_OPTIONS } from "@/constants";
 
 export interface QuizFilterValues {
   category: string;
@@ -74,9 +75,11 @@ export function QuizFilters({ filters, onFilterChange }: QuizFiltersProps) {
           </SelectTrigger>
           <SelectContent className="rounded-xl">
             <SelectItem value="all">All Difficulties</SelectItem>
-            <SelectItem value="beginner">Beginner</SelectItem>
-            <SelectItem value="intermediate">Intermediate</SelectItem>
-            <SelectItem value="advanced">Advanced</SelectItem>
+            {DIFFICULTY_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>

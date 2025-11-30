@@ -1,3 +1,5 @@
+import type { DiscussionType } from '@/constants';
+
 export interface Discussion {
   id: string;
   quiz_id: string;
@@ -5,7 +7,7 @@ export interface Discussion {
   user_id: string;
   title: string;
   content: string;
-  type?: string;
+  type?: DiscussionType;
   likes_count: number;
   replies_count: number;
   is_liked_by_user?: boolean;
@@ -43,7 +45,7 @@ export interface CreateDiscussionRequest {
   question_id?: string;
   title: string;
   content: string;
-  type?: string;
+  type?: DiscussionType;
 }
 
 export interface CreateDiscussionReplyRequest {

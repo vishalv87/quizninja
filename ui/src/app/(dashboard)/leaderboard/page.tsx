@@ -66,9 +66,7 @@ export default function LeaderboardPage() {
           {/* User Rank Card - Sticky on desktop */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <GlassCard padding="none" rounded="2xl">
-                <UserRankCard rankData={userRank} isLoading={rankLoading} />
-              </GlassCard>
+              <UserRankCard rankData={userRank} isLoading={rankLoading} />
             </div>
           </div>
 

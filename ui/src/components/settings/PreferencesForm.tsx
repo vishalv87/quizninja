@@ -13,6 +13,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DIFFICULTY_OPTIONS,
+  THEME_OPTIONS,
+  PROFILE_VISIBILITY_OPTIONS,
+  NOTIFICATION_FREQUENCY_OPTIONS,
+  type QuizDifficulty,
+  type Theme,
+  type ProfileVisibility,
+  type NotificationFrequency,
+} from "@/constants";
 
 export function PreferencesForm() {
   const { data: preferencesData, isLoading: isLoadingPreferences } = usePreferences();
@@ -56,11 +66,11 @@ export function PreferencesForm() {
     const data = {
       preferred_categories: selectedCategories,
       email_notifications: emailNotifications,
-      notification_frequency: notificationFrequency as "instant" | "daily" | "weekly" | "never",
-      preferred_difficulty: preferredDifficulty as "easy" | "medium" | "hard" | "all",
-      theme: theme as "light" | "dark" | "system",
+      notification_frequency: notificationFrequency as NotificationFrequency,
+      preferred_difficulty: preferredDifficulty as QuizDifficulty | "all",
+      theme: theme as Theme,
       // Privacy settings
-      profile_visibility: profileVisibility as "public" | "friends_only" | "private",
+      profile_visibility: profileVisibility as ProfileVisibility,
       show_achievements: showAchievements,
       show_stats: showStats,
       allow_friend_requests: allowFriendRequests,
@@ -124,15 +134,17 @@ export function PreferencesForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="difficulty">Preferred Difficulty</Label>
-            <Select value={preferredDifficulty} onValueChange={setPreferredDifficulty}>
+            <Select value={preferredDifficulty} onValueChange={(value) => setPreferredDifficulty(value as QuizDifficulty | "all")}>
               <SelectTrigger id="difficulty">
                 <SelectValue placeholder="Select difficulty" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="easy">Easy</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="hard">Hard</SelectItem>
+                {DIFFICULTY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -164,15 +176,16 @@ export function PreferencesForm() {
 
           <div className="space-y-2">
             <Label htmlFor="notification-frequency">Notification Frequency</Label>
-            <Select value={notificationFrequency} onValueChange={setNotificationFrequency}>
+            <Select value={notificationFrequency} onValueChange={(value) => setNotificationFrequency(value as NotificationFrequency)}>
               <SelectTrigger id="notification-frequency">
                 <SelectValue placeholder="Select frequency" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="instant">Instant</SelectItem>
-                <SelectItem value="daily">Daily Digest</SelectItem>
-                <SelectItem value="weekly">Weekly Digest</SelectItem>
-                <SelectItem value="never">Never</SelectItem>
+                {NOTIFICATION_FREQUENCY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -190,14 +203,16 @@ export function PreferencesForm() {
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="theme">Theme</Label>
-            <Select value={theme} onValueChange={(value) => setTheme(value as typeof theme)}>
+            <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
               <SelectTrigger id="theme">
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem>
+                {THEME_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -215,14 +230,16 @@ export function PreferencesForm() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="profile-visibility">Profile Visibility</Label>
-            <Select value={profileVisibility} onValueChange={(value) => setProfileVisibility(value as "public" | "friends_only" | "private")}>
+            <Select value={profileVisibility} onValueChange={(value) => setProfileVisibility(value as ProfileVisibility)}>
               <SelectTrigger id="profile-visibility">
                 <SelectValue placeholder="Select visibility" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="public">Public - Anyone can view</SelectItem>
-                <SelectItem value="friends_only">Friends Only - Only friends can view</SelectItem>
-                <SelectItem value="private">Private - Only you can view</SelectItem>
+                {PROFILE_VISIBILITY_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

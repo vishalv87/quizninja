@@ -38,14 +38,18 @@ export interface APIError {
 export interface LeaderboardEntry {
   rank: number;
   user_id: string;
-  user: {
-    id: string;
-    full_name: string;
-    avatar_url?: string;
-  };
-  total_points: number;
+  name: string;
+  avatar?: string;
+  points: number;
   quizzes_completed: number;
-  achievements_unlocked: number;
+  average_score: number;
+  current_streak: number;
+  level: string;
+  is_current_user: boolean;
+  is_friend: boolean;
+  last_active: string;
+  achievements: string[];
+  category_points: Record<string, number>;
 }
 
 export interface Category {

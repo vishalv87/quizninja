@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { quizDifficultySchema } from "@/constants/schemas";
 
 /**
  * Quiz Validation Schemas
@@ -9,7 +10,7 @@ import { z } from "zod";
 
 export const quizFiltersSchema = z.object({
   category: z.string().optional(),
-  difficulty: z.enum(["easy", "medium", "hard"]).optional(),
+  difficulty: quizDifficultySchema.optional(),
   search: z.string().min(1).max(100).optional(),
   is_featured: z.boolean().optional(),
   limit: z.number().min(1).max(100).optional().default(20),

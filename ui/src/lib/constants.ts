@@ -22,11 +22,9 @@ export const ROUTES = {
   ONBOARDING_PREFERENCES: "/preferences",
 } as const;
 
-export const DIFFICULTY_LEVELS = [
-  { value: "easy", label: "Easy" },
-  { value: "medium", label: "Medium" },
-  { value: "hard", label: "Hard" },
-] as const;
+// Re-export from centralized constants
+export { DIFFICULTY_OPTIONS as DIFFICULTY_LEVELS } from '@/constants';
+export { NotificationType as NOTIFICATION_TYPE_ENUM } from '@/constants';
 
 export const QUIZ_CATEGORIES = [
   { value: "science", label: "Science" },
@@ -39,22 +37,13 @@ export const QUIZ_CATEGORIES = [
   { value: "art", label: "Art" },
 ] as const;
 
-export const NOTIFICATION_TYPES = {
-  FRIEND_REQUEST: "friend_request",
-  FRIEND_ACCEPTED: "friend_accepted",
-  ACHIEVEMENT_UNLOCKED: "achievement_unlocked",
-  QUIZ_REMINDER: "quiz_reminder",
-  DISCUSSION_REPLY: "discussion_reply",
-  SYSTEM: "system",
-} as const;
+// NOTIFICATION_TYPES is now re-exported from @/constants
+// Use NotificationType from '@/constants' for type-safe usage
+export { NotificationType as NOTIFICATION_TYPES } from '@/constants';
 
-export const ACHIEVEMENT_CATEGORIES = {
-  QUIZ_MASTER: "quiz_master",
-  SOCIAL: "social",
-  STREAK: "streak",
-  KNOWLEDGE: "knowledge",
-  COMPETITOR: "competitor",
-} as const;
+// ACHIEVEMENT_CATEGORIES is now re-exported from @/constants
+// Use AchievementCategory from '@/constants' for type-safe usage
+export { AchievementCategory as ACHIEVEMENT_CATEGORIES } from '@/constants';
 
 export const QUERY_KEYS = {
   USER: "user",
