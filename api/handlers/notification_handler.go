@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -66,10 +67,20 @@ func (h *NotificationHandler) GetNotifications(c *gin.Context) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				notifErr = fmt.Errorf("panic in GetNotifications: %v", r)
+			}
+		}()
 		notifications, total, notifErr = h.repo.Notification.GetNotifications(currentUserID, &filters)
 	}()
 	go func() {
 		defer wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				unreadErr = fmt.Errorf("panic in GetUnreadNotificationCount: %v", r)
+			}
+		}()
 		unreadCount, unreadErr = h.repo.Notification.GetUnreadNotificationCount(currentUserID)
 	}()
 	wg.Wait()
