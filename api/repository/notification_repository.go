@@ -589,43 +589,32 @@ func (r *NotificationRepository) RestoreNotification(notificationID uuid.UUID, u
 func (r *NotificationRepository) GetNotificationStats(userID uuid.UUID) (*models.NotificationStatsResponse, error) {
 	log.Printf("GetNotificationStats called: userID=%s", userID)
 
-	// Get total and unread counts (excluding soft-deleted)
-	countQuery := `
-		SELECT
-			COUNT(*) as total,
-			COUNT(CASE WHEN is_read = false THEN 1 END) as unread
-		FROM notifications
-		WHERE user_id = $1 AND is_deleted = false
-	`
-
-	var totalCount, unreadCount int
-	err := r.db.QueryRow(countQuery, userID).Scan(&totalCount, &unreadCount)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get notification counts: %w", err)
-	}
-
-	// Get counts by type (excluding soft-deleted)
-	typeQuery := `
-		SELECT type, COUNT(*)
+	// Combined query: get counts by type AND total/unread in a single scan
+	combinedQuery := `
+		SELECT type, COUNT(*) as type_count,
+			COUNT(CASE WHEN is_read = false THEN 1 END) as type_unread
 		FROM notifications
 		WHERE user_id = $1 AND is_deleted = false
 		GROUP BY type
 	`
 
-	rows, err := r.db.Query(typeQuery, userID)
+	rows, err := r.db.Query(combinedQuery, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get notification counts by type: %w", err)
+		return nil, fmt.Errorf("failed to get notification counts: %w", err)
 	}
 	defer rows.Close()
 
+	var totalCount, unreadCount int
 	notificationsByType := make(map[string]int)
 	for rows.Next() {
 		var notificationType string
-		var count int
-		if err := rows.Scan(&notificationType, &count); err != nil {
+		var typeCount, typeUnread int
+		if err := rows.Scan(&notificationType, &typeCount, &typeUnread); err != nil {
 			continue
 		}
-		notificationsByType[notificationType] = count
+		notificationsByType[notificationType] = typeCount
+		totalCount += typeCount
+		unreadCount += typeUnread
 	}
 
 	// Get recent notifications (last 5, excluding soft-deleted)

@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"sync"
 
 	"quizninja-api/config"
 	"quizninja-api/models"
@@ -52,16 +53,32 @@ func (h *NotificationHandler) GetNotifications(c *gin.Context) {
 		filters.PageSize = 20
 	}
 
-	// Get notifications
-	notifications, total, err := h.repo.Notification.GetNotifications(currentUserID, &filters)
-	if err != nil {
+	// Run both queries concurrently to reduce latency
+	var (
+		notifications []models.Notification
+		total         int
+		unreadCount   int
+		notifErr      error
+		unreadErr     error
+		wg            sync.WaitGroup
+	)
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		notifications, total, notifErr = h.repo.Notification.GetNotifications(currentUserID, &filters)
+	}()
+	go func() {
+		defer wg.Done()
+		unreadCount, unreadErr = h.repo.Notification.GetUnreadNotificationCount(currentUserID)
+	}()
+	wg.Wait()
+
+	if notifErr != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve notifications")
 		return
 	}
-
-	// Get unread count
-	unreadCount, err := h.repo.Notification.GetUnreadNotificationCount(currentUserID)
-	if err != nil {
+	if unreadErr != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to get unread count")
 		return
 	}
