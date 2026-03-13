@@ -1,0 +1,190 @@
+package repository
+
+import (
+	"quizninja-api/models"
+
+	"github.com/google/uuid"
+)
+
+// UserRepositoryInterface defines the contract for user data operations
+type UserRepositoryInterface interface {
+	// User CRUD operations
+	CreateUser(user *models.User) error
+	GetUserByID(id uuid.UUID) (*models.User, error)
+	GetUserByEmail(email string) (*models.User, error)
+	UpdateUser(user *models.User) error
+	DeleteUser(id uuid.UUID) error
+
+	// User preferences operations
+	CreateUserPreferences(preferences *models.UserPreferences) error
+	GetUserPreferences(userID uuid.UUID) (*models.UserPreferences, error)
+	UpdateUserPreferences(preferences *models.UserPreferences) error
+	DeleteUserPreferences(userID uuid.UUID) error
+
+	// User with preferences operations
+	GetUserWithPreferences(userID uuid.UUID) (*models.User, error)
+
+	// User status operations
+	UpdateUserOnlineStatus(userID uuid.UUID, isOnline bool) error
+	UpdateUserLastActive(userID uuid.UUID) error
+
+	// User statistics operations
+	GetUserStatistics(userID uuid.UUID) (*models.UserStatistics, error)
+	UpdateUserStatistics(userID uuid.UUID, newScore float64) error
+}
+
+// QuizRepositoryInterface defines the contract for quiz data operations
+type QuizRepositoryInterface interface {
+	// Quiz read operations
+	GetQuizByID(id uuid.UUID) (*models.Quiz, error)
+	GetQuizByIDWithQuestions(id uuid.UUID) (*models.Quiz, error)
+	GetQuizByIDWithStatistics(id uuid.UUID) (*models.Quiz, error)
+	GetQuizByIDWithAll(id uuid.UUID) (*models.Quiz, error)
+
+	// Quiz list operations with filtering and pagination
+	GetQuizzes(filters *models.QuizFilters) ([]models.Quiz, int, error)
+	GetFeaturedQuizzes(limit int) ([]models.Quiz, error)
+	GetQuizzesByCategory(category string, limit int) ([]models.Quiz, error)
+	GetQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error)
+	GetCompletedQuizzesByUser(userID uuid.UUID, offset, limit int) ([]models.Quiz, int, error)
+
+	// Question read operations
+	GetQuestionsByQuizID(quizID uuid.UUID) ([]models.Question, error)
+
+	// Quiz statistics read operations
+	GetQuizStatistics(quizID uuid.UUID) (*models.QuizStatistics, error)
+	CreateOrUpdateQuizStatistics(quizID uuid.UUID, score float64, timeSpent int) error
+
+	// Quiz attempt operations
+	CreateQuizAttempt(attempt *models.QuizAttempt) error
+	UpdateQuizAttempt(attempt *models.QuizAttempt) error
+	GetQuizAttempt(id uuid.UUID) (*models.QuizAttempt, error)
+	GetUserQuizAttempts(userID, quizID uuid.UUID) ([]models.QuizAttempt, error)
+	GetActiveQuizAttempt(userID, quizID uuid.UUID) (*models.QuizAttempt, error)
+	DeleteActiveQuizAttempt(userID, quizID uuid.UUID) error
+	AbandonQuizAttempt(attemptID uuid.UUID) error
+	HasUserCompletedQuiz(userID, quizID uuid.UUID) (bool, error)
+
+	// Attempt history operations
+	GetUserAttempts(userID uuid.UUID, filters *models.AttemptFilters) ([]models.QuizAttemptWithDetails, int, error)
+	GetAttemptWithDetails(attemptID uuid.UUID) (*models.QuizAttemptWithDetails, error)
+	GetUserQuizAttemptWithDetails(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error)
+	GetUserLatestCompletedAttempt(userID, quizID uuid.UUID) (*models.QuizAttemptWithDetails, error)
+
+	// Favorites operations
+	AddFavorite(userID, quizID uuid.UUID) error
+	RemoveFavorite(userID, quizID uuid.UUID) error
+	GetUserFavorites(userID uuid.UUID, page, pageSize int) ([]models.UserQuizFavorite, int, error)
+	IsFavorite(userID, quizID uuid.UUID) (bool, error)
+}
+
+// FriendsRepositoryInterface defines the contract for friends data operations
+type FriendsRepositoryInterface interface {
+	// Friend request operations
+	SendFriendRequest(requesterID, requestedID uuid.UUID, message *string) (*models.FriendRequest, error)
+	GetFriendRequest(id uuid.UUID) (*models.FriendRequest, error)
+	GetFriendRequestBetweenUsers(requesterID, requestedID uuid.UUID) (*models.FriendRequest, error)
+	RespondToFriendRequest(requestID uuid.UUID, status string) error
+	CancelFriendRequest(requestID uuid.UUID, requesterID uuid.UUID) error
+	GetPendingFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error)
+	GetSentFriendRequests(userID uuid.UUID) ([]models.FriendRequest, error)
+
+	// Friendship operations
+	GetFriends(userID uuid.UUID) ([]models.Friend, error)
+	GetFriendship(user1ID, user2ID uuid.UUID) (*models.Friendship, error)
+	CreateFriendship(user1ID, user2ID uuid.UUID) (*models.Friendship, error)
+	RemoveFriend(userID, friendID uuid.UUID) error
+	AreFriends(user1ID, user2ID uuid.UUID) (bool, error)
+
+	// User search operations
+	SearchUsers(searchQuery string, currentUserID uuid.UUID, limit, offset int) ([]models.UserSearchResult, int, error)
+
+	// Friend notification operations
+	GetFriendNotifications(userID uuid.UUID, limit, offset int) ([]models.FriendNotification, int, error)
+	MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error
+	MarkAllNotificationsAsRead(userID uuid.UUID) error
+	GetUnreadNotificationCount(userID uuid.UUID) (int, error)
+}
+
+// LeaderboardRepositoryInterface defines the contract for leaderboard data operations
+type LeaderboardRepositoryInterface interface {
+	// Leaderboard operations
+	GetGlobalLeaderboard(period string, limit, offset int) ([]models.LeaderboardEntry, int, error)
+	GetFriendsLeaderboard(userID uuid.UUID, period string, limit, offset int) ([]models.LeaderboardEntry, int, error)
+	GetUserRank(userID uuid.UUID, period string) (*models.UserRankInfo, error)
+
+	// User score update operations
+	UpdateUserScore(userID uuid.UUID, points int, quizID uuid.UUID) error
+	RecalculateUserLevel(userID uuid.UUID) error
+
+	// Achievement operations for leaderboard
+	GetUserAchievements(userID uuid.UUID) ([]string, error)
+	GetUserCategoryPoints(userID uuid.UUID) (map[string]int, error)
+}
+
+// AchievementRepositoryInterface defines the contract for achievement data operations
+type AchievementRepositoryInterface interface {
+	// Achievement read operations
+	GetAllAchievements() ([]models.Achievement, error)
+	GetAchievementByKey(key string) (*models.Achievement, error)
+
+	// User achievement operations
+	GetUserAchievements(userID uuid.UUID) ([]models.UserAchievement, error)
+	UnlockAchievement(userID uuid.UUID, achievementKey string) (*models.UserAchievement, error)
+	HasUserAchievement(userID, achievementID uuid.UUID) (bool, error)
+	HasUserAchievementByKey(userID uuid.UUID, achievementKey string) (bool, error)
+
+	// Achievement progress operations
+	GetAchievementProgress(userID uuid.UUID) ([]models.AchievementProgress, error)
+}
+
+// NotificationRepositoryInterface defines the contract for notification data operations
+type NotificationRepositoryInterface interface {
+	// Notification CRUD operations
+	CreateNotification(notification *models.CreateNotificationRequest) (*models.Notification, error)
+	GetNotifications(userID uuid.UUID, filters *models.NotificationFilters) ([]models.Notification, int, error)
+	GetNotificationByID(notificationID uuid.UUID, userID uuid.UUID) (*models.Notification, error)
+	DeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error     // Soft delete
+	HardDeleteNotification(notificationID uuid.UUID, userID uuid.UUID) error // Hard delete (admin)
+	RestoreNotification(notificationID uuid.UUID, userID uuid.UUID) error    // Restore soft deleted
+
+	// Notification read status operations
+	MarkNotificationAsRead(notificationID uuid.UUID, userID uuid.UUID) error
+	MarkNotificationAsUnread(notificationID uuid.UUID, userID uuid.UUID) error
+	MarkAllNotificationsAsRead(userID uuid.UUID) error
+	GetUnreadNotificationCount(userID uuid.UUID) (int, error)
+
+	// Notification statistics and management
+	GetNotificationStats(userID uuid.UUID) (*models.NotificationStatsResponse, error)
+	CleanupExpiredNotifications() error
+
+	// Backward compatibility for friend notifications
+	GetFriendNotifications(userID uuid.UUID, limit, offset int) ([]models.FriendNotificationCompat, int, error)
+	GetFriendUnreadNotificationCount(userID uuid.UUID) (int, error)
+}
+
+// Repository aggregates all repository interfaces
+type Repository struct {
+	User         UserRepositoryInterface
+	Quiz         QuizRepositoryInterface
+	Friends      FriendsRepositoryInterface
+	Leaderboard  LeaderboardRepositoryInterface
+	Achievement  AchievementRepositoryInterface
+	Notification NotificationRepositoryInterface
+	Discussion   DiscussionRepositoryInterface
+	Rating       *RatingRepository
+}
+
+// NewRepository creates a new repository instance
+func NewRepository() *Repository {
+	return &Repository{
+		User:         NewUserRepository(),
+		Quiz:         NewQuizRepository(),
+		Friends:      NewFriendsRepository(),
+		Leaderboard:  NewLeaderboardRepository(),
+		Achievement:  NewAchievementRepository(),
+		Notification: NewNotificationRepository(),
+		Discussion:   NewDiscussionRepository(),
+		Rating:       NewRatingRepository(),
+	}
+}

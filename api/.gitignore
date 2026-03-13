@@ -1,0 +1,27 @@
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+.env.test
+
+# Keep example file
+!.env.example
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Build outputs
+/bin/
+/dist/
+/tmp/
+build-errors.log
+
+# Test coverage
+coverage.out

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  quizninja-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: quizninja-api:latest
+    container_name: quizninja-api
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    networks:
+      - quizninja-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  quizninja-net:
+    enable_ipv6: true
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+        - subnet: 2001:db8:1::/64

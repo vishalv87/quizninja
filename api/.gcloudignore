@@ -1,0 +1,90 @@
+# .gcloudignore - Excludes files from Cloud Build deployment
+# This file works similar to .gitignore but for Google Cloud Build
+
+# Exclude sibling directories (CRITICAL - prevents multi-module confusion)
+../quizninja-background/
+../quizninja-temp/
+../quizninja-scrapers/
+../quizninja-requirements/
+../mix-n-match/
+../moneymagnet/
+../toenglish/
+
+# Git files
+.git
+.gitignore
+.github/
+
+# Environment files (secrets handled via Secret Manager)
+.env
+.env.*
+!.env.example
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files and test data
+*_test.go
+tests/
+test/
+testdata/
+coverage.out
+*.test
+
+# Documentation
+README.md
+*.md
+docs/
+prod-readiness/
+
+# Build artifacts and binaries
+bin/
+build/
+dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+main
+quizninja-api
+quizninja-background
+
+# Docker Compose (not needed for Cloud Run)
+docker-compose.yml
+
+# Scripts (not needed for runtime)
+scripts/
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+Jenkinsfile
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Cloud Build will automatically use:
+# - go.mod and go.sum for dependency resolution
+# - All *.go files in the module
+# - Any non-excluded directories in the module
