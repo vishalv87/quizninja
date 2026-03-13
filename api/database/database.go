@@ -11,7 +11,8 @@ import (
 	"quizninja-api/utils"
 
 	"github.com/cenkalti/backoff/v5"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,6 +46,17 @@ func Connect(cfg *config.Config) {
 		}).Info("Connecting to traditional PostgreSQL database")
 	}
 
+	// Parse DSN into pgx config and enable simple protocol to avoid
+	// prepared statement collisions through PgBouncer/Supabase connection pooler
+	connConfig, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		utils.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Fatal("Failed to parse database DSN")
+	}
+	connConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	connStr := stdlib.RegisterConnConfig(connConfig)
+
 	// Configure exponential backoff for retry logic
 	backoffPolicy := backoff.NewExponentialBackOff()
 	backoffPolicy.InitialInterval = 100 * time.Millisecond
@@ -52,7 +64,6 @@ func Connect(cfg *config.Config) {
 	backoffPolicy.Multiplier = 1.5
 	backoffPolicy.RandomizationFactor = 0.1
 
-	var err error
 	var attemptCount int
 
 	// Retry logic for database connection
@@ -62,7 +73,7 @@ func Connect(cfg *config.Config) {
 			"attempt": attemptCount,
 		}).Debug("Database connection attempt")
 
-		DB, err = sql.Open("postgres", dsn)
+		DB, err = sql.Open("pgx", connStr)
 		if err != nil {
 			utils.WithFields(logrus.Fields{
 				"attempt": attemptCount,
