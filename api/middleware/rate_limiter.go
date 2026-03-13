@@ -125,6 +125,7 @@ func PerUserRateLimit() gin.HandlerFunc {
 		c.Header("X-RateLimit-Reset", fmt.Sprintf("%d", context.Reset))
 
 		if context.Reached {
+			c.Header("Retry-After", fmt.Sprintf("%d", context.Reset))
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error":       "Too many requests from this user",
 				"retry_after": context.Reset,

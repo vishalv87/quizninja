@@ -36,7 +36,7 @@ export function useDiscussions(filters?: DiscussionFilters) {
     queryKey: [QUERY_KEYS.DISCUSSIONS, filters],
     queryFn: () => getDiscussions(filters),
     staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -53,7 +53,7 @@ export function useDiscussion(discussionId: string, enabled: boolean = true) {
     queryFn: () => getDiscussion(discussionId),
     enabled: enabled && !!discussionId,
     staleTime: 1 * 60 * 1000, // 1 minute
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -86,7 +86,7 @@ export function useDiscussionReplies(
     queryFn: () => getDiscussionReplies(discussionId),
     enabled: enabled && !!discussionId,
     staleTime: 1 * 60 * 1000, // 1 minute
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 

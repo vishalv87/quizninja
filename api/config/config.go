@@ -115,7 +115,7 @@ func Load() *Config {
 		RateLimitGlobal:  getInt64Env("RATE_LIMIT_GLOBAL", 100),
 		RateLimitAuth:    getInt64Env("RATE_LIMIT_AUTH", 5),
 		RateLimitWrite:   getInt64Env("RATE_LIMIT_WRITE", 20),
-		RateLimitPerUser: getInt64Env("RATE_LIMIT_PER_USER", 60),
+		RateLimitPerUser: getInt64Env("RATE_LIMIT_PER_USER", 90),
 
 		// Request Size Limiting Configuration (values in MB, converted to bytes)
 		RequestSizeLimitEnabled: getBoolEnv("REQUEST_SIZE_LIMIT_ENABLED", true),

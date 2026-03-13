@@ -27,7 +27,7 @@ export function useLeaderboard(limit: number = 50): UseQueryResult<LeaderboardEn
       return Array.isArray(response.leaderboard) ? response.leaderboard : [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -46,7 +46,7 @@ export function useLeaderboardWithAchievements(limit: number = 50): UseQueryResu
       return Array.isArray(response.leaderboard) ? response.leaderboard : [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -68,7 +68,7 @@ export function useUserRank(): UseQueryResult<UserRankResponse | null, Error> {
     },
     enabled: !authLoading && isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 

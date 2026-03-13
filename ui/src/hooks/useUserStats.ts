@@ -17,7 +17,7 @@ export function useUserStats(): UseQueryResult<APIResponse<UserStats>, Error> {
     queryKey: ["user", "stats"],
     queryFn: getUserStats,
     staleTime: 2 * 60 * 1000, // 2 minutes - stats change frequently
-    refetchOnWindowFocus: true, // Refetch when user comes back to the app
+    refetchOnWindowFocus: false,
   });
 }
 

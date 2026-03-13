@@ -25,7 +25,7 @@ export function useUserAchievements(): UseQueryResult<UserAchievement[], Error> 
       return Array.isArray(response.achievements) ? response.achievements : [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -48,7 +48,7 @@ export function useUserAchievementsById(
     },
     enabled: enabled && !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 }
 

@@ -22,6 +22,13 @@ const axiosInstance = axios.create({
   },
 });
 
+// Track rate limit state to short-circuit requests while rate-limited
+let rateLimitedUntil = 0;
+
+export function isRateLimited(): boolean {
+  return Date.now() < rateLimitedUntil;
+}
+
 // Type the apiClient to return data directly
 export const apiClient = axiosInstance as typeof axiosInstance & {
   get: <T = any>(url: string, config?: any) => Promise<T>;
@@ -36,6 +43,15 @@ export const apiClient = axiosInstance as typeof axiosInstance & {
  */
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    // Short-circuit requests while rate-limited to avoid wasting bandwidth
+    if (isRateLimited()) {
+      apiLogger.warn('Request blocked - client is rate-limited', { url: config.url });
+      return Promise.reject({
+        message: 'Too many requests. Please wait a moment.',
+        status: 429,
+      });
+    }
+
     try {
       const session = await getSession();
       if (session?.access_token) {
@@ -105,6 +121,27 @@ apiClient.interceptors.response.use(
             message: errorData?.message || API_ERROR_MESSAGES.VALIDATION_ERROR,
             status: errorData?.status || status,
           });
+
+        case 429: {
+          // Rate limited — store the reset time to short-circuit future requests
+          const retryAfter = (errorData as any)?.retry_after;
+          const retryAfterHeader = error.response?.headers?.['retry-after'];
+          if (retryAfter) {
+            // Server returns unix timestamp in seconds
+            rateLimitedUntil = retryAfter * 1000;
+          } else if (retryAfterHeader) {
+            rateLimitedUntil = parseInt(retryAfterHeader, 10) * 1000;
+          } else {
+            // Fallback: back off for 60 seconds
+            rateLimitedUntil = Date.now() + 60000;
+          }
+          apiLogger.warn('Rate limited until', { resetAt: new Date(rateLimitedUntil).toISOString() });
+          return Promise.reject({
+            message: 'Too many requests. Please wait a moment.',
+            status: 429,
+            retryAfter: rateLimitedUntil,
+          });
+        }
 
         case 500:
         case 502:

@@ -29,9 +29,13 @@ export function useNotifications(filters?: NotificationFilter): UseQueryResult<N
       const response = await getNotifications(filters);
       return Array.isArray(response.notifications) ? response.notifications : [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes (notifications are time-sensitive)
-    refetchOnWindowFocus: true, // Refetch when user returns to window
-    refetchInterval: 60 * 1000, // Auto-refetch every 60 seconds for real-time feel
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => {
+      // Pause polling while rate-limited
+      if (query.state.error && (query.state.error as any).status === 429) return false;
+      return 2 * 60 * 1000; // 2 minutes
+    },
   });
 }
 
@@ -99,9 +103,13 @@ export function useNotificationStats(): UseQueryResult<NotificationStats, Error>
   return useQuery({
     queryKey: [QUERY_KEYS.NOTIFICATIONS, "stats"],
     queryFn: getNotificationStats,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 3 * 60 * 1000, // 3 minutes
     refetchOnWindowFocus: true,
-    refetchInterval: 60 * 1000, // Auto-refetch every 60 seconds
+    refetchInterval: (query) => {
+      // Pause polling while rate-limited
+      if (query.state.error && (query.state.error as any).status === 429) return false;
+      return 2 * 60 * 1000; // 2 minutes
+    },
   });
 }
 
