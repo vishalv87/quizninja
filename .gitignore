@@ -23,7 +23,8 @@ api/quizninja-api
 api/test-build
 api/coverage.out
 
-# Node.js (UI)
+# Node.js
+node_modules/
 ui/node_modules/
 ui/.next/
 ui/out/

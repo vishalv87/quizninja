@@ -1,4 +1,6 @@
-.PHONY: help setup api-setup ui-setup api-dev ui-dev api-build ui-build ui-lint ui-format docker-up docker-down
+GOBIN ?= $(shell go env GOPATH)/bin
+
+.PHONY: help setup api-setup ui-setup dev api-dev ui-dev api-build ui-build ui-lint ui-format docker-up docker-down
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -16,8 +18,11 @@ ui-setup: ## Set up UI (copy env, install npm packages)
 setup: api-setup ui-setup ## Set up both projects
 
 # Development
+dev: ## Start both API and UI with hot reload
+	npx concurrently -k -n api,ui -c blue,magenta "cd api && $(GOBIN)/air" "cd ui && npm run dev"
+
 api-dev: ## Start API with hot reload (requires air)
-	cd api && air
+	cd api && $(GOBIN)/air
 
 ui-dev: ## Start UI dev server on port 3001
 	cd ui && npm run dev
