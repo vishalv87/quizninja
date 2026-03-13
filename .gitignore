@@ -1,0 +1,33 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.test
+
+# Go (API)
+api/tmp/
+api/bin/
+api/dist/
+api/quizninja-api
+api/test-build
+api/coverage.out
+
+# Node.js (UI)
+ui/node_modules/
+ui/.next/
+ui/out/
+ui/build/
+ui/.vercel/
+ui/next-env.d.ts
+ui/*.tsbuildinfo

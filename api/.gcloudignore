@@ -1,15 +1,6 @@
 # .gcloudignore - Excludes files from Cloud Build deployment
 # This file works similar to .gitignore but for Google Cloud Build
 
-# Exclude sibling directories (CRITICAL - prevents multi-module confusion)
-../quizninja-background/
-../quizninja-temp/
-../quizninja-scrapers/
-../quizninja-requirements/
-../mix-n-match/
-../moneymagnet/
-../toenglish/
-
 # Git files
 .git
 .gitignore
